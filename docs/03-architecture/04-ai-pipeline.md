@@ -142,7 +142,7 @@ in the whole pipeline.
 
 Generated **per language from the fact set**, never translated from a generated English string —
 translating a hashtag-laden tweet produces garbage. See
-[accessibility and vernacular](10-accessibility-and-vernacular.md).
+[accessibility and vernacular](../02-product/10-accessibility-and-vernacular.md).
 
 ---
 

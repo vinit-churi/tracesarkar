@@ -1,0 +1,244 @@
+# Source register
+#
+# Every external data source the platform uses or plans to use. No ingester may be
+# built until its entry here has `terms_reviewed_on` and `robots_ok` filled in, and
+# `acquisition` is permitted by those terms.
+#
+# See docs/01-research/05-data-sources.md and
+#     docs/06-operations/03-legal-review-checklist.md §D
+#
+# status: planned | reviewing | active | blocked | retired
+
+sources:
+
+  # ---------------------------------------------------------------- procurement
+
+  - id: mahatenders
+    name: Maharashtra eProcurement (Mahatenders / GePNIC)
+    url: https://mahatenders.gov.in
+    category: procurement
+    acquisition: scrape
+    cadence: "0 2 * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    terms_reviewed_by: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/mahatenders/
+    parser: internal/ingest/mahatenders
+    status: planned
+    notes: >
+      State-wide tender notices, corrigenda, and award-of-contract. GePNIC has a
+      consistent structure across states. Expect session and captcha handling.
+      Blocking research: is any documented API or bulk export available?
+
+  - id: bmc_tenders
+    name: BMC tender portal
+    url: https://portal.mcgm.gov.in
+    category: procurement
+    acquisition: scrape
+    cadence: "30 2 * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/bmc_tenders/
+    status: planned
+    notes: SAP portal; URLs are brittle. Expect frequent parser maintenance.
+
+  - id: cppp
+    name: Central Public Procurement Portal
+    url: https://eprocure.gov.in
+    category: procurement
+    acquisition: scrape
+    cadence: "0 3 * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/cppp/
+    status: planned
+    notes: Central bodies — Railways, port trust.
+
+  # ----------------------------------------------------------------- geospatial
+
+  - id: bmc_arcgis
+    name: BMC ArcGIS REST services
+    url: https://services8.arcgis.com/r6MmJtuWAzMawmJ8/ArcGIS/rest/services
+    category: geospatial
+    acquisition: api
+    cadence: "0 4 * * 0"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/bmc_arcgis/
+    status: planned
+    notes: >
+      BMC's own published map layers. A second endpoint exists at
+      https://mybmcid.mcgm.gov.in/server/rest/services. Blocking task: enumerate
+      every layer, record schema, vintage, and licensing.
+
+  - id: datameet_boundaries
+    name: DataMeet Municipal Spatial Data
+    url: https://github.com/datameet/Municipal_Spatial_Data
+    category: geospatial
+    acquisition: bulk_download
+    cadence: monthly
+    licence: CC-BY-SA-2.5-IN
+    attribution_required: true
+    terms_reviewed_on: null
+    robots_ok: true
+    archive_prefix: s3://tracesarkar-archive/datameet/
+    status: planned
+    notes: >
+      Ward polygons in GeoJSON (WGS84 / EPSG:4326). Created by the Pune chapter of
+      DataMeet Trust. MMR coverage outside Greater Mumbai is incomplete — see repo
+      issue #53. Attribution is a licence obligation, not a courtesy.
+
+  - id: osm_overpass
+    name: OpenStreetMap (Overpass API)
+    url: https://overpass-api.de
+    category: geospatial
+    acquisition: api
+    cadence: monthly
+    licence: ODbL-1.0
+    attribution_required: true
+    terms_reviewed_on: null
+    robots_ok: true
+    archive_prefix: s3://tracesarkar-archive/osm/
+    status: planned
+    notes: >
+      Road centrelines, names, admin relations. Good for road naming and snap-to-road.
+      NOT authoritative for legal road ownership. ODbL share-alike obligations apply
+      to derived databases — check before publishing derived geometry.
+
+  # --------------------------------------------------------- weather / sensors
+
+  - id: iitm_mesonet
+    name: IITM Mumbai MESONET rainfall
+    url: https://mumbairain.tropmet.res.in
+    category: weather
+    acquisition: scrape
+    cadence: "*/15 * * * *"   # monsoon; hourly otherwise
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/mesonet/
+    status: blocked
+    blocker: >
+      Data is stated to be freely available for research and academic use. It is not
+      established that a public civic platform qualifies. BLOCKING: confirm terms
+      before enabling.
+    notes: ~139 sites; ~165 automatic rain gauges installed jointly by IITM, BMC, IMD.
+
+  - id: mumbai_flood
+    name: Mumbai Flood (IIT-B / BMC / HDFC ERGO)
+    url: https://www.mumbaiflood.in
+    category: weather
+    acquisition: scrape
+    cadence: "*/15 * * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/mumbaiflood/
+    status: blocked
+    blocker: Terms of use for a public platform not confirmed.
+
+  - id: imd
+    name: India Meteorological Department
+    url: https://mausam.imd.gov.in
+    category: weather
+    acquisition: scrape
+    cadence: "0 * * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/imd/
+    status: planned
+
+  - id: safar
+    name: SAFAR air quality
+    url: https://safar.tropmet.res.in
+    category: environment
+    acquisition: scrape
+    cadence: "0 * * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/safar/
+    status: planned
+
+  # ----------------------------------------------------------------------- news
+
+  - id: news_rss
+    name: Mumbai dailies (English + Marathi) RSS
+    url: null                      # multiple; see internal/ingest/news/feeds.yaml
+    category: news
+    acquisition: api
+    cadence: "*/30 * * * *"
+    licence: fair_use_extract_only
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/news/
+    status: planned
+    notes: >
+      Store headline, URL, publication, date, and a SHORT extract only. Never
+      republish full article text. Link out.
+
+  - id: dgipr
+    name: Maharashtra DGIPR press releases
+    url: https://dgipr.maharashtra.gov.in
+    category: news
+    acquisition: scrape
+    cadence: "0 * * * *"
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/dgipr/
+    status: planned
+    notes: Also the source for Government Resolutions.
+
+  # ------------------------------------------------------- corporate/blacklist
+
+  - id: mca
+    name: MCA21 master data
+    url: https://www.mca.gov.in
+    category: corporate
+    acquisition: api
+    cadence: on_demand
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/mca/
+    status: planned
+    notes: >
+      CIN is the authoritative contractor identity key. DIN enables corporate-lineage
+      detection. Publication of director overlaps requires DIN matching — name
+      matching alone is not publishable (common names).
+
+  - id: blacklist_notices
+    name: Municipal contractor blacklisting notices
+    url: null                      # per corporation
+    category: corporate
+    acquisition: scrape
+    cadence: weekly
+    licence: public_record
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/blacklists/
+    status: planned
+    notes: Published irregularly, usually as PDF. Per-corporation discovery required.
+
+  # ------------------------------------------------------------------ language
+
+  - id: bhashini
+    name: Bhashini / ULCA (ASR, NMT, TTS)
+    url: https://bhashini.gitbook.io/bhashini-apis
+    category: language
+    acquisition: api
+    cadence: on_demand
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: true
+    archive_prefix: null
+    status: blocked
+    blocker: >
+      BLOCKING for v0.4: confirm licensing and cost for use by a non-government
+      public platform at our scale.

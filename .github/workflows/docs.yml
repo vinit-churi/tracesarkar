@@ -1,0 +1,74 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: Relative links resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every relative markdown link
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r file; do
+            dir=$(dirname "$file")
+            while IFS= read -r target; do
+              path="${target%%#*}"
+              [ -z "$path" ] && continue
+              if [ ! -e "$dir/$path" ]; then
+                echo "BROKEN: $file -> $target"
+                fail=1
+              fi
+            done < <(grep -oE '\]\([^)]+\)' "$file" \
+                     | sed -E 's/^\]\(//; s/\)$//' \
+                     | grep -vE '^(https?:|mailto:|#)')
+          done < <(find . -name '*.md' -not -path './.git/*')
+          exit $fail
+
+  markdown-hygiene:
+    name: Markdown hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No tabs in markdown
+        run: |
+          if grep -rIl "$(printf '\t')" --include='*.md' . ; then
+            echo "Tabs found in markdown; use spaces."
+            exit 1
+          fi
+
+      - name: No trailing whitespace
+        run: |
+          if grep -rIn ' $' --include='*.md' . ; then
+            echo "Trailing whitespace found."
+            exit 1
+          fi
+
+  language-guard:
+    name: No accusatory language in product copy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The platform states facts and joins; it never asserts wrongdoing.
+      # Guards generated copy and instrument templates. Research prose that
+      # describes or quotes such terms lives elsewhere and is not scanned.
+      - name: Scan templates and product copy
+        run: |
+          set -uo pipefail
+          pattern='\b(scam|loot|shameful|caught red-handed)\b'
+          if grep -rInE "$pattern" docs/templates docs/02-product ; then
+            echo "Accusatory language found in product copy or templates."
+            echo "See docs/00-overview/04-naming-and-brand.md"
+            exit 1
+          fi
+          echo "Clean."
