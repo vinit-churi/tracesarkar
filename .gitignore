@@ -1,0 +1,71 @@
+# Binaries
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+watchdog
+tracesarkar
+
+# Go
+*.test
+*.out
+vendor/
+go.work.sum
+
+# Environment / secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+credentials.json
+
+# Data — the archive lives in object storage, not git
+data/archive/
+data/raw/
+data/cache/
+*.sqlite
+*.db
+*.dump
+*.sql.gz
+
+# Large geo files (use Git LFS or object storage)
+*.shp
+*.shx
+*.dbf
+*.gpkg
+*.tif
+*.tiff
+
+# Node (web client)
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Python (analysis notebooks)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# Logs and local state
+*.log
+tmp/
+.tmp/
+coverage.*
