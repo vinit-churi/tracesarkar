@@ -239,17 +239,42 @@ POST /v1/chat
 
 ## 4. Open311 compatibility
 
+**Read side only.** Decided 2026-08-24 (D029).
+
 ```http
 GET  /open311/v2/services.json
 GET  /open311/v2/services/{service_code}.json
-POST /open311/v2/requests.json
 GET  /open311/v2/requests.json
 GET  /open311/v2/requests/{service_request_id}.json
 GET  /open311/v2/tokens/{token}.json
 ```
 
-`service_code` maps to `(category, subcategory)`. Statuses map to the Open311 `open`/`closed` pair,
-with the richer TraceSarkar status exposed as an extension attribute:
+`POST /open311/v2/requests.json` is **not implemented and will not be.** Open311's create semantics
+let a third party file a request holding nothing but an API key, which is the exact shape
+[ADR 0007](../04-adr/0007-never-auto-file.md) forbids. A caller who wants to submit uses the core
+API with an authenticated human action. `GET /tokens/{token}.json` is retained only to return a
+well-formed error, since the spec pairs it with POST.
+
+### Field mapping
+
+| Open311 field | Source | Constraint |
+|---|---|---|
+| `service_code` | `issue.category_code` | Stable documented code per category |
+| `service_name` | Category label | Localised per the glossary |
+| `service_request_id` | `issue.id` (UUIDv7) | The spec does not constrain the format |
+| `status` | Lifecycle → `open` / `closed` only | Open311 has no intermediate states; the real status goes in `extensions` |
+| `lat` / `long` | **Coarsened** public coordinates | Never the exact reporter position |
+| `address_string` | Resolved locality and ward | Never a precise address |
+| `requested_datetime` / `updated_datetime` | `created_at` / `updated_at`, UTC | ISO 8601 with timezone |
+| `media_url` | Redacted public derivative | Never a tokenised URL, never the raw artefact |
+| `jurisdiction_id` | Platform-assigned domain identifier | Only needed if we ever serve several jurisdictions |
+
+Because the spec collapses everything to `open`/`closed`, `claimed_resolved` and `citizen_confirmed`
+are indistinguishable to an Open311 client. That is an acceptable loss on a compatibility surface and
+an unacceptable one anywhere else — see the screen spec's rule G14.
+
+Statuses map to the Open311 `open`/`closed` pair, with the richer TraceSarkar status exposed as an
+extension attribute:
 
 ```json
 {

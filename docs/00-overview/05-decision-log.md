@@ -62,3 +62,21 @@ plan:
 3. Reversing a decision → add a **new row** referencing the old one. Never edit history.
 4. A decision that turned out wrong is worth recording *as* wrong. The reasoning is the value, not
    the correctness.
+
+## 2026-08-24 — Data availability audit and UI specification
+
+| # | Decision | Rationale | Status |
+|---|---|---|---|
+| D026 | **Ingest BMC's roads dashboard API as a first-class source** | It publishes 2,237 works with contractor, dates and completion photos plus 2,405 road geometries keyed by work code — much of the contract-to-geometry join, already done by the authority | Accepted → [audit §1.1](../01-research/08-data-availability-audit.md) |
+| D027 | **Mahatenders is link-and-cite only; no automated collection** | `robots.txt` is `Disallow: /`, the award search is captcha-gated, and the copyright policy requires permission to reproduce. Hard rule 8 applies | Accepted |
+| D028 | **Strip personal contact fields at ingestion, always** | BMC's roads API returns contractor representatives' names and mobile numbers. They must never enter a derivative | Accepted |
+| D029 | **Open311 read side only; no `POST /requests`** | Open311's create semantics let a third party file with only an API key, which contradicts ADR 0007 | Accepted → amends [ADR 0010](../04-adr/0010-open311-compatibility.md) |
+| D030 | **Rebuild the compensation assistant around the DLSA Committee route** | The Bombay HC order routes claims to a Municipal Commissioner + DLSA Secretary committee that may act on information from any source — a far lower barrier than a High Court petition | Accepted → [key judgments](../01-research/06-key-judgments.md) |
+| D031 | **Model a representative layer; BMC has an elected council again since January 2026** | Escalation routing and "who is responsible" surfaces need corporators. The `COUNCILLOR` field in BMC's GIS is stale and must not be displayed | Accepted |
+| D032 | **Publish records about the office, never judgments about the person.** No credibility scores, no "promise broken", no party affiliation as a filter | The verbatim layer is well precedented and DPDP-exempt; the derived layer is the platform's own speech, unprotected by safe harbour, in a jurisdiction with no anti-SLAPP statute | Accepted → [ADR 0013](../04-adr/0013-political-accountability-scope.md) |
+| D033 | **Election-period freeze as a product control** | RPA s.126's 48-hour silence window is treated by the ECI as covering websites; the political-advertisement question is unresolved. A freeze makes it survivable | Accepted → [ADR 0013](../04-adr/0013-political-accountability-scope.md) |
+| D034 | **Drop the green-dominant palette; brand accent is plum on an ink/paper neutral base** | Saffron, green and blue are all party-coded in Maharashtra. Party-neutral perception is a functional requirement | Accepted → [screen spec §2.1](../02-product/11-screen-spec.md) |
+| D035 | **`claimed_resolved` and `citizen_confirmed` never share a label, filter or count in any UI** | The gap between them is the platform's headline statistic. A single "Resolved" chip destroys it | Accepted → [screen spec](../02-product/11-screen-spec.md) |
+| D036 | **The capture path has no wizard, no category picker and no description field** | The F1 constraint is under 30 seconds with zero required text input. A "details" step is a form | Accepted → [screen spec S02–S06](../02-product/11-screen-spec.md) |
+
+---

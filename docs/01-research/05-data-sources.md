@@ -125,6 +125,36 @@ primary-source verification before publication.
 
 ---
 
+## 7A. Verified additions — August 2026 audit
+
+Full evidence in [`08-data-availability-audit.md`](08-data-availability-audit.md). These rows were
+confirmed by direct fetch on 24 August 2026 and supersede the assumptions above where they conflict.
+
+| Source | Endpoint | What it gives | Status |
+|---|---|---|---|
+| **BMC roads dashboard API** | `https://roads.mcgm.gov.in:3000/api/` | `publicdashboard/` → 2,237 CC-road works with contractor, ward, status, dates, completion photo. `…roadlayer` → 2,405 road geometries with `workCode`, contractor, dates, PQC progress. `geo/getwardlayer` → 24 ward polygons. `ward/` → ward master | **Confirmed open, unauthenticated.** Terms not located; `robots.txt` 404. Highest-value source found |
+| **BMC ArcGIS Online** | `services8.arcgis.com/r6MmJtuWAzMawmJ8/…` | 106 services. `Prabhaag_Boundary` (227 polygons, `COUNCILLOR`, `JR_ENGG`), `Streets` (`CARRIAGE_W`, `NO_OF_LANE`, `DRV_STATUS`), `BMC_Ward`, `DP_KYW`, `DP_MIS`, building footprints | Confirmed open, no token. **`copyrightText` empty — licence unstated.** Get a written position before republishing |
+| **MIDC GIS** | `gis.midcindia.org/server/rest/services/CitizenPortal/…` | 306 industrial-area polygons, plot boundaries, ROW | Confirmed open; licence unstated |
+| **CPPP debarment lists** | `eprocure.gov.in/cppp/` → Debarred Bidders | Central debarment register with archive and revocations | Crawlable per robots.txt |
+
+### Acquisition decisions recorded
+
+| Source | Decision | Basis |
+|---|---|---|
+| **Mahatenders** | **No automated collection.** Link, cite, and retrieve manually; use RTI or a written permission request for anything larger | `robots.txt` is `Disallow: /`; AOC search is captcha-gated; copyright policy requires permission to reproduce. [Hard rule 8](../../CLAUDE.md) |
+| GeM | No automated collection | Captcha-gated |
+| Commercial tender aggregators | Not used without a licence agreement | Their terms forbid automated access |
+| BMC roads API | Ingest, with a conservative rate limit, full artefact archival, and a terms review recorded before the first production run | Public endpoint serving a public dashboard |
+| Survey of India Nakshe | Not used | Terms forbid export and commercialisation |
+| Google / Esri imagery | Not used as data; Esri tiles display-only if ever needed | Licence |
+
+### Mandatory ingestion filter
+
+The BMC roads API returns `contractorRepName` and `contractorRepMobile` — **personal contact details
+of named individuals**. The parser drops both fields at ingestion. They are never stored, never
+logged, and never reach a derivative. The same rule applies to any personal contact field
+encountered in any source.
+
 ## 8. Acquisition ethics and hygiene
 
 Non-negotiable rules for every scraper:

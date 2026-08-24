@@ -101,6 +101,38 @@ authoritative specification. Key points for agents:
 
 ---
 
+## Working on the UI
+
+[`docs/02-product/11-screen-spec.md`](docs/02-product/11-screen-spec.md) is the authority for every
+client surface — global rules, design tokens, component vocabulary, and 34 screens. Where a mockup
+and that file disagree, the file wins. Its §1 restates the hard rules above as UI rules; a screen
+that breaks one is wrong however good it looks. Generating screen imagery goes through
+[`12-ui-generation-guide.md`](docs/02-product/12-ui-generation-guide.md).
+
+Three that are violated most often: share is the primary action on an issue, not a header icon;
+`claimed_resolved` and `citizen_confirmed` never share a label or a count; and no button anywhere
+implies the platform files something.
+
+---
+
+## Before you rely on a data source
+
+[`docs/01-research/08-data-availability-audit.md`](docs/01-research/08-data-availability-audit.md)
+is a field survey from 24 August 2026 with a provenance mark on every row — ✅ means it was fetched
+first-hand, ○ means it was not. Retrieved artefacts live in
+[`docs/01-research/sources/`](docs/01-research/sources/).
+
+Two things it establishes that change how you should reason:
+
+- **BMC publishes an open JSON API** at `roads.mcgm.gov.in:3000/api/` carrying contractor, work
+  code, dates and geometry for 2,237 road works. Much of the contract-to-geometry join is already
+  done for the CC-road programme. Its `dlpPeriod` field is null throughout, and it returns personal
+  mobile numbers that must be stripped at ingestion.
+- **Mumbai has elected corporators again** (BMC polled 15 January 2026). Any doc that assumes an
+  administrator is stale, and the `COUNCILLOR` field in BMC's GIS predates the election.
+
+---
+
 ## Things that look like good ideas and are not
 
 | Idea | Why not |

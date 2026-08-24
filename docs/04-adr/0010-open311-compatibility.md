@@ -1,6 +1,7 @@
 # ADR 0010 — Expose an Open311 GeoReport v2 surface
 
-**Status:** Accepted · **Date:** 2026-08-10
+**Status:** Accepted · **Date:** 2026-08-10 · **Amended:** 2026-08-24 (read side only — see the
+amendment at the end)
 
 ## Context
 
@@ -58,3 +59,20 @@ fields spec-compliant.
 - We should also be able to *consume* Open311 if a corporation ever publishes one — the client side
   is a small addition to the filing-adapter framework, and worth building speculatively only once a
   real endpoint exists.
+
+---
+
+## Amendment, 2026-08-24 — read side only
+
+The [data availability audit](../01-research/08-data-availability-audit.md) confirmed by direct
+checking that **no Indian jurisdiction runs a live Open311 endpoint**, and that no MMR body exposes
+a citizen complaint API of any kind. The compatibility argument for the *read* side is unchanged and
+still cheap. The *write* side is now removed.
+
+`POST /requests` lets a caller create a service request holding nothing but an API key. That is
+third-party filing without a human action, which [ADR 0007](0007-never-auto-file.md) forbids
+outright. Implementing it "for standards compliance" would have put the forbidden code path in the
+codebase and relied on policy to keep it unused.
+
+**Decision:** the Open311 surface is `GET`-only. `POST /requests` returns `501` with a pointer to the
+core API. Recorded as D029 in the [decision log](../00-overview/05-decision-log.md).

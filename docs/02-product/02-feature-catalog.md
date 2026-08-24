@@ -3,6 +3,10 @@
 Every feature considered for TraceSarkar, with an honest assessment of value, cost, dependencies,
 and the milestone it belongs to. **Being in this catalog is not a commitment to build.**
 
+**Addendum, August 2026:** the [data availability audit](../01-research/08-data-availability-audit.md)
+established what public data actually exists. The features it unlocks — and the ones it kills — are
+in [`13-data-unlocked-features.md`](13-data-unlocked-features.md), catalogued as series K.
+
 Legend — **V** value (1–5), **C** build cost (1–5), **R** risk (1–5), **M** milestone.
 
 ---
@@ -79,7 +83,7 @@ Legend — **V** value (1–5), **C** build cost (1–5), **R** risk (1–5), **
 | E5 | Embeddable ward heatmap widget | 4 | 3 | 2 | v0.6 | For newsrooms |
 | E6 | Public read-only API | 4 | 2 | 2 | v0.5 | Researchers, newsrooms; Open311-compatible |
 | E7 | Weekly ward digest (email/WhatsApp) | 3 | 2 | 1 | v0.6 | Retention |
-| E8 | Councillor / MLA accountability page | 4 | 3 | 5 | v1+ | High political risk; strict sourcing rules |
+| E8 | Councillor / MLA accountability page | 4 | 3 | 5 | v1+ | **Redefined 2026-08-24:** a sourced *record* page, never a scorecard. Scope, permitted fields and the election-period freeze are fixed by [ADR 0013](../04-adr/0013-political-accountability-scope.md) |
 
 ## F. Trust, safety, and quality
 

@@ -27,6 +27,34 @@ generated instrument, or a UI affordance.
 The Court observed that refusing to award compensation "would amount to rendering lip service" to
 Article 21 rights.
 
+### Verified against the primary text — 24 August 2026
+
+The order text (`1-PIL-71-2013.doc`, uploaded 13/10/2025) was retrieved and read in full during the
+[data availability audit](08-data-availability-audit.md#60-the-bombay-high-court-pothole-order--verified-against-the-primary-text-). Every
+figure above is confirmed verbatim. **The operative directions are at paragraph 70, numbered (i) to
+(xi)** — cite them as `para 70(i)`, `para 70(ix)` and so on inside generated instruments.
+
+Newly precise details that the summary above did not capture:
+
+| Detail | Text |
+|---|---|
+| **The claim forum, para 70(ii)** | A Committee of the **Municipal Commissioner + the Secretary, District Legal Services Authority** inside a corporation; Chief Officer + DLSA in a council; District Collector + DLSA outside municipal limits; Principal Secretary / Chairperson / CEO + DLSA for MMRDA, MSRDC, PWD, BPT, NHAI |
+| **Committee cadence, para 70(iii)** | First meeting within **7 days** of receiving information; thereafter at least **every 15 days**, "more particularly, during the monsoon period" |
+| **Trigger, para 70(iv)** | The Committee may act suo motu, on application, **or "on receipt of information from any source, including newspaper reports"**. The station house officer must report an incident to the Committee within 48 hours |
+| **Liable authorities, para 70(i)** | Municipal Corporations, MMRDA, MSRDC, **MHADA**, BPT, NHAI, PWD — MHADA and BPT were missing from earlier summaries |
+| **The 48-hour rule, para 70(ix)** | "All potholes, once brought to the notice of the concerned Corporation or Authority, shall be attended to forthwith and, in any event, within forty-eight hours. Failure to do so shall constitute **gross negligence**…" |
+| **Road life, para 69** | The Court records that roads should "not require repairs for a minimum period of **five to ten years**" and directs authorities to bear that in mind when awarding contracts |
+| **Next hearing** | Compliance reports were called for on **21 November 2025** — later orders in this PIL may extend or modify these directions and must be tracked |
+
+**Product consequence that changes the design:** the compensation route is an administrative claim
+to a named Committee, not a High Court petition — and that Committee may act on information from
+any source. A sourced, timestamped, geotagged platform record is exactly such information. The
+compensation assistant should therefore generate a **Committee application**, addressed to the
+Municipal Commissioner and the district DLSA Secretary, for a human to file.
+
+A method note: an automated text search of this order for "48 hours" returns nothing, because the
+order writes "forty-eight hours". No legal constant changes on the strength of a keyword search.
+
 ### Earlier directions in the same line that the Court reiterated
 
 - A **single-window** grievance system for pothole complaints (originating in a 2015 Government
@@ -55,8 +83,9 @@ Article 21 rights.
 
 ### Verification tasks
 
-- [ ] Obtain the full order text from `bombayhighcourt.nic.in` and archive it in `docs/01-research/sources/`
-- [ ] Extract the exact operative paragraph numbers for citation inside generated instruments
+- [x] Obtain the full order text — read 24 Aug 2026 via Indian Kanoon. **Still to do:** archive the
+      certified copy from `bombayhighcourt.nic.in` in `docs/01-research/sources/`
+- [x] Extract the exact operative paragraph numbers — paragraph 70(i)–(xi), plus paragraph 69
 - [ ] Identify the constituted committees and their addresses per district — required for the
       claim assistant
 - [ ] Track subsequent compliance orders in the same PIL

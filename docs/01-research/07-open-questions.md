@@ -5,6 +5,32 @@ to find out.
 
 ---
 
+## Status after the August 2026 audit
+
+The [data availability audit](08-data-availability-audit.md) answered several of these and changed
+the shape of others. Read that page before treating anything below as current.
+
+| Question | What changed on 2026-08-24 |
+|---|---|
+| Q1 — work-site geocoding | **Narrowed, not answered.** For Mumbai's Mega CC-road programme, BMC publishes 2,405 road geometries with contractor and work code, so no geocoding is needed there. Q1 now applies to asphalt roads, other categories, and every other MMR body |
+| Q2 — Maharashtra RTI fee | **Still open, and now known to be contested.** ₹10 is long-standing; a ₹30 figure circulates with no gazette notification found. Needs a GAD notification, not a blog |
+| Q3 — terms of use | **Partly answered.** Mahatenders: `Disallow: /` plus captcha → no automated collection. GeM: captcha. CPPP: crawlable. **Still unknown:** `roads.mcgm.gov.in`, `portal.mcgm.gov.in`, MCGM's ArcGIS layers, the CPCB feed, and IITM MESONET for non-academic use |
+| Q5 — does any MMR corporation expose an API | **Answered: no.** Verified across MyBMC, Swachhata, CPGRAMS, Aaple Sarkar, RailMadad, MSRDC, MMRDA and the utilities. CPGRAMS has an integration path, but it is government-to-government only. Filing stays draft-plus-deep-link |
+| Q6 — road-ownership inventories | **Answered: none exists.** No dataset, state or central, carries a maintaining-agency attribute on a road geometry. The resolution ladder and the site-noticeboard capture idea are in the audit §2.2 |
+| Q8 — DLP distribution | **Still open, and the gap is confirmed.** BMC's roads API has a `dlpPeriod` field that is null in all 2,405 records. The 2017 PWD GR that reportedly sets 15/30-year DLPs is press-sourced only and must be retrieved by GR number |
+
+### New blocking questions
+
+| # | Question | Gates |
+|---|---|---|
+| Q27 | What are the terms of use for `roads.mcgm.gov.in`, and what licence covers MCGM's ArcGIS layers? Fetchability is not permission | v0.2 ingestion |
+| Q28 | Are there orders after 21 November 2025 in PIL 71/2013? Compliance reports were called for on that date, so the directions may have moved | Every legal constant derived from that order |
+| Q29 | Does the DPDP Act's publicly-available-data exemption cover republishing director and representative names, read properly by a lawyer rather than inferred from the text? | v0.5 contractor records, v1+ representative records |
+| Q30 | Is TraceSarkar a "publisher of news and current affairs content" under the IT Rules 2021, and can its content be characterised as a political advertisement requiring MCMC pre-certification? | Any representative-linked surface, and the first live election cycle |
+| Q31 | Can Bhashini be used in production by a non-government platform, and at what cost? The published terms scope the free tier to proof-of-concept | v0.4 voice |
+
+---
+
 ## Blocking — must be answered before the milestone they gate
 
 ### Q1 — Can tender work-sites be geocoded at usable accuracy? · gates v0.2

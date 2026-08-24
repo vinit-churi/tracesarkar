@@ -37,6 +37,7 @@ Everything in this repository, in reading order.
 | [Data sources](01-research/05-data-sources.md) | Every external feed, with acquisition strategy, format, cadence, and risk |
 | [Key judgments](01-research/06-key-judgments.md) | The Bombay HC 2025 pothole directions and their direct product consequences |
 | [Open questions](01-research/07-open-questions.md) | What we don't know, ordered by how much the answer changes the plan |
+| [Data availability audit](01-research/08-data-availability-audit.md) | **Aug 2026 field survey** — what public data actually exists, verified by direct fetch, with licence and terms verdicts |
 
 ## 02 — Product
 
@@ -52,6 +53,9 @@ Everything in this repository, in reading order.
 | [Trust and anti-abuse](02-product/08-trust-and-antiabuse.md) | Threat model, trust score, verification policy, image integrity, disputes |
 | [Gamification](02-product/09-gamification.md) | Rewarding accuracy and closure, never volume |
 | [Accessibility and vernacular](02-product/10-accessibility-and-vernacular.md) | Languages, voice, low bandwidth, WCAG, literacy |
+| [Screen specification](02-product/11-screen-spec.md) | The authoritative screen-by-screen definition: global rules, design tokens, components, 34 screens |
+| [UI generation guide](02-product/12-ui-generation-guide.md) | Style capsule, copy deck and per-screen prompts for producing screen imagery |
+| [Data-unlocked features](02-product/13-data-unlocked-features.md) | Series K — features grounded in sources verified by the August 2026 audit, and the ones the audit killed |
 
 ## 03 — Architecture
 
@@ -85,6 +89,7 @@ Everything in this repository, in reading order.
 | [0010](04-adr/0010-open311-compatibility.md) | Expose an Open311 surface |
 | [0011](04-adr/0011-phone-only-identity.md) | Phone-only identity; no Aadhaar |
 | [0012](04-adr/0012-licensing.md) | AGPL-3.0 code, CC BY-SA 4.0 data |
+| [0013](04-adr/0013-political-accountability-scope.md) | What may be published about elected representatives and candidates |
 
 ## 05 — Delivery
 
