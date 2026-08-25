@@ -60,8 +60,15 @@ is a brand-neutrality defect, not a style preference.)
 | `alert` | `#A33A1F` | Deadline passed, reopened, error. Always with an icon + label |
 | `alert-wash` | `#FBEDE8` | — |
 | `caution` | `#8A6410` | Low confidence, stale data, disputed |
-| `confirm` | `#1F6A4D` | **Only** for `citizen_confirmed` and successful capture. Never a surface fill |
+| `caution-wash` | `#FAF3E2` | Chip tint only |
+| `confirm` | `#1F6A4D` | **Only** for `citizen_confirmed` and successful capture |
+| `confirm-wash` | `#EAF3EF` | Chip tint only |
 | `evidence` | `#F2F0EB` | Fill for platform-statement blocks (see §3.1) |
+
+The two `-wash` tints exist so a status chip can carry a legible background. They are **chip tints,
+never panel or page fills** — a green or amber surface at any larger scale reintroduces exactly the
+colour-dominance problem the palette is designed around. `confirm` in particular never fills
+anything bigger than a chip.
 
 Contrast: every text/background pair ≥ 4.5:1; large text ≥ 3:1. Enforced by a CI check on the token
 file.
@@ -219,6 +226,14 @@ Sticky, appears only when the outbox is non-empty: `3 reports waiting to send ·
 | S32 | Settings — language, privacy, data | v0.1 | Language from day one |
 | S33 | Correction log + takedown | v0.5 | Public, dated |
 | S34 | Watchdog TUI | v0.6 | Terminal, separate spec |
+| S35 | Deadline wallet | v0.3 | Every clock the citizen is inside, soonest first |
+| S36 | Works near me | v0.3 | The retention surface. BMC's own works data |
+| S37 | Who do I call | v0.2 | Ward, department, engineer designation, PIO, helplines |
+| S38 | Evidence vault and export | v0.4 | Citable PDF with a provenance manifest |
+| S39 | Civic calendar | v0.6 | Public web; election entries are dates only |
+
+Screens S35–S39 are specified in [`14-civic-utility-features.md`](14-civic-utility-features.md),
+which carries their data sources, guardrails and failure modes.
 
 ---
 

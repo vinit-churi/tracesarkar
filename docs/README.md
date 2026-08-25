@@ -56,6 +56,7 @@ Everything in this repository, in reading order.
 | [Screen specification](02-product/11-screen-spec.md) | The authoritative screen-by-screen definition: global rules, design tokens, components, 34 screens |
 | [UI generation guide](02-product/12-ui-generation-guide.md) | Style capsule, copy deck and per-screen prompts for producing screen imagery |
 | [Data-unlocked features](02-product/13-data-unlocked-features.md) | Series K — features grounded in sources verified by the August 2026 audit, and the ones the audit killed |
+| [Civic utility features](02-product/14-civic-utility-features.md) | Series U — the surfaces that earn a weekly open: deadline wallet, warranty alerts, works near me, claim helper, evidence vault |
 
 ## 03 — Architecture
 
@@ -90,6 +91,7 @@ Everything in this repository, in reading order.
 | [0011](04-adr/0011-phone-only-identity.md) | Phone-only identity; no Aadhaar |
 | [0012](04-adr/0012-licensing.md) | AGPL-3.0 code, CC BY-SA 4.0 data |
 | [0013](04-adr/0013-political-accountability-scope.md) | What may be published about elected representatives and candidates |
+| [0014](04-adr/0014-assisted-filing-not-automated-submission.md) | Assisted filing on the citizen's device; never server-side submission or credential custody |
 
 ## 05 — Delivery
 

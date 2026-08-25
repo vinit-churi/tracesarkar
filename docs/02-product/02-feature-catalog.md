@@ -7,6 +7,10 @@ and the milestone it belongs to. **Being in this catalog is not a commitment to 
 established what public data actually exists. The features it unlocks — and the ones it kills — are
 in [`13-data-unlocked-features.md`](13-data-unlocked-features.md), catalogued as series K.
 
+The surfaces that make the platform worth opening between reports — deadline wallet, warranty
+expiry alerts, works near me, the claim helper, the evidence vault — are series U in
+[`14-civic-utility-features.md`](14-civic-utility-features.md).
+
 Legend — **V** value (1–5), **C** build cost (1–5), **R** risk (1–5), **M** milestone.
 
 ---

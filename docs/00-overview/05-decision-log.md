@@ -80,3 +80,18 @@ plan:
 | D036 | **The capture path has no wizard, no category picker and no description field** | The F1 constraint is under 30 seconds with zero required text input. A "details" step is a form | Accepted → [screen spec S02–S06](../02-product/11-screen-spec.md) |
 
 ---
+
+## 2026-08-25 — Filing mechanics and the utility layer
+
+| # | Decision | Rationale | Status |
+|---|---|---|---|
+| D037 | **No server-side submission to any government portal, by any mechanism** — no headless drivers, no request replay | Responsibility follows the signature; a wrongly filed instrument is unrecoverable; bulk filing invites dismissal of the platform as vexatious | Accepted → [ADR 0014](../04-adr/0014-assisted-filing-not-automated-submission.md) |
+| D038 | **Never hold a citizen's government-portal credentials or intercept their OTP** | Every filing route requires an account, several require payment. Server-side filing means a credential vault for government identities — a breach consequence out of all proportion to the convenience | Accepted → [ADR 0014](../04-adr/0014-assisted-filing-not-automated-submission.md) |
+| D039 | **No anti-detection or fingerprint-spoofing tooling against any government system** | A bot defence is the operator's answer. Circumvention is a different thing to defend, and it would taint every record the platform publishes | Accepted → [ADR 0014](../04-adr/0014-assisted-filing-not-automated-submission.md) |
+| D040 | **Build a utility layer, on the condition that every surface routes back to an accountability action** | Reporting is episodic; an app opened twice a year is deleted. But a utility surface with no route back is a worse version of an app that already exists | Accepted → [series U](../02-product/14-civic-utility-features.md) |
+| D041 | **Utility features are never measured by engagement** | Time-in-app is the metric that turns a civic record into a feed. The measures stay confirmed fixes, corroborations and instruments filed | Accepted |
+| D042 | **Warranty alerts ship in an honest mode before the DLP source is obtained** — completion date plus the Court's five-to-ten-year expectation, both sourced | Two sourced facts beat one inferred one, and it is still more than any other product tells a citizen | Accepted → U2 |
+| D043 | **Notification ceiling of five per user per week**, quiet hours 21:00–08:00, no re-engagement messages ever | The utility layer can generate unlimited messages. The budget is the control | Accepted → U9 §9 |
+
+---
+
