@@ -7,6 +7,11 @@
 # See docs/01-research/05-data-sources.md and
 #     docs/06-operations/03-legal-review-checklist.md §D
 #
+# Exception (D045): at the personal tier an ingester may run on a candidate source
+# whose terms are unreviewed but not known to forbid automation, and robots_ok is not
+# false. Its output may not reach a flagged or public surface until terms_reviewed_on
+# is filled. blocked sources never run. The blocklist applies at every tier.
+#
 # status: candidate | planned | reviewing | active | blocked | retired
 #
 # candidate = found and probed, not yet chosen. See docs/01-research/09-vertical-exploration.md

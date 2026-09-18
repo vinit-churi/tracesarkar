@@ -345,14 +345,15 @@ Every candidate is registered in [`data/sources.yaml`](../../data/sources.yaml) 
 |---|---|---|
 | Q32 | Terms for MahaRERA's map page and BMC's SWD API | V1, V2 at the public tier |
 | Q33 | Does the UDD GR of 27 Jun 2025 bind BMC's service limits? | U9 |
-| Q34 | Should the second geography be Pune or an MMR corporation? | Phasing |
-| Q35 | Partner with Pothole Reporter, or compete? | Phasing |
+| Q34 | Should the second geography be Pune or an MMR corporation? | Decided at the end of Phase 3 |
+| Q35 | Partner with Pothole Reporter, or compete? | Decided by the end of Phase 1 |
 | — | Should BMC be told its health layer is public? | Nothing; a maintainer decision |
 
 ---
 
-## 11. Next step
+## 11. Where this went
 
-Phase these into the roadmap: pick which verticals, which geography and which personal tools enter
-which milestone, and fold in the drift the September review found between the roadmap, backlog and
-source register and the August audit.
+Phased into the [roadmap](../05-delivery/01-roadmap.md) on 18 September 2026
+([D047](../00-overview/05-decision-log.md)). The personal tools became
+[Phase 0](../05-delivery/07-phase-0-instruments.md); V1 lands in Phase 2 before the 2027 monsoon;
+V2–V4 run flagged in Phase 3; V5 in Phase 4; V6–V7 in Phase 6.

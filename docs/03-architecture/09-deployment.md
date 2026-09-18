@@ -13,7 +13,7 @@ a monsoon traffic spike and can be operated by one person.
 | **Dokploy** | Open-source PaaS over Swarm; handles builds, env vars, Traefik, TLS, and rollouts; multi-node cluster support | Hand-rolled Ansible — more to maintain; Vercel/Render — cost and data-residency issues |
 | **Traefik** | Dokploy's built-in reverse proxy; Swarm-aware service discovery, automatic Let's Encrypt | nginx — more manual config for the same result |
 | **Managed Postgres or self-hosted with replication** | Postgres is the single source of truth; the backup and restore story must be boring | — |
-| **S3-compatible object storage** | Media and archive; lifecycle rules; CDN in front of public derivatives | Local disk — no |
+| **S3-compatible object storage** — Cloudflare R2 ([D046](../00-overview/05-decision-log.md)) | Media and archive; lifecycle rules; CDN in front of public derivatives. A bucket lock with indefinite retention makes `archive/` write-once. `media/` stays erasable for data-principal rights | Local disk — no |
 
 **Data residency:** Indian region where available. Civic data about Indian citizens processed under
 DPDP should not be casually offshored, and a domestic region is easier to defend in any government
@@ -202,6 +202,12 @@ TLS via Let's Encrypt through Traefik, auto-renewed. HSTS with preload once stab
 
 **Production media and archive buckets are never readable from non-production environments.** This is
 enforced by IAM policy, not by convention.
+
+**Phase 0 exception ([D046](../00-overview/05-decision-log.md)).** Snapshot history cannot be
+re-collected later, so the Phase 0 ingesters write to the **production archive bucket** from their
+first run, even though they run on the staging node. They hold write-only credentials scoped to
+`archive/` and `media/`. When production exists, the ingesters move there and staging loses those
+credentials.
 
 ---
 

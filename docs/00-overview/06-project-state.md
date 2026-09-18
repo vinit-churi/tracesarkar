@@ -1,0 +1,153 @@
+# Project state
+
+**Last updated: 18 September 2026.** Read this first when you pick the project up, on any device.
+It is a snapshot, not a spec: every line links to the document that holds the detail.
+
+---
+
+## 1. The goal
+
+A resident photographs a civic problem. TraceSarkar tells them which authority owns that spot,
+which public contract covers it, and whether it is still under warranty. It then drafts the next
+step: a complaint, an RTI, an appeal, a compensation claim. The resident files it themselves;
+the platform never does.
+
+It starts in one ward (BMC R/S, Kandivali West) with one kind of problem (road defects). The bet
+behind it is that **showing the contract changes what people do**. Every phase is gated on evidence
+that the bet is holding. If it isn't, the plan says to stop and re-plan around escalation instead.
+
+More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md).
+
+---
+
+## 2. Where things stand
+
+| | |
+|---|---|
+| Code | **None yet.** The repository is documentation and design |
+| Plan | Restructured into Phases 0–6 on 18 Sep 2026 — [roadmap](../05-delivery/01-roadmap.md) |
+| Current phase | **Phase 0, not started** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
+| Branch | `docs/vertical-exploration`, not yet merged to `main` |
+
+---
+
+## 3. What happened on 18 September 2026
+
+1. **Checked the Screen Book artifact.** It draws 56 screens covering 113 of 129 catalogued
+   features. Still pending: screens S13 and S24 are not drawn; 21 drawn screens have no entry in the
+   [screen spec](../02-product/11-screen-spec.md). Both are backlog tasks.
+2. **Found the docs out of step with the August data audit.** Only 1 of its 10 follow-ups had
+   landed. The roadmap still planned to crawl Mahatenders, which the project had already ruled out.
+   The ones that matter now are fixed; the rest are backlog tasks.
+3. **Explored new verticals**, with three research passes and first-hand checks. The result is
+   [vertical exploration](../01-research/09-vertical-exploration.md). Headlines:
+   - BMC also publishes an open API for storm-water drain desilting — drains can follow roads.
+   - MahaRERA publishes 52,529 construction projects with coordinates in one download.
+   - Pune publishes more contract-to-location data than BMC does.
+   - A competitor exists: Pothole Reporter, an Android app launched in August 2026.
+   - Several public BMC map layers expose personal data, including patient-level health records.
+4. **Corrected the August audit.** The warranty-period (DLP) rule is a PWD resolution of
+   14 Jan 2019, not 27 Apr 2017. A cited "BMC" page was Bhubaneswar's. Flooding history is public.
+   A 2023 rate schedule exists.
+5. **Caught a live change.** BMC's roads data listed 58 deleted works on 24 August and 60 on
+   18 September. Which two changed is unknowable, because nothing was archiving. That is why Phase 0
+   exists.
+6. **Re-planned** the roadmap into phases and wrote the Phase 0 spec.
+
+---
+
+## 4. Decisions to confirm
+
+These were approved quickly during the session. They are recorded in the
+[decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
+any is wrong, say so and it gets reversed with a new log row.**
+
+| # | Decision | What it means in practice |
+|---|---|---|
+| D044 | Exposure tiers instead of legal-risk filtering | Any feature can be built. It starts as `personal` (only you), `flagged` (invite-only) or `public`. The hard rules in `CLAUDE.md` bite when something goes public |
+| D045 | Personal-tier ingesters may run before terms are reviewed | The snapshotter can start on BMC's APIs now, without waiting for MCGM to answer a terms request. Nothing it collects goes public until the terms are reviewed. Mahatenders stays off entirely |
+| D046 | One VPS + Cloudflare R2 | You need a small VPS running Dokploy, and an R2 bucket. Archived government documents are locked forever; report photos are not, so they can be deleted on request. The Phase 0 archive is the real, permanent one from day one |
+| D047 | Personal tools before the public app | Nothing public ships until Phase 1 (target Feb 2027). Drains must be live by April 2027, before the monsoon |
+
+Also chosen, not logged as decisions: the verticals order (drains first, then construction sites,
+building safety and hoardings behind a flag, then trees), and starting with personal tools.
+
+---
+
+## 5. The plan
+
+| Phase | What | Target |
+|---|---|---|
+| **0 · Instruments** | Daily archive of BMC's works data, watchers for new government resolutions and court judgments, a browser extension for saving documents by hand, a field-capture app, an RTI tracker | Nov 2026 |
+| 1 · v0.1 | The public report loop in one ward, with contract attribution from BMC's own roads data | Feb 2027 |
+| 2 · v0.2 | Drains, "BMC says complete vs your photo", public change log, works near me | Apr 2027 |
+| 3 · v0.3 | RTIs, deadline wallet, WhatsApp; construction sites, building safety and hoardings behind a flag | Jun 2027 |
+| 4 · v0.4 | Compensation claims, escalation ladder, trees, evidence vault | late 2027 |
+| 5 · v0.5–0.6 | A second city or corporation, public API, contractor records | 2028 |
+| 6 · v0.7+ | Depth | — |
+
+Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200 known-ward points ·
+20 contract documents saved · one RTI filed by you.
+
+---
+
+## 6. Next actions
+
+**Only you can do these:**
+
+- [ ] Read §4 and confirm or reverse each decision
+- [ ] Review and merge the `docs/vertical-exploration` branch
+- [ ] Decide whether to tell BMC that its health-department map layer exposes patient records
+- [ ] Get a small VPS and a Cloudflare R2 bucket ready (or hand over credentials for a session to
+      set them up)
+- [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM
+- [ ] Decide whether you want to talk to the Pothole Reporter maintainer (Q35)
+
+**The next working session:**
+
+- [ ] Write the Phase 0 implementation plan
+- [ ] Build the scaffold and the roads snapshotter first. Every day without it is a day of BMC's
+      record that nobody keeps
+
+Full task list: [backlog](../05-delivery/03-backlog.md).
+
+---
+
+## 7. Open questions that matter now
+
+| # | Question | Why now |
+|---|---|---|
+| Q2 | What is the Maharashtra RTI fee? | Blocks RTI generation; your first RTI settles it |
+| Q27, Q32 | Terms for BMC's APIs, ArcGIS layers and MahaRERA | Blocks anything from them going public |
+| Q28 | Orders in the pothole PIL after Nov 2025 | Every pothole deadline and compensation figure rests on that order |
+| Q34 | Second geography: Pune or an MMR corporation? | Decided at the end of Phase 3 |
+| Q35 | Partner with Pothole Reporter, or compete? | Decided by the end of Phase 1 |
+
+All of them: [open questions](../01-research/07-open-questions.md).
+
+---
+
+## 8. Where to look
+
+| For | Read |
+|---|---|
+| The rules that are never broken | [`CLAUDE.md`](../../CLAUDE.md) |
+| Why the project exists | [Vision](01-vision.md) |
+| The whole plan | [Roadmap](../05-delivery/01-roadmap.md) |
+| What to build next | [Phase 0](../05-delivery/07-phase-0-instruments.md), then the [backlog](../05-delivery/03-backlog.md) |
+| What public data exists | [August audit](../01-research/08-data-availability-audit.md), [September exploration](../01-research/09-vertical-exploration.md) |
+| Every feature ever considered | [Feature catalog](../02-product/02-feature-catalog.md) and series [K](../02-product/13-data-unlocked-features.md), [U](../02-product/14-civic-utility-features.md) |
+| What was decided and why | [Decision log](05-decision-log.md) |
+| Every screen | [Screen spec](../02-product/11-screen-spec.md) |
+
+---
+
+## 9. Resuming on another device
+
+```sh
+git fetch origin
+git checkout docs/vertical-exploration
+make docs-check
+```
+
+Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §6."*

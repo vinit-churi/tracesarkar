@@ -17,6 +17,10 @@ Read [`README.md`](README.md) first, then
 **Current state: documentation and design. There is no application code yet.** Do not assume code
 exists; check before referencing it.
 
+**Start every session with
+[`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md)** — the current
+phase, decisions awaiting confirmation, and next actions.
+
 ---
 
 ## Hard rules

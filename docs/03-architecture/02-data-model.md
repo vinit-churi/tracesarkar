@@ -442,7 +442,8 @@ CREATE INDEX ON escalations (limitation_ends_on) WHERE status IN ('draft','ready
 CREATE TABLE filings (
   id              uuid PRIMARY KEY,
   escalation_id   uuid REFERENCES escalations(id),
-  issue_id        uuid NOT NULL REFERENCES issues(id),
+  issue_id        uuid REFERENCES issues(id),  -- null when the instrument concerns something else
+  subject         jsonb,                   -- {kind: work|contract|building|other, ref: …} when issue_id is null
   account_id      uuid NOT NULL REFERENCES accounts(id),
   channel         text NOT NULL,           -- mybmc | aaple_sarkar | swachhata | railmadad | rti_online | ngt | ejagriti
   external_ref    text,                    -- the official ticket / registration number
@@ -513,6 +514,8 @@ CREATE TABLE legal_constants (
   value         jsonb NOT NULL,
   citation      text NOT NULL,          -- the judgment / rule / notification
   citation_url  text,
+  verification  text NOT NULL             -- verified | secondary | unverified; public surfaces need 'verified'
+                CHECK (verification IN ('verified','secondary','unverified')),
   effective_from date NOT NULL,
   effective_to  date,
   created_at    timestamptz NOT NULL DEFAULT now()
@@ -530,7 +533,8 @@ CREATE TABLE sources (
   terms_reviewed_on date,
   terms_reviewed_by text,
   robots_ok     boolean,
-  status        text NOT NULL DEFAULT 'planned',
+  status        text NOT NULL DEFAULT 'planned',   -- candidate | planned | reviewing | active | blocked | retired
+  blocklist     text[] NOT NULL DEFAULT '{}',      -- fields dropped by the parser at every tier
   last_success_at timestamptz,
   last_error    text
 );
@@ -546,6 +550,7 @@ CREATE TABLE raw_documents (
   retrieved_at  timestamptz NOT NULL,
   parsed_at     timestamptz,
   parse_status  text,
+  captured_by   text NOT NULL,           -- 'ingester:<id>' | 'manual:<account_id>'
   UNIQUE (sha256)
 );
 
@@ -583,6 +588,110 @@ CREATE TABLE disputes (
   received_at   timestamptz NOT NULL DEFAULT now(),
   decided_at    timestamptz
 );
+```
+
+---
+
+## 9A. Phase 0 instruments
+
+Tables the [Phase 0](../05-delivery/07-phase-0-instruments.md) tools need. All of them outlive Phase
+0: `works` and `work_changes` become the public change log (U14), `clock_instances` becomes the
+deadline wallet (U1), and `report_labels` holds the evaluation sets.
+
+```sql
+-- One row per fetch attempt, whatever the outcome. The body is archived only when its hash is new.
+CREATE TABLE fetch_log (
+  id              uuid PRIMARY KEY,
+  source_id       text NOT NULL REFERENCES sources(id),
+  endpoint        text NOT NULL,
+  requested_at    timestamptz NOT NULL,
+  status_code     int,
+  bytes           bigint,
+  sha256          bytea,
+  raw_document_id uuid REFERENCES raw_documents(id),   -- set only when the body was new
+  error           text
+);
+CREATE INDEX ON fetch_log (source_id, endpoint, requested_at DESC);
+
+-- Latest known state of each record in a published works dataset, after the blocklist strip.
+CREATE TABLE works (
+  id              uuid PRIMARY KEY,
+  source_id       text NOT NULL REFERENCES sources(id),
+  endpoint        text NOT NULL,
+  natural_key     text NOT NULL,           -- fixed per endpoint in code; a collision is an error
+  current         jsonb NOT NULL,
+  geom            geometry(Geometry,4326),
+  first_seen_at   timestamptz NOT NULL,
+  last_seen_at    timestamptz NOT NULL,
+  vanished_at     timestamptz,
+  raw_document_id uuid NOT NULL REFERENCES raw_documents(id),
+  UNIQUE (source_id, endpoint, natural_key)
+);
+CREATE INDEX ON works USING gist (geom);
+
+-- Every observed change, with both values and both source documents.
+CREATE TABLE work_changes (
+  id                   uuid PRIMARY KEY,
+  work_id              uuid NOT NULL REFERENCES works(id),
+  kind                 text NOT NULL,      -- added | changed | vanished | reappeared
+  field                text,               -- null unless kind = 'changed'
+  old_value            jsonb,
+  new_value            jsonb,
+  prev_raw_document_id uuid REFERENCES raw_documents(id),
+  raw_document_id      uuid NOT NULL REFERENCES raw_documents(id),
+  observed_at          timestamptz NOT NULL
+);
+CREATE INDEX ON work_changes (observed_at DESC);
+CREATE INDEX ON work_changes (work_id, observed_at DESC);
+
+-- Government resolutions seen by the watcher. The classification is a lead for a human,
+-- never a legal_constants value.
+CREATE TABLE gr_items (
+  sanketank       text PRIMARY KEY,
+  issued_on       date,
+  raw_document_id uuid REFERENCES raw_documents(id),
+  classification  jsonb,                   -- department, subject, any period, fee or time limit
+  prompt_version  text,
+  model           text,
+  reviewed_by     uuid REFERENCES accounts(id),
+  reviewed_at     timestamptz,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE court_items (
+  id              uuid PRIMARY KEY,
+  source_id       text NOT NULL REFERENCES sources(id),
+  cnr             text,
+  case_number     text,
+  decided_on      date,
+  matched_on      text NOT NULL,           -- the watch term that matched
+  raw_document_id uuid REFERENCES raw_documents(id),
+  UNIQUE (source_id, cnr)
+);
+
+-- Human labels on field-kit reports: the classification eval set and the jurisdiction golden set.
+CREATE TABLE report_labels (
+  report_id         uuid PRIMARY KEY REFERENCES reports(id),
+  frame_type        text NOT NULL,         -- close | wide | noticeboard
+  label             text NOT NULL,         -- taxonomy subcategory, or 'not_civic'
+  conditions        text[] NOT NULL DEFAULT '{}',   -- day | night | rain | motion_blur
+  ward_ground_truth text,                  -- golden points only
+  labelled_by       uuid NOT NULL REFERENCES accounts(id),
+  labelled_at       timestamptz NOT NULL DEFAULT now()
+);
+
+-- A running clock. It keeps the legal_constants version it started under.
+CREATE TABLE clock_instances (
+  id          uuid PRIMARY KEY,
+  filing_id   uuid REFERENCES filings(id),
+  issue_id    uuid REFERENCES issues(id),
+  constant_id uuid NOT NULL REFERENCES legal_constants(id),
+  starts_at   timestamptz NOT NULL,
+  due_at      timestamptz NOT NULL,
+  status      text NOT NULL DEFAULT 'running',   -- running | met | missed | superseded
+  CHECK (filing_id IS NOT NULL OR issue_id IS NOT NULL)
+);
+CREATE INDEX ON clock_instances (due_at) WHERE status = 'running';
 ```
 
 ---

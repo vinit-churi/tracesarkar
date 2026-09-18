@@ -8,6 +8,7 @@ Everything in this repository, in reading order.
 
 | # | Document | What it answers |
 |---|---|---|
+| 0 | [Project state](00-overview/06-project-state.md) | **Where things stand right now, and what to do next** |
 | 1 | [Vision](00-overview/01-vision.md) | What are we building and why |
 | 2 | [Problem statement](00-overview/02-problem-statement.md) | What is actually broken in MMR |
 | 3 | [Snap-to-action pipeline](02-product/04-snap-to-action-pipeline.md) | How the product works, end to end |
@@ -25,6 +26,7 @@ Everything in this repository, in reading order.
 | [Glossary](00-overview/03-glossary.md) | Canonical terms, statuses, MMR authorities, legal instruments, conventions |
 | [Naming and brand](00-overview/04-naming-and-brand.md) | The name, tone, and what the platform never says |
 | [Decision log](00-overview/05-decision-log.md) | Chronological record of decisions, with pointers to ADRs |
+| [Project state](00-overview/06-project-state.md) | Snapshot: goal, current phase, decisions to confirm, next actions, how to resume |
 
 ## 01 — Research
 
@@ -98,12 +100,13 @@ Everything in this repository, in reading order.
 
 | Document | Contents |
 |---|---|
-| [Roadmap](05-delivery/01-roadmap.md) | v0.1 → v1.0 with falsifiable exit criteria and stop-and-replan gates |
+| [Roadmap](05-delivery/01-roadmap.md) | Phases 0–6 with exposure tiers, falsifiable exit criteria and stop-and-replan gates |
 | [v0.1 MVP](05-delivery/02-milestone-v0-mvp.md) | Scope, build order, blocking checklist, exit criteria |
 | [Backlog](05-delivery/03-backlog.md) | Concrete tasks, ordered |
 | [Metrics](05-delivery/04-metrics.md) | North star, accountability metrics, funnel, anti-metrics |
 | [Risks](05-delivery/05-risks.md) | Scored register with triggers |
 | [GTM and partnerships](05-delivery/06-gtm-and-partnerships.md) | Distribution thesis, launch sequence, sustainability |
+| [Phase 0 — instruments](05-delivery/07-phase-0-instruments.md) | The first build: archive, snapshotter, watchers, capture tools, exit criteria |
 
 ## 06 — Operations
 

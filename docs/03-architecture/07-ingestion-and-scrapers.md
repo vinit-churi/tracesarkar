@@ -7,16 +7,17 @@ permitted — a scraper that nobody can audit produces data nobody can cite.
 
 ## 1. Guarantees
 
-Every ingester must provide all six:
+Every ingester must provide all seven:
 
 | # | Guarantee | Enforcement |
 |---|---|---|
-| 1 | **Archive the raw artefact** before parsing | The fetch stage writes to S3 + `raw_documents` with a SHA-256; parsing reads from the archive, never from the network |
+| 1 | **Archive the raw artefact** before parsing | Every attempt is logged in `fetch_log`. A body whose SHA-256 is new is written to the archive and `raw_documents`; an unchanged body is logged, not re-stored. Parsing reads from the archive, never from the network |
 | 2 | **Idempotent** | Re-running over the same period produces no duplicates; upserts keyed on `(source_id, external_id)` |
 | 3 | **Resumable** | Checkpointed; a crash resumes from the last committed cursor |
 | 4 | **Polite** | Rate limits, backoff, conditional requests, honest User-Agent |
 | 5 | **Loud on failure** | Zero-row runs and parse-rate drops alert; they never pass silently |
 | 6 | **Provenance-preserving** | Every derived row carries `source_id`, `raw_document_id`, and `retrieved_at` |
+| 7 | **Blocklist-stripping** | Fields in the source's register `blocklist` are dropped by the parser before a record exists. A shared test fails if one reaches a parsed record. Applies at every exposure tier |
 
 ---
 
@@ -60,7 +61,7 @@ Non-negotiable defaults, overridable only downward:
 | Conditional requests | `If-None-Match` / `If-Modified-Since` always sent when known |
 | Backoff | Exponential with jitter on 429/5xx; circuit-break after 5 consecutive failures |
 | Crawl window | Prefer 00:00–06:00 IST for bulk runs |
-| Terms of use | Reviewed and recorded in the source register **before** the ingester is enabled |
+| Terms of use | Reviewed and recorded in the source register before the ingester feeds any `flagged` or `public` surface. A `personal`-tier ingester may run on a `candidate` source whose terms are unreviewed but not known to forbid automation ([D045](../00-overview/05-decision-log.md)) |
 
 **If a site's terms forbid automated access, we do not scrape it.** The decision is recorded in the
 source register and RTI becomes the acquisition channel. This is a hard rule, not a risk calculation.
@@ -93,11 +94,21 @@ disputing a fact can be given the exact artefact it came from.
 
 ## 5. Ingesters
 
+### 5.0 Published works data
+
+Added September 2026. The authority's own works datasets, snapshotted daily and diffed. See
+[Phase 0](../05-delivery/07-phase-0-instruments.md#62-p1--works-snapshotter).
+
+| Ingester | Source | Cadence | Notes |
+|---|---|---|---|
+| `bmc_roads_api` | `roads.mcgm.gov.in:3000/api/` | Daily | Blocklist `contractorRepName`, `contractorRepMobile`. Natural keys per endpoint |
+| `bmc_swd_api` | `swd.mcgm.gov.in/swdwebapi<season>/` | Daily | Blocklist `VehicleNo`, `SlipNo`. Probes the next season's path from January |
+
 ### 5.1 Procurement
 
 | Ingester | Source | Cadence | Notes |
 |---|---|---|---|
-| `mahatenders` | `mahatenders.gov.in` | Daily 02:00 IST | GePNIC; session and captcha handling; paginate by closing date and organisation |
+| ~~`mahatenders`~~ | `mahatenders.gov.in` | — | **No automated collection** ([D027](../00-overview/05-decision-log.md)): `robots.txt` is `Disallow: /`. Documents arrive by manual capture only |
 | `bmc_tenders` | `portal.mcgm.gov.in` | Daily 02:30 | SAP portal; brittle URLs; expect frequent parser maintenance |
 | `cppp` | `eprocure.gov.in` | Daily 03:00 | Central bodies |
 | `contract_pdfs` | Follow-on | Continuous | Downloads linked PDFs for contracts lacking extraction |
@@ -146,6 +157,13 @@ Entity extraction runs downstream (see [AI pipeline](04-ai-pipeline.md)).
 |---|---|---|
 | `mca_lookup` | MCA master data | On demand, per contractor |
 | `blacklist_notices` | Per-corporation debarment notices | Weekly |
+
+### 5.6 Legal watchers
+
+| Ingester | Source | Cadence | Notes |
+|---|---|---|---|
+| `maha_gr` | Internet Archive mirror of `gr.maharashtra.gov.in` | Daily | New GRs archived and classified with structured output. A classification is a lead for a human, never a `legal_constants` value |
+| `hc_judgments` | Open Bombay HC judgments parquet | Weekly | Matches on watched case numbers and party names |
 
 ---
 
@@ -213,7 +231,10 @@ credibility.
 
 - [ ] Build the ingester framework with archive, lock, retry, and metrics
 - [ ] Populate the source register with terms reviews for every planned source
-- [ ] Implement `mahatenders` for one ward, one category, one financial year
+- [ ] ~~Implement `mahatenders` for one ward, one category, one financial year~~ — manual capture
+      only (D027)
+- [ ] Implement `bmc_roads_api` and `bmc_swd_api` (Phase 0)
+- [ ] Implement the `maha_gr` and `hc_judgments` watchers (Phase 0)
 - [ ] Implement `bmc_arcgis` boundary loader with versioning
 - [ ] Implement `iitm_mesonet` (after terms confirmation)
 - [ ] Implement `news_rss` for 6 publications

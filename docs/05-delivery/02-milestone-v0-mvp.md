@@ -2,6 +2,12 @@
 
 **If you read one page in this repository, read this one.**
 
+> **Amended 18 September 2026.** v0.1 is now Phase 1 of the [roadmap](01-roadmap.md) and follows
+> [Phase 0](07-phase-0-instruments.md), which delivers the scaffold, the archive, the evaluation
+> sets and the hand-built contract documents. Attribution for concretised roads now uses BMC's own
+> roads API (K1): R/S ward has 118 CC-road works in it, 109 of them completed ✅. The hand-built
+> dataset covers the remaining roads.
+
 ---
 
 ## 1. The one-sentence scope
@@ -24,7 +30,7 @@ Nothing else.
 | BMC as the only authority | MMRDA, PWD, MSRDC, Railways |
 | Web PWA | Native apps |
 | English + Marathi | Hindi, Gujarati |
-| Manual contract dataset | Automated tender ingestion |
+| Roads-API attribution (K1) + hand-built dataset for other roads | Automated tender ingestion |
 | Share kit + permalink | Filing adapters, RTI, escalation |
 | Phone OTP + rate limits | Full trust score, moderation queue |
 
@@ -50,7 +56,12 @@ That last point is the most important design decision in the whole plan.
 
 ## 4. The manual contract dataset
 
-For R/S ward, one financial year, road works only:
+**Scope reduced 18 September 2026:** roads inside BMC's CC programme are attributed from the roads
+API, so this dataset covers the rest. It is assembled in Phase 0 through the manual-capture
+extension (P3), because Mahatenders may not be crawled
+([D027](../00-overview/05-decision-log.md)).
+
+For R/S ward, one financial year, road works outside the CC programme:
 
 1. Pull every BMC road contract for R/S from Mahatenders and the BMC portal **by hand**
 2. Archive each source page and PDF with a hash
@@ -70,18 +81,19 @@ answers are the ground truth against which geocoding recall and precision are me
 
 | # | Work | Depends on |
 |---|---|---|
-| 1 | Repo scaffold, CI, Docker Compose, migrations | — |
+| 1 | Repo scaffold, CI, Docker Compose, migrations — **delivered in Phase 0** | — |
 | 2 | Schema: accounts, reports, issues, media, events, authorities, wards | 1 |
 | 3 | Phone OTP auth, rate limits | 2 |
 | 4 | `POST /v1/reports` with media upload to object storage | 2, 3 |
-| 5 | Worker framework + job queue | 2 |
+| 5 | Worker framework + job queue (the ingest runner exists from Phase 0) | 2 |
 | 6 | Redaction (server-side; on-device deferred to v0.2) | 5 |
-| 7 | Classification call + eval set (500 labelled photos) | 5 |
+| 7 | Classification call + eval harness over the Phase 0 label set | 5 |
 | 8 | R/S ward boundary loaded and verified; BMC department mapping | 2 |
-| 9 | Jurisdiction resolver + golden set (200 points) | 8 |
+| 9 | Jurisdiction resolver, tested on the Phase 0 golden set | 8 |
 | 10 | Dedup + issue creation + corroboration | 2, 9 |
-| 11 | Manual contract dataset loaded | 2 |
-| 12 | Attribution join (spatial, against the manual dataset) | 10, 11 |
+| 11 | Roads-API geometry loaded from P1's `works`; hand-built dataset loaded | 2 |
+| 12 | Attribution join (spatial, against both), with the coverage-honesty line (K7) | 10, 11 |
+| 12a | Who do I call (U8) | 8 |
 | 13 | SLA clock from `legal_constants` | 10 |
 | 14 | Issue permalink page + OG cards | 10, 12 |
 | 15 | Share kit: annotated image + text (en/mr) | 14 |
@@ -177,6 +189,9 @@ Realistic for one to two people working seriously:
 | Eval sets (labelling 500 photos, 200 golden points) | 2 weeks, overlapping |
 | Legal and compliance work | 2 weeks, overlapping |
 | **Total** | **~3 months** |
+
+Since the September 2026 restructure, the research and data-acquisition row and the eval-set row
+are done in [Phase 0](07-phase-0-instruments.md), so v0.1 itself is closer to two months.
 
 The research phase is not a warm-up. Ward boundaries, department mappings, and the manual contract
 dataset are the project's actual moat, and rushing them produces a product that routes wrongly — the

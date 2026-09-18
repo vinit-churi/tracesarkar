@@ -37,8 +37,8 @@ See [vertical exploration §10](09-vertical-exploration.md#10-still-open).
 |---|---|---|
 | Q32 | What are the terms for MahaRERA's project map and BMC's storm-water drain desilting API? | Construction-site and drainage verticals at the public tier |
 | Q33 | Does the UDD GR of 27 June 2025, which shortens limits for 25 municipal services, bind BMC? | U9 service deadline lookup |
-| Q34 | Should the second geography be Pune or an MMR corporation? | Phasing |
-| Q35 | Partner with Pothole Reporter, or compete with it? | Phasing |
+| Q34 | Should the second geography be Pune or an MMR corporation? | Decided at the end of Phase 3, on works-to-location data, open GIS, and need |
+| Q35 | Partner with Pothole Reporter, or compete with it? | Decided by the end of Phase 1 |
 
 ---
 
