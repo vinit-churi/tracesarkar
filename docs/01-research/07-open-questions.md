@@ -17,17 +17,28 @@ the shape of others. Read that page before treating anything below as current.
 | Q3 — terms of use | **Partly answered.** Mahatenders: `Disallow: /` plus captcha → no automated collection. GeM: captcha. CPPP: crawlable. **Still unknown:** `roads.mcgm.gov.in`, `portal.mcgm.gov.in`, MCGM's ArcGIS layers, the CPCB feed, and IITM MESONET for non-academic use |
 | Q5 — does any MMR corporation expose an API | **Answered: no.** Verified across MyBMC, Swachhata, CPGRAMS, Aaple Sarkar, RailMadad, MSRDC, MMRDA and the utilities. CPGRAMS has an integration path, but it is government-to-government only. Filing stays draft-plus-deep-link |
 | Q6 — road-ownership inventories | **Answered: none exists.** No dataset, state or central, carries a maintaining-agency attribute on a road geometry. The resolution ladder and the site-noticeboard capture idea are in the audit §2.2 |
-| Q8 — DLP distribution | **Still open, and the gap is confirmed.** BMC's roads API has a `dlpPeriod` field that is null in all 2,405 records. The 2017 PWD GR that reportedly sets 15/30-year DLPs is press-sourced only and must be retrieved by GR number |
+| Q8 — DLP distribution | **Still open for BMC; the state reference point is now sourced.** BMC's roads API has a `dlpPeriod` field that is null in all 2,405 records. ~~The 2017 PWD GR that reportedly sets 15/30-year DLPs is press-sourced only and must be retrieved by GR number~~ — **18 Sep 2026:** the PWD GR is dated 14 Jan 2019 and sets 10 years for rigid pavement ≥30 cm, 5 for designed flexible pavement, 20 for bridges, for PWD works only. BMC contracts still need their own documents. See [the transcription](sources/2026-09-18-pwd-dlp-gr-2019.md) |
 
 ### New blocking questions
 
 | # | Question | Gates |
 |---|---|---|
 | Q27 | What are the terms of use for `roads.mcgm.gov.in`, and what licence covers MCGM's ArcGIS layers? Fetchability is not permission | v0.2 ingestion |
-| Q28 | Are there orders after 21 November 2025 in PIL 71/2013? Compliance reports were called for on that date, so the directions may have moved | Every legal constant derived from that order |
+| Q28 | Are there orders after 21 November 2025 in PIL 71/2013? Compliance reports were called for on that date, so the directions may have moved. **Partly answered 18 Sep 2026:** the 13 Oct 2025 order was passed in IA No. 29119/2025, and State GRs of 19 Nov 2025, 11 Dec 2025 and 20 May 2026 implement it ◐. The orders themselves remain behind the captcha | Every legal constant derived from that order |
 | Q29 | Does the DPDP Act's publicly-available-data exemption cover republishing director and representative names, read properly by a lawyer rather than inferred from the text? | v0.5 contractor records, v1+ representative records |
 | Q30 | Is TraceSarkar a "publisher of news and current affairs content" under the IT Rules 2021, and can its content be characterised as a political advertisement requiring MCMC pre-certification? | Any representative-linked surface, and the first live election cycle |
 | Q31 | Can Bhashini be used in production by a non-government platform, and at what cost? The published terms scope the free tier to proof-of-concept | v0.4 voice |
+
+### Added by the September 2026 vertical exploration
+
+See [vertical exploration §10](09-vertical-exploration.md#10-still-open).
+
+| # | Question | Gates |
+|---|---|---|
+| Q32 | What are the terms for MahaRERA's project map and BMC's storm-water drain desilting API? | Construction-site and drainage verticals at the public tier |
+| Q33 | Does the UDD GR of 27 June 2025, which shortens limits for 25 municipal services, bind BMC? | U9 service deadline lookup |
+| Q34 | Should the second geography be Pune or an MMR corporation? | Phasing |
+| Q35 | Partner with Pothole Reporter, or compete with it? | Phasing |
 
 ---
 

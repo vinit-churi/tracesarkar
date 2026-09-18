@@ -145,10 +145,17 @@ blacklisting source with a citable URL.
 
 ### 1.5 Defect liability periods — still the critical gap
 
-- ○ A Maharashtra PWD GR dated 27 April 2017 is *reported* to set 15-year DLP for bituminous roads,
-  30 years for cement concrete, and up to 100 years for bridges. **Sourced only from press
+> **Correction, 18 September 2026.** No GR dated 27 April 2017 was found. The operative resolution
+> is PWD GR संकीर्ण-2018/प्र.क्र.151/इमारती-2 of **14 January 2019** ✅: 10 years for rigid pavement
+> ≥30 cm, 5 years for designed flexible pavement, 20 years for bridges. It binds PWD works, not BMC
+> contracts. See
+> [vertical exploration §7](09-vertical-exploration.md#7-corrections-to-earlier-documents) and the
+> [transcription](sources/2026-09-18-pwd-dlp-gr-2019.md).
+
+- ~~○ A Maharashtra PWD GR dated 27 April 2017 is *reported* to set 15-year DLP for bituminous
+  roads, 30 years for cement concrete, and up to 100 years for bridges. **Sourced only from press
   coverage.** The GR itself must be retrieved from `gr.maharashtra.gov.in` before any of these
-  numbers goes into `legal_constants`.
+  numbers goes into `legal_constants`.~~ The press figures describe expected life, not DLP.
 - ◐ MoRTH's national EPC standard is 5 years flexible / 10 years rigid pavement, reportedly doubled
   for EPC contracts in 2024.
 - ✅ BMC's own works API carries a `dlpPeriod` field that is empty.
@@ -304,6 +311,10 @@ citizen-accessible feed.** iFLOWS output is described as going to IMD-Mumbai and
 management department. BRIMSTOWAD documents and BMC's annual pre-monsoon chronic-flooding spot lists
 have no stable public URL — RTI or a direct request to BMC's Storm Water Drains department.
 
+> **Update, 18 September 2026.** A spot *history* is public: BMC's ArcGIS incident layer holds
+> 14,220 geocoded waterlogging incidents from 2001 to 2023 ✅, and BMC's storm-water drain desilting
+> API is open ✅. See [vertical exploration](09-vertical-exploration.md#v1--drains-and-flooding).
+
 ### 4.4 Satellite ◐
 
 | Source | Use |
@@ -363,7 +374,7 @@ before anything is displayed. A cleaned CSV exists at `data.opencity.in/dataset/
 
 | Source | Use |
 |---|---|
-| BMC Unified Schedule of Rates (`portal.mcgm.gov.in`, USOR PDFs) | Per-item civic work rates. Lets the platform state "this repair is rated at ₹X/m² under USOR <edition>" with a citation. ○ Latest confirmed edition is 2018 — verify for a newer one |
+| BMC Unified Schedule of Rates (`portal.mcgm.gov.in`, USOR PDFs) | Per-item civic work rates. Lets the platform state "this repair is rated at ₹X/m² under USOR <edition>" with a citation. ~~○ Latest confirmed edition is 2018 — verify for a newer one~~ ◐ Roads USOR 2023 found 18 Sep 2026 — see [vertical exploration §7](09-vertical-exploration.md#7-corrections-to-earlier-documents) |
 | Maharashtra PWD State Schedule of Rates | ◐ Latest confirmed 2022-23 |
 | BMC budget documents (Budget A/B/G) | PDF only, per year; historical ward-level breakdowns exist |
 | `cityfinance.in` | Standardised audited ULB accounts for 4,000+ bodies — peer comparison |
@@ -492,7 +503,7 @@ about a *specific register on a specific date*, and must render that way or not 
 | Maharashtra SIC | Bench-wise RTI decision listings |
 | e-Jagriti | Consumer commission filing and case status |
 | RTI Online Maharashtra | State RTI filing and first appeal |
-| **BMC public disclosure (RTI s.4(1)(b))** | `bmc.gov.in/public-disclosure/485` — includes a downloadable **list of all BMC PIOs**. No First Appellate Authority directory found |
+| ~~**BMC public disclosure (RTI s.4(1)(b))**~~ | ~~`bmc.gov.in/public-disclosure/485` — includes a downloadable list of all BMC PIOs.~~ **Withdrawn 18 Sep 2026:** `bmc.gov.in` is Bhubaneswar Municipal Corporation. Mumbai's PIO list must come from `portal.mcgm.gov.in` |
 | MMRDA RTI page | SPIO contact only; no consolidated PIO/FAA directory found |
 
 ### 6.4 Legal constants — verified, disputed, and unverified
@@ -571,13 +582,14 @@ decoration.
 
 - Terms of use for `roads.mcgm.gov.in` and `portal.mcgm.gov.in` — neither located.
 - A written licence position from MCGM for the ArcGIS layers.
-- The 27 April 2017 PWD GR on defect liability periods, by GR number.
+- ~~The 27 April 2017 PWD GR on defect liability periods, by GR number.~~ Answered 18 Sep 2026:
+  the GR is dated 14 January 2019 — see §1.5.
 - The BMC 24-hour pothole circular, by number and date.
 - **Orders after 21 November 2025 in PIL 71/2013** — compliance reports were called for on that
   date, so the directions may have been extended or modified.
 - The DPDP Act's publicly-available-data exemption, read properly by a lawyer.
 - Maharashtra RTI fee, by gazette notification.
 - SEC's structured ward-to-corporator mapping for the 2026 result.
-- Whether a newer BMC USOR edition supersedes 2018.
+- ~~Whether a newer BMC USOR edition supersedes 2018.~~ Answered 18 Sep 2026: Roads USOR 2023 ◐.
 - Whether Mahatenders' non-AOC searches are also captcha-gated.
 - Bhashini production licensing terms and cost.

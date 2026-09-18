@@ -38,6 +38,7 @@ Everything in this repository, in reading order.
 | [Key judgments](01-research/06-key-judgments.md) | The Bombay HC 2025 pothole directions and their direct product consequences |
 | [Open questions](01-research/07-open-questions.md) | What we don't know, ordered by how much the answer changes the plan |
 | [Data availability audit](01-research/08-data-availability-audit.md) | **Aug 2026 field survey** — what public data actually exists, verified by direct fetch, with licence and terms verdicts |
+| [Vertical exploration](01-research/09-vertical-exploration.md) | **Sep 2026 survey** — new issue domains, datasets, geographies and personal tools, scored and provenance-marked; corrections to the audit |
 
 ## 02 — Product
 

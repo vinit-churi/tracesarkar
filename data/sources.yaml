@@ -7,7 +7,9 @@
 # See docs/01-research/05-data-sources.md and
 #     docs/06-operations/03-legal-review-checklist.md §D
 #
-# status: planned | reviewing | active | blocked | retired
+# status: candidate | planned | reviewing | active | blocked | retired
+#
+# candidate = found and probed, not yet chosen. See docs/01-research/09-vertical-exploration.md
 
 sources:
 
@@ -17,19 +19,23 @@ sources:
     name: Maharashtra eProcurement (Mahatenders / GePNIC)
     url: https://mahatenders.gov.in
     category: procurement
-    acquisition: scrape
-    cadence: "0 2 * * *"
+    acquisition: manual
+    cadence: null
     licence: unverified
-    terms_reviewed_on: null
+    terms_reviewed_on: 2026-08-24
     terms_reviewed_by: null
-    robots_ok: null
+    robots_ok: false
     archive_prefix: s3://tracesarkar-archive/mahatenders/
     parser: internal/ingest/mahatenders
-    status: planned
+    status: blocked
+    blocker: >
+      No automated collection (D027, hard rule 8): robots.txt is Disallow: /, award
+      search is captcha-gated, and the copyright policy requires permission to
+      reproduce. Link and cite; retrieve by hand; use RTI or written permission for
+      anything larger. The parser handles hand-retrieved documents only.
     notes: >
-      State-wide tender notices, corrigenda, and award-of-contract. GePNIC has a
-      consistent structure across states. Expect session and captcha handling.
-      Blocking research: is any documented API or bulk export available?
+      State-wide tender notices, corrigenda, and award-of-contract. BMC tender IDs of
+      the form 2026_MCGM_<n>_<k> key into it.
 
   - id: bmc_tenders
     name: BMC tender portal
@@ -42,7 +48,11 @@ sources:
     robots_ok: null
     archive_prefix: s3://tracesarkar-archive/bmc_tenders/
     status: planned
-    notes: SAP portal; URLs are brittle. Expect frequent parser maintenance.
+    notes: >
+      SAP portal; URLs are brittle. Expect frequent parser maintenance. The e-tender
+      listing (irj/portal/anonymous/qletenders_new) held 352 notices on 18 Sep 2026
+      and needs a browser session. Notices return 404 once withdrawn, so archive on
+      first sight. Listings only, no awards.
 
   - id: cppp
     name: Central Public Procurement Portal
@@ -73,7 +83,14 @@ sources:
     notes: >
       BMC's own published map layers. A second endpoint exists at
       https://mybmcid.mcgm.gov.in/server/rest/services. Blocking task: enumerate
-      every layer, record schema, vintage, and licensing.
+      every layer, record schema, vintage, and licensing. Useful layers found
+      18 Sep 2026: Disaster_Management_Resources/1 (70,096 incidents),
+      Survey_for_Capturing_Hoardings_public, Toilets.
+    blocklist: >
+      Never ingest Health_Department_Data, Licensed_And_Unlicensed_Stalls_Details,
+      BMC_SWM_Complaints_Data, Health_Post, or Vendor_Details_Mapping (personal
+      data). Strip _3a_name_of_police_team_member_ from the hoardings layer.
+      Screen incident REMARKS and LOCATION free text.
 
   - id: datameet_boundaries
     name: DataMeet Municipal Spatial Data
@@ -242,3 +259,201 @@ sources:
     blocker: >
       BLOCKING for v0.4: confirm licensing and cost for use by a non-government
       public platform at our scale.
+
+  # ------------------------------------ candidates, September 2026 exploration
+  #
+  # Found and probed; not yet chosen. Evidence in docs/01-research/sources/.
+  # No ingester may be built until terms are reviewed and status moves on.
+
+  - id: bmc_roads_api
+    name: BMC roads dashboard API
+    url: https://roads.mcgm.gov.in:3000/api/
+    category: works
+    acquisition: api
+    cadence: daily
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null            # robots.txt returns 404
+    archive_prefix: s3://tracesarkar-archive/bmc_roads_api/
+    status: candidate
+    blocklist: contractorRepName, contractorRepMobile
+    notes: >
+      2,237 CC-road works and 2,405 geometries keyed by work code. dlpPeriod is null
+      throughout. Status counts move between snapshots (58 -> 60 Deleted, Aug -> Sep
+      2026), so archive every change. Open question Q27.
+
+  - id: bmc_swd_api
+    name: BMC storm-water drain desilting API
+    url: https://swd.mcgm.gov.in/swdwebapi2026/
+    category: works
+    acquisition: api
+    cadence: daily
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null            # robots.txt returns 404
+    archive_prefix: s3://tracesarkar-archive/bmc_swd_api/
+    status: candidate
+    blocklist: VehicleNo, SlipNo
+    notes: >
+      Progress card is GET; nallah-level records (agency, work code, ward, lat/long)
+      are POST. Prior seasons under WMS2025 and wms_2022. Open question Q32.
+
+  - id: cpcb_caaqms
+    name: CPCB CAAQMS live air-quality feed
+    url: https://airquality.cpcb.gov.in/caaqms/rss_feed
+    category: environment
+    acquisition: api
+    cadence: hourly
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/cpcb_caaqms/
+    status: candidate
+    notes: Keyless XML; 29 Mumbai and Navi Mumbai stations. See audit section 4.1.
+
+  - id: maharera_map
+    name: MahaRERA project registry map
+    url: https://maharera.maharashtra.gov.in/map-projects-search-result
+    category: permits
+    acquisition: bulk_download
+    cadence: weekly
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null            # robots.txt returns 403
+    archive_prefix: s3://tracesarkar-archive/maharera/
+    status: candidate
+    notes: >
+      One GET returns 52,529 registered projects with certificate number, promoter,
+      plot bearing (CTS) and declared coordinates; 7,971 in Mumbai. Open question Q32.
+
+  - id: bmc_autodcr
+    name: BMC AutoDCR building-proposal citizen search
+    url: https://autodcr.mcgm.gov.in/CitizenSearch/CitizenSearch.aspx
+    category: permits
+    acquisition: manual
+    cadence: on_demand
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null            # robots.txt returns 404
+    archive_prefix: s3://tracesarkar-archive/autodcr/
+    status: candidate
+    blocklist: applicant names
+    notes: Permission stage (IOD, CC, OC) by ward, CTS or SAC. ASP.NET postback.
+
+  - id: maha_gr_archive
+    name: Maharashtra Government Resolutions, with Internet Archive mirror
+    url: https://gr.maharashtra.gov.in
+    category: legal
+    acquisition: api
+    cadence: daily
+    licence: public_record
+    terms_reviewed_on: null
+    robots_ok: true
+    archive_prefix: s3://tracesarkar-archive/maha_gr/
+    status: candidate
+    notes: >
+      Primary search is captcha-gated; direct PDF links are not. The Internet Archive
+      mirror (in.gov.maharashtra.gr.<sanketank>, 172,402 items) is searchable by GET
+      through archive.org/advancedsearch.php. Source for every legal_constants
+      citation that rests on a GR.
+
+  - id: bmc_c1_list
+    name: BMC C1 dilapidated-buildings list
+    url: https://portal.mcgm.gov.in
+    category: buildings
+    acquisition: manual
+    cadence: yearly            # before each monsoon
+    licence: public_record
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/bmc_c1/
+    status: candidate
+    notes: PDF, 178 buildings on 30 Apr 2026; ward, beat, name, address; no coordinates.
+
+  - id: bmc_election_gazette
+    name: Maharashtra Govt Gazette, BMC 2026 election result
+    url: https://portal.mcgm.gov.in
+    category: representation
+    acquisition: manual
+    cadence: on_change
+    licence: public_record
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/bmc_election_gazette/
+    status: candidate
+    notes: >
+      Part II No. 11, 19 Jan 2026: winner, party, votes for all 227 prabhags. Text
+      layer is glyph-corrupted; OCR plus a human check. Governed by ADR 0013.
+
+  - id: bmc_usor
+    name: BMC Unified Schedule of Rates
+    url: https://portal.mcgm.gov.in
+    category: money
+    acquisition: manual
+    cadence: on_change
+    licence: public_record
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/bmc_usor/
+    status: candidate
+    notes: Roads USOR 2023 found (71 pages). Other departments' folders need a session.
+
+  - id: bombay_hc_judgments
+    name: Indian High Court judgments open dataset (Bombay benches)
+    url: s3://indian-high-court-judgments
+    category: legal
+    acquisition: bulk_download
+    cadence: weekly
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/hc_judgments/
+    status: candidate
+    notes: Metadata parquet per bench and year; judgments and final orders only.
+
+  - id: ecmpcb_consents
+    name: MPCB consent-management records
+    url: https://ecmpcb.in/cms
+    category: environment
+    acquisition: manual
+    cadence: on_demand
+    licence: restricted
+    terms_reviewed_on: null
+    robots_ok: false           # disallows /public/pdf
+    archive_prefix: null
+    status: candidate
+    notes: >
+      About 247,000 consent records, no coordinates. Terms bar reproduction or storage
+      for commercial purposes. Personal tier only until terms are reviewed.
+
+  - id: pmc_iwms
+    name: Pune Municipal Corporation works GIS (IWMS)
+    url: https://iwmsgis.pmc.gov.in/geoserver/ows
+    category: works
+    acquisition: api
+    cadence: weekly
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: true
+    archive_prefix: s3://tracesarkar-archive/pmc_iwms/
+    status: candidate
+    blocklist: Name_of_JE, Contact_Number
+    notes: >
+      WFS layers IWMS_line (29,070), IWMS_polygon (22,490), IWMS_point (3,164), all
+      departments, with tender amount, agency and budget code. Agency is often a
+      person's name. Open question Q34.
+
+  - id: kdmc_arcgis
+    name: KDMC ArcGIS server
+    url: https://maps.kdmc.gov.in/agserver/rest/services
+    category: geospatial
+    acquisition: api
+    cadence: weekly
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/kdmc_arcgis/
+    status: candidate
+    notes: >
+      Admin and election wards, 4,331 road segments. Project layers exist but hold
+      no records; name them in an RTI.

@@ -107,9 +107,12 @@ has ever been told. It converts a vague grievance into a timed right. It is also
 can copy without doing the contract join.
 
 **Data.** Contract identity and dates come from the contract dataset. **The DLP duration itself is
-currently unavailable** — BMC's roads API carries a `dlpPeriod` field that is null in all 2,405
-records, and the Maharashtra PWD government resolution reported to set 15-year and 30-year periods
-is press-sourced only. See audit §1.5 and open question Q8.
+currently unavailable for BMC contracts** — BMC's roads API carries a `dlpPeriod` field that is null
+in all 2,405 records. The state reference point is now sourced: PWD GR of 14 January 2019 sets 10
+years for rigid pavement ≥30 cm and 5 years for designed flexible pavement, **for PWD works only**
+([transcription](../01-research/sources/2026-09-18-pwd-dlp-gr-2019.md)). It does not bind BMC, so it
+may be shown as a labelled reference, never as this contract's period. See audit §1.5 and open
+question Q8.
 
 **Therefore, two rendering modes:**
 
@@ -428,9 +431,9 @@ habit, the third is what makes the accountability machinery feel like a service.
 
 | Feature | Blocker | Who resolves it |
 |---|---|---|
-| U2 full mode | The DLP government resolution, by GR number | A morning in the GR archive, or an RTI |
-| U9 | The RTS notified-services list | A browser pass on the state portal, or an RTI |
-| U11 | Whether a BMC USOR edition supersedes 2018 | A check on the BMC portal |
+| U2 full mode | ~~The DLP government resolution, by GR number~~ Found 18 Sep 2026 (PWD works only). Now: BMC's own contract DLP clauses | Contract documents, or an RTI |
+| U9 | The RTS notified-services list. A UDD GR of 27 Jun 2025 revises 25 municipal service limits; whether it binds BMC is Q33 | A browser pass on the state portal, or an RTI |
+| U11 | ~~Whether a BMC USOR edition supersedes 2018~~ Roads USOR 2023 found 18 Sep 2026 ◐ | — |
 | U5, U14 | Terms of use for `roads.mcgm.gov.in` | A written request to MCGM |
 | U6 | Terms for the CPCB feed | A written request to CPCB |
 | Rainfall context | IITM's position on MESONET use by a non-academic platform | A written request to IITM |

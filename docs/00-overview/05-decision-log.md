@@ -95,3 +95,8 @@ plan:
 
 ---
 
+## 2026-09-18 — Vertical exploration
+
+| # | Decision | Rationale | Status |
+|---|---|---|---|
+| D044 | **Exposure tiers replace legal risk as a scoping filter.** Every feature starts as `personal` (maintainers only), `flagged` (feature flag, invite-only) or `public`. The hard rules in `CLAUDE.md` are checked when a feature moves to `public`; the personal-data blocklist applies at every tier | Legal exposure is controlled by who can see a feature, not by whether it is built. Scoping on legal risk was stopping exploration of features that are safe to run privately | Accepted → [vertical exploration §1](../01-research/09-vertical-exploration.md#exposure-tiers) |
