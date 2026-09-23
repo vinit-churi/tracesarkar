@@ -4,6 +4,7 @@
 //	ingest run [source ...]   snapshot every schedulable source, or those named
 //	ingest status             per-endpoint collection health
 //	ingest changes [--since]  recent changes to published works data
+//	ingest watch              archive newly published Government Resolutions
 //
 // Exposure tier comes from TRACESARKAR_TIER and defaults to personal (D044).
 package main
@@ -25,6 +26,7 @@ import (
 	"github.com/vinit-churi/tracesarkar/internal/notify"
 	"github.com/vinit-churi/tracesarkar/internal/sources"
 	"github.com/vinit-churi/tracesarkar/internal/store"
+	"github.com/vinit-churi/tracesarkar/internal/watch"
 	"github.com/vinit-churi/tracesarkar/internal/works"
 )
 
@@ -50,6 +52,8 @@ func main() {
 		err = runStatus(ctx)
 	case "changes":
 		err = runChanges(ctx, os.Args[2:])
+	case "watch":
+		err = runWatch(ctx, os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -71,6 +75,7 @@ func usage() {
   ingest run [source ...]    snapshot schedulable sources
   ingest status              per-endpoint collection health
   ingest changes [--since d] recent changes (default 7 days)
+  ingest watch [--limit n]   archive newly published Government Resolutions
 
 Configuration comes from .env or the environment:
   R2_BUCKET_URL, R2_BUCKET_NAME, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY,
@@ -235,6 +240,61 @@ func describeChange(c works.Change) string {
 	default:
 		return fmt.Sprintf("%s: %s", c.NaturalKey, c.Kind)
 	}
+}
+
+func runWatch(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("watch", flag.ExitOnError)
+	limit := fs.Int("limit", 25, "how many new resolutions to fetch in one run")
+	rows := fs.Int("rows", 100, "how many recent items to examine")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	cfg, db, closeDB, err := load(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeDB()
+
+	arch, err := archive.New(archive.Options{
+		Endpoint:  cfg.R2.Endpoint,
+		Bucket:    cfg.R2.Bucket,
+		Region:    cfg.R2.Region,
+		AccessKey: cfg.R2.AccessKey,
+		Secret:    cfg.R2.Secret,
+	})
+	if err != nil {
+		return err
+	}
+
+	watcher := watch.NewGRWatcher(ingest.NewFetcher(nil, ingest.DefaultUserAgent), arch, db)
+	watcher.Limit = *limit
+	watcher.Rows = *rows
+	watcher.Log = slog.Default()
+
+	result, runErr := watcher.Run(ctx)
+	slog.Info("watch finished",
+		"source", "maha_gr_archive",
+		"examined", result.Seen, "new", result.New, "flagged", len(result.Hits))
+
+	if len(result.Hits) > 0 {
+		alerts := notify.New(cfg.NotifyWebhook, nil, slog.Default())
+		lines := make([]string, 0, len(result.Hits))
+		for _, h := range result.Hits {
+			issued := "date unknown"
+			if h.IssuedOn != nil {
+				issued = h.IssuedOn.Format("2 Jan 2006")
+			}
+			lines = append(lines, fmt.Sprintf("GR %s (%s): %s", h.Sanketank, issued, strings.Join(h.Keywords, ", ")))
+		}
+		if err := alerts.Send(ctx, notify.Message{
+			Title: fmt.Sprintf("%d resolution(s) mention a watched term", len(result.Hits)),
+			Lines: lines,
+		}); err != nil {
+			slog.Warn("alert delivery failed", "error", err.Error())
+		}
+	}
+	return runErr
 }
 
 func runStatus(ctx context.Context) error {

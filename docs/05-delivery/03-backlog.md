@@ -47,8 +47,11 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
 - [ ] `[E]` Point the webhook at a real channel (`NOTIFY_WEBHOOK_URL`)
 - [x] `[E]` P1 `bmc_swd_api` progress-card ingester
 - [ ] `[E]` SWD nallah-level endpoints (POST) and the next-season path probe
-- [ ] `[E]` P2 `maha_gr` watcher, with the classification prompt in a versioned file and structured
-      output
+- [x] `[E]` P2 `maha_gr` watcher: archives newly published resolutions and flags the ones whose
+      OCR text mentions a watched term (RTI, defect liability, potholes, Right to Public Services)
+- [ ] `[E]` P2 classification of archived resolutions with Claude and structured output, in a
+      versioned prompt file — the keyword flag is a lead; the classification is the summary
+- [ ] `[E]` Re-scan resolutions archived before their OCR text existed, so nothing is missed
 - [ ] `[E]` P2 `hc_judgments` watcher
 - [ ] `[E]` `cmd/api` with personal auth; `POST /internal/capture`; the P3 Chrome extension
 - [ ] `[E]` P4 field kit PWA, `POST /v1/reports`, label manifest export

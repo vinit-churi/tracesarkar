@@ -3,10 +3,11 @@
 **Tier: personal.** Nothing in this phase is visible to anyone but the maintainers.
 **Target: November 2026.** See the [roadmap](01-roadmap.md).
 
-**Status, 23 September 2026:** the foundations and P1 (works snapshotter) are built and running.
-The first snapshots are stored: 2,237 dashboard works, 2,405 road geometries, 30 wards and the
-storm-water progress card. Remaining: P2 watchers, P3 capture extension, P4 field kit, P5 RTI
-tracker. Progress is tracked in the [backlog](03-backlog.md).
+**Status, 23 September 2026:** the foundations, P1 (works snapshotter) and the GR half of P2 are
+built and running. Stored so far: 2,237 dashboard works, 2,405 road geometries, 30 wards, the
+storm-water progress card, and the first Government Resolutions. Remaining: the court watcher,
+resolution classification, P3 capture extension, P4 field kit, P5 RTI tracker. Progress is tracked
+in the [backlog](03-backlog.md).
 
 ---
 
@@ -259,6 +260,7 @@ All four must hold before Phase 1 begins:
 cp .env.example .env          # then fill in R2 and Postgres credentials
 make migrate                  # apply the schema
 make snapshot                 # snapshot every schedulable source
+make watch                    # archive newly published Government Resolutions
 make status                   # per-endpoint collection health
 make changes                  # what changed in the published data
 make test                     # offline tests

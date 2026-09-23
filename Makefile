@@ -57,6 +57,10 @@ migrate: ## Apply database migrations
 snapshot: ## Snapshot every schedulable source (Phase 0 P1)
 	go run ./cmd/ingest run
 
+.PHONY: watch
+watch: ## Archive newly published Government Resolutions (Phase 0 P2)
+	go run ./cmd/ingest watch
+
 .PHONY: status
 status: ## Per-endpoint collection health
 	go run ./cmd/ingest status

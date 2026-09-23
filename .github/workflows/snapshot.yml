@@ -66,6 +66,17 @@ jobs:
           TRACESARKAR_TIER: personal
         run: go run ./cmd/ingest run
 
+      - name: Watch for new Government Resolutions
+        env:
+          POSTGRESQL_CONNECTION: ${{ secrets.POSTGRESQL_CONNECTION }}
+          POSTGRES_CA_PATH: ca.pem
+          R2_BUCKET_URL: ${{ secrets.R2_BUCKET_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+        run: go run ./cmd/ingest watch --limit 40
+
       - name: Collection status
         if: always()
         env:

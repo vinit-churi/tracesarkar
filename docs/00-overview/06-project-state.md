@@ -24,10 +24,10 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 | | |
 |---|---|
-| Code | **Phase 0 collectors are built and running.** Go module, five packages, ~90 tests |
+| Code | **Phase 0 collectors are built and running.** Go module, eight packages, ~100 tests |
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
 | Current phase | **Phase 0, in progress** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
-| Data | First snapshots stored: 2,237 dashboard works, 2,405 road geometries, 30 wards, the drain progress card |
+| Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
 | Infrastructure | Cloudflare R2 bucket `tracesarkar` and an Aiven PostgreSQL database, both live |
 | Branch | `main` |
 
@@ -46,8 +46,13 @@ migration runner and Phase 0 schema, the source register with its tier policy, t
 and differ, the polite fetcher, the snapshot runner, the alert channel, and the `ingest` command.
 
 **Running:** `ingest run` collects BMC's roads dashboard, road geometry, ward master and the
-storm-water progress card. Bytes are archived to R2 only when they change; every attempt is logged;
-every change is stored with both values.
+storm-water progress card. `ingest watch` archives newly published Government Resolutions from the
+Internet Archive mirror and flags the ones whose OCR text mentions a watched term — the RTI fee,
+defect liability, potholes, Right to Public Services. Bytes are archived to R2 only when they
+change; every attempt is logged; every change is stored with both values.
+
+Verified end to end: archived objects read back from R2 byte-for-byte, and the Marathi keyword
+match confirmed against the 2019 defect-liability resolution.
 
 **Two bugs the live run found**, both now fixed and covered by tests:
 
@@ -192,6 +197,16 @@ cp .env.example .env        # fill in from your password manager
 # copy ca.pem across too; both files are gitignored and never leave your machine
 make test                   # offline tests
 make status                 # what has been collected so far
+```
+
+Everyday commands:
+
+```sh
+make snapshot   # collect BMC's works data
+make watch      # archive new Government Resolutions
+make status     # what has been collected, per endpoint
+make changes    # what changed in the published data
+make test       # offline tests
 ```
 
 Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §7."*

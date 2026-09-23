@@ -13,6 +13,7 @@ import (
 
 	"github.com/vinit-churi/tracesarkar/internal/ingest"
 	"github.com/vinit-churi/tracesarkar/internal/sources"
+	"github.com/vinit-churi/tracesarkar/internal/watch"
 	"github.com/vinit-churi/tracesarkar/internal/works"
 )
 
@@ -338,4 +339,78 @@ func nullString(s string) any {
 		return nil
 	}
 	return s
+}
+
+// KnownGRs reports which of these sanketanks are already recorded.
+func (d *DB) KnownGRs(ctx context.Context, sanketanks []string) (map[string]bool, error) {
+	out := map[string]bool{}
+	if len(sanketanks) == 0 {
+		return out, nil
+	}
+	rows, err := d.pool.Query(ctx, `SELECT sanketank FROM gr_items WHERE sanketank = ANY($1)`, sanketanks)
+	if err != nil {
+		return nil, fmt.Errorf("known resolutions: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, fmt.Errorf("scan resolution: %w", err)
+		}
+		out[s] = true
+	}
+	return out, rows.Err()
+}
+
+// SaveGR records one Government Resolution.
+func (d *DB) SaveGR(ctx context.Context, rec watch.GRRecord) error {
+	keywords := rec.Keywords
+	if keywords == nil {
+		keywords = []string{}
+	}
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO gr_items (sanketank, issued_on, title, raw_document_id, keywords)
+		VALUES ($1, $2::date, $3, NULLIF($4,'')::uuid, $5)
+		ON CONFLICT (sanketank) DO UPDATE SET
+		  issued_on = COALESCE(EXCLUDED.issued_on, gr_items.issued_on),
+		  title = COALESCE(EXCLUDED.title, gr_items.title),
+		  raw_document_id = COALESCE(EXCLUDED.raw_document_id, gr_items.raw_document_id),
+		  keywords = EXCLUDED.keywords`,
+		rec.Sanketank, rec.IssuedOn, nullString(rec.Title), rec.DocumentID, keywords)
+	if err != nil {
+		return fmt.Errorf("save resolution %s: %w", rec.Sanketank, err)
+	}
+	return nil
+}
+
+// GRHits lists recorded resolutions that mention a watched term.
+func (d *DB) GRHits(ctx context.Context, limit int) ([]GRHitRow, error) {
+	rows, err := d.pool.Query(ctx, `
+		SELECT sanketank, COALESCE(title,''), issued_on, keywords
+		FROM gr_items
+		WHERE cardinality(keywords) > 0
+		ORDER BY issued_on DESC NULLS LAST, sanketank DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("resolution hits: %w", err)
+	}
+	defer rows.Close()
+
+	var out []GRHitRow
+	for rows.Next() {
+		var r GRHitRow
+		if err := rows.Scan(&r.Sanketank, &r.Title, &r.IssuedOn, &r.Keywords); err != nil {
+			return nil, fmt.Errorf("scan resolution hit: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// GRHitRow is a resolution worth reading.
+type GRHitRow struct {
+	Sanketank string
+	Title     string
+	IssuedOn  *time.Time
+	Keywords  []string
 }
