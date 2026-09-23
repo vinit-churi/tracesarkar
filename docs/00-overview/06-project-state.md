@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated: 18 September 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 23 September 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
 
 ---
@@ -24,14 +24,48 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 | | |
 |---|---|
-| Code | **None yet.** The repository is documentation and design |
-| Plan | Restructured into Phases 0–6 on 18 Sep 2026 — [roadmap](../05-delivery/01-roadmap.md) |
-| Current phase | **Phase 0, not started** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
-| Branch | `docs/vertical-exploration`, not yet merged to `main` |
+| Code | **Phase 0 collectors are built and running.** Go module, five packages, ~90 tests |
+| Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
+| Current phase | **Phase 0, in progress** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
+| Data | First snapshots stored: 2,237 dashboard works, 2,405 road geometries, 30 wards, the drain progress card |
+| Infrastructure | Cloudflare R2 bucket `tracesarkar` and an Aiven PostgreSQL database, both live |
+| Branch | `main` |
+
+**The 30-day snapshot clock has not started yet.** It starts when the scheduled workflow can run,
+which needs the repository secrets in §6.
 
 ---
 
-## 3. What happened on 18 September 2026
+## 3. What happened on 23 September 2026
+
+Phase 0's foundations and its first instrument were built, test-first, and run against the live
+BMC APIs.
+
+**Built:** configuration, the R2 archive client (SigV4 checked against the AWS test vector), the
+migration runner and Phase 0 schema, the source register with its tier policy, the works parsers
+and differ, the polite fetcher, the snapshot runner, the alert channel, and the `ingest` command.
+
+**Running:** `ingest run` collects BMC's roads dashboard, road geometry, ward master and the
+storm-water progress card. Bytes are archived to R2 only when they change; every attempt is logged;
+every change is stored with both values.
+
+**Two bugs the live run found**, both now fixed and covered by tests:
+
+1. A document that was archived but failed to parse counted as "already seen", so the next run
+   would have skipped it and the data would have been lost quietly. Bytes now count as seen only
+   after a snapshot is applied.
+2. The road layer's key was wrong. `(workCode, locationName)` is not unique — 2,405 features share
+   1,919 pairs — `locationID` is null in 1,678 of them, and the nested `location._id` is shared
+   between features and was overwriting each feature's own id. The key-collision check caught it;
+   without that check 486 records would have merged silently.
+
+**Deviation worth knowing:** the database adapter was written before its tests, against the
+project's test-first rule. Its tests were added immediately after and found two real defects (a
+null blocklist column and a missing `endpoint` column). Everything else was written test-first.
+
+---
+
+## 4. What happened on 18 September 2026
 
 1. **Checked the Screen Book artifact.** It draws 56 screens covering 113 of 129 catalogued
    features. Still pending: screens S13 and S24 are not drawn; 21 drawn screens have no entry in the
@@ -56,10 +90,9 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 4. Decisions to confirm
+## 5. Decisions to confirm
 
-These were approved quickly during the session. They are recorded in the
-[decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
+These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
 any is wrong, say so and it gets reversed with a new log row.**
 
 | # | Decision | What it means in practice |
@@ -74,7 +107,7 @@ building safety and hoardings behind a flag, then trees), and starting with pers
 
 ---
 
-## 5. The plan
+## 6. The plan
 
 | Phase | What | Target |
 |---|---|---|
@@ -91,29 +124,37 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ---
 
-## 6. Next actions
+## 7. Next actions
 
 **Only you can do these:**
 
-- [ ] Read §4 and confirm or reverse each decision
-- [ ] Review and merge the `docs/vertical-exploration` branch
+- [ ] **Add the repository secrets so the daily snapshot runs.** GitHub → Settings → Secrets and
+      variables → Actions. Needed: `R2_BUCKET_URL`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY`,
+      `R2_SECRET_ACCESS_KEY`, `POSTGRESQL_CONNECTION`, `POSTGRES_CA` (paste the certificate
+      itself), and optionally `NOTIFY_WEBHOOK_URL`. The values are in your local `.env` and
+      `ca.pem`. **Until this is done the 30-day clock has not started**, and days of BMC's record
+      go unkept
+- [ ] Read §5 and confirm or reverse each decision
 - [ ] Decide whether to tell BMC that its health-department map layer exposes patient records
-- [ ] Get a small VPS and a Cloudflare R2 bucket ready (or hand over credentials for a session to
-      set them up)
-- [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM
+- [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM. Nothing collected can reach a
+      public surface until those answers land
 - [ ] Decide whether you want to talk to the Pothole Reporter maintainer (Q35)
+- [ ] Optional: pick an alert channel (any endpoint that accepts a JSON POST) and set
+      `NOTIFY_WEBHOOK_URL`, so changes reach you instead of only the logs
 
 **The next working session:**
 
-- [ ] Write the Phase 0 implementation plan
-- [ ] Build the scaffold and the roads snapshotter first. Every day without it is a day of BMC's
-      record that nobody keeps
+- [ ] P2 watchers: new Maharashtra GRs from the Internet Archive mirror, and the Bombay HC
+      judgments parquet
+- [ ] Runner hardening: an advisory lock per ingester, a circuit breaker, and a metrics endpoint
+- [ ] The SWD nallah-level endpoints, which are POST, plus the next-season path probe
+- [ ] Then P3 (capture extension), P4 (field kit), P5 (RTI tracker)
 
 Full task list: [backlog](../05-delivery/03-backlog.md).
 
 ---
 
-## 7. Open questions that matter now
+## 8. Open questions that matter now
 
 | # | Question | Why now |
 |---|---|---|
@@ -127,7 +168,7 @@ All of them: [open questions](../01-research/07-open-questions.md).
 
 ---
 
-## 8. Where to look
+## 9. Where to look
 
 | For | Read |
 |---|---|
@@ -142,12 +183,18 @@ All of them: [open questions](../01-research/07-open-questions.md).
 
 ---
 
-## 9. Resuming on another device
+## 10. Resuming on another device
 
 ```sh
-git fetch origin
-git checkout docs/vertical-exploration
-make docs-check
+git clone git@github.com:vinit-churi/tracesarkar.git   # or: git pull
+cd tracesarkar
+cp .env.example .env        # fill in from your password manager
+# copy ca.pem across too; both files are gitignored and never leave your machine
+make test                   # offline tests
+make status                 # what has been collected so far
 ```
 
-Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §6."*
+Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §7."*
+
+**The two files you must carry across yourself:** `.env` and `ca.pem`. They hold the R2 keys and
+the database password, so they are not in the repository and never will be.

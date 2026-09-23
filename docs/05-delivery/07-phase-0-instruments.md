@@ -3,6 +3,11 @@
 **Tier: personal.** Nothing in this phase is visible to anyone but the maintainers.
 **Target: November 2026.** See the [roadmap](01-roadmap.md).
 
+**Status, 23 September 2026:** the foundations and P1 (works snapshotter) are built and running.
+The first snapshots are stored: 2,237 dashboard works, 2,405 road geometries, 30 wards and the
+storm-water progress card. Remaining: P2 watchers, P3 capture extension, P4 field kit, P5 RTI
+tracker. Progress is tracked in the [backlog](03-backlog.md).
+
 ---
 
 ## 1. The one-sentence scope
@@ -248,7 +253,37 @@ All four must hold before Phase 1 begins:
 
 ---
 
-## 12. Non-goals
+## 12. Running it
+
+```sh
+cp .env.example .env          # then fill in R2 and Postgres credentials
+make migrate                  # apply the schema
+make snapshot                 # snapshot every schedulable source
+make status                   # per-endpoint collection health
+make changes                  # what changed in the published data
+make test                     # offline tests
+make test-live                # tests that touch the real bucket and database
+```
+
+Daily collection runs from `.github/workflows/snapshot.yml` until an always-on runner exists. It
+needs these repository secrets: `R2_BUCKET_URL`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY`,
+`R2_SECRET_ACCESS_KEY`, `POSTGRESQL_CONNECTION`, `POSTGRES_CA` (the certificate itself) and,
+optionally, `NOTIFY_WEBHOOK_URL`.
+
+**What the runner guarantees, and where it is enforced:**
+
+| Guarantee | Enforced by |
+|---|---|
+| Every attempt is recorded, including failures | `fetch_log`, written before any parse |
+| Unchanged bytes are not re-archived | SHA-256 compared against the last **parsed** document |
+| An archived body that fails to parse is retried, never skipped | `raw_documents.parsed_at`, set only after a snapshot is applied |
+| Blocklisted fields never reach the database | the parsers, with a test per source |
+| A natural-key collision stops the run | `buildRecords`, which refuses to merge two records silently |
+| Sources the register forbids are never scheduled | `sources.MayRun`, checked before every job |
+
+---
+
+## 13. Non-goals
 
 - No public endpoint, page, share card or API.
 - No classification calls on citizen photographs; the eval harness is v0.1.

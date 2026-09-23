@@ -13,6 +13,8 @@ Concrete tasks, ordered. Everything here is scoped to be startable without furth
 
 Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
 
+`[x]` items were built on 23 September 2026 and are running against the live BMC APIs.
+
 ### Infrastructure
 
 - [ ] `[E]` Provision the staging VPS: Dokploy single-node Swarm, PostgreSQL 16 + PostGIS, nightly
@@ -22,23 +24,29 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
 
 ### Foundations
 
-- [ ] `[E]` Repo scaffold: Go module, `cmd/ingest`, `cmd/api`, `cmd/tsctl`, `internal/` layout,
-      Makefile targets, Docker Compose for local, CI
-- [ ] `[E]` Migrations for the Phase 0 tables in
-      [data model §9A](../03-architecture/02-data-model.md#9a-phase-0-instruments), plus
-      `sources`, `raw_documents`, `legal_constants`, a minimal `accounts`, `reports`,
-      `report_media`, `filings`
-- [ ] `[E]` `internal/sources`: register loader and the tier policy
+- [x] `[E]` Repo scaffold: Go module, `cmd/ingest`, `internal/` layout, Makefile targets, CI
+      (`go.yml`). Still to come: `cmd/api`, `cmd/tsctl`, Docker Compose for local Postgres
+- [x] `[E]` Migrations for `sources`, `raw_documents`, `fetch_log`, `works`, `work_changes`,
+      `gr_items`, `court_items`, `legal_constants` — applied to the Aiven database
+- [ ] `[E]` Migrations for `accounts`, `reports`, `report_media`, `report_labels`, `filings`,
+      `clock_instances` (needed by P4 and P5)
+- [x] `[E]` `internal/sources`: register loader and the tier policy
       ([D045](../00-overview/05-decision-log.md)), table-driven tests
-- [ ] `[E]` `internal/archive` (R2, SHA-256, write-once) and the `internal/ingest` runner (advisory
-      lock, retry with jitter, circuit breaker, metrics)
-- [ ] `[E]` A test that fails if any register `blocklist` field reaches a parsed record
+- [x] `[E]` `internal/archive` (R2, SigV4 verified against the AWS test vector, content-addressed
+      keys) and the `internal/ingest` runner (retry with jitter, every attempt logged)
+- [ ] `[E]` Runner hardening: advisory lock per ingester, circuit breaker, metrics endpoint
+- [x] `[E]` A test that fails if any register `blocklist` field reaches a parsed record
 
 ### Instruments
 
-- [ ] `[E]` **P1 `bmc_roads_api` ingester** with golden fixtures, deployed — starts the 30-day clock
-- [ ] `[E]` P8 alerts
-- [ ] `[E]` P1 `bmc_swd_api` ingester and the next-season path probe
+- [x] `[E]` **P1 `bmc_roads_api` ingester** with golden fixtures — collecting
+      `publicdashboard` (2,237), `roadlayer` (2,405) and `ward` (30)
+- [ ] `[E]` Turn on the scheduled workflow by adding the repository secrets — **this starts the
+      30-day clock**
+- [x] `[E]` P8 alerts: webhook with a logging fallback
+- [ ] `[E]` Point the webhook at a real channel (`NOTIFY_WEBHOOK_URL`)
+- [x] `[E]` P1 `bmc_swd_api` progress-card ingester
+- [ ] `[E]` SWD nallah-level endpoints (POST) and the next-season path probe
 - [ ] `[E]` P2 `maha_gr` watcher, with the classification prompt in a versioned file and structured
       output
 - [ ] `[E]` P2 `hc_judgments` watcher

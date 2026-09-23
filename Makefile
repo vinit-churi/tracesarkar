@@ -41,30 +41,47 @@ docs-language: ## No accusatory language in product copy or templates
 docs-unverified: ## List every claim still marked as unverified
 	@grep -rn '⚠️' docs/ | sed 's/^/  /' || true
 
-# ------------------------------------------------------- application (pending)
+# ------------------------------------------------------------- application
 
-.PHONY: dev
-dev: ## Start local dependencies (postgres+postgis, redis, minio)
-	@echo "not implemented yet — see docs/05-delivery/03-backlog.md (repo scaffold)"
-	@exit 1
+.PHONY: build
+build: ## Build the binaries into bin/
+	@mkdir -p bin
+	go build -o bin/ ./cmd/...
+	@echo "built: $$(ls bin/)"
 
 .PHONY: migrate
 migrate: ## Apply database migrations
-	@echo "not implemented yet"
-	@exit 1
+	go run ./cmd/ingest migrate
+
+.PHONY: snapshot
+snapshot: ## Snapshot every schedulable source (Phase 0 P1)
+	go run ./cmd/ingest run
+
+.PHONY: status
+status: ## Per-endpoint collection health
+	go run ./cmd/ingest status
+
+.PHONY: changes
+changes: ## Changes observed in published works data
+	go run ./cmd/ingest changes
+
+.PHONY: test
+test: ## Run the Go test suite (offline)
+	go test ./... -count=1
+
+.PHONY: test-live
+test-live: ## Run the tests that touch the real bucket and database
+	TRACESARKAR_LIVE=1 go test ./... -count=1
+
+.PHONY: lint
+lint: ## gofmt check and go vet
+	@unformatted=$$(gofmt -l ./cmd ./internal); \
+	if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
+	go vet ./...
+	@echo "lint: ok"
 
 .PHONY: seed
 seed: ## Load synthetic MMR development data (never real citizen data)
-	@echo "not implemented yet"
-	@exit 1
-
-.PHONY: test
-test: ## Run the Go test suite
-	@echo "not implemented yet"
-	@exit 1
-
-.PHONY: lint
-lint: ## Run golangci-lint, go vet, gosec
 	@echo "not implemented yet"
 	@exit 1
 

@@ -59,7 +59,8 @@ The gap in MMR governance is not data. It is **synthesis and consequence**.
 
 ## Repository map
 
-This repository is currently **documentation and design**. Code lands per the roadmap.
+Phase 0 code has landed: the collectors that keep a daily record of the works data BMC publishes.
+Everything else is still documentation and design, and lands per the roadmap.
 
 | Path | What's in it |
 |---|---|
@@ -70,6 +71,7 @@ This repository is currently **documentation and design**. Code lands per the ro
 | [`docs/04-adr/`](docs/04-adr/) | Architecture Decision Records — why Go, why Postgres+PostGIS, why H3, why this AI stack |
 | [`docs/05-delivery/`](docs/05-delivery/) | Roadmap, MVP definition, backlog, metrics, risk register, go-to-market |
 | [`docs/06-operations/`](docs/06-operations/) | Runbook, moderation policy, legal review checklist, cost model |
+| [`cmd/`](cmd/), [`internal/`](internal/) | Go binaries and packages: the ingest command, archive, store, source register, parsers, runner |
 | [`docs/templates/`](docs/templates/) | RTI application, NGT original application, Lokayukta complaint, consumer complaint templates |
 
 **Start here:** [`docs/00-overview/01-vision.md`](docs/00-overview/01-vision.md) →
@@ -110,10 +112,11 @@ producing real usage. See [`docs/05-delivery/01-roadmap.md`](docs/05-delivery/01
 
 | | |
 |---|---|
-| **Stage** | Design / pre-alpha |
+| **Stage** | Phase 0 — collecting the record; no public surface yet |
 | **Region** | Mumbai Metropolitan Region (Greater Mumbai first) |
-| **Backend** | Go (planned) |
-| **Docs last reviewed** | 2026-08-10 |
+| **Backend** | Go. `cmd/ingest` runs the collectors; PostgreSQL 16 and S3-compatible storage |
+| **Where things stand** | [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md) |
+| **Docs last reviewed** | 2026-09-23 |
 
 ---
 

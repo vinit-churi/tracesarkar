@@ -1,0 +1,82 @@
+name: snapshot
+
+# Phase 0, P1: a daily snapshot of the works data BMC publishes.
+#
+# This exists so the record starts now, before there is a VPS. It writes to the
+# production archive bucket and the Aiven database, exactly as the eventual
+# always-on runner will (D046). When that runner exists, disable this workflow.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   R2_BUCKET_URL, R2_BUCKET_NAME, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY,
+#   POSTGRESQL_CONNECTION, POSTGRES_CA (the CA certificate, pasted whole),
+#   NOTIFY_WEBHOOK_URL (optional)
+
+on:
+  schedule:
+    # 02:30 IST, inside the preferred 00:00–06:00 IST crawl window.
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Write the database CA certificate
+        env:
+          POSTGRES_CA: ${{ secrets.POSTGRES_CA }}
+        run: |
+          if [ -z "$POSTGRES_CA" ]; then
+            echo "POSTGRES_CA is not set; TLS verification cannot be enabled." >&2
+            exit 1
+          fi
+          printf '%s\n' "$POSTGRES_CA" > ca.pem
+          chmod 600 ca.pem
+
+      - name: Apply migrations
+        env:
+          POSTGRESQL_CONNECTION: ${{ secrets.POSTGRESQL_CONNECTION }}
+          POSTGRES_CA_PATH: ca.pem
+          R2_BUCKET_URL: ${{ secrets.R2_BUCKET_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: go run ./cmd/ingest migrate
+
+      - name: Snapshot
+        env:
+          POSTGRESQL_CONNECTION: ${{ secrets.POSTGRESQL_CONNECTION }}
+          POSTGRES_CA_PATH: ca.pem
+          R2_BUCKET_URL: ${{ secrets.R2_BUCKET_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+          TRACESARKAR_TIER: personal
+        run: go run ./cmd/ingest run
+
+      - name: Collection status
+        if: always()
+        env:
+          POSTGRESQL_CONNECTION: ${{ secrets.POSTGRESQL_CONNECTION }}
+          POSTGRES_CA_PATH: ca.pem
+          R2_BUCKET_URL: ${{ secrets.R2_BUCKET_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: go run ./cmd/ingest status >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the certificate
+        if: always()
+        run: rm -f ca.pem

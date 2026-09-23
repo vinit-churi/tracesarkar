@@ -14,8 +14,9 @@ Read [`README.md`](README.md) first, then
 [`docs/00-overview/01-vision.md`](docs/00-overview/01-vision.md) and
 [`docs/03-architecture/01-system-overview.md`](docs/03-architecture/01-system-overview.md).
 
-**Current state: documentation and design. There is no application code yet.** Do not assume code
-exists; check before referencing it.
+**Current state: Phase 0 in progress.** The collectors are built and running (`cmd/ingest`,
+`internal/{config,archive,store,sources,works,ingest,notify}`); everything else is still
+documentation and design. Check before referencing code that may not exist yet.
 
 **Start every session with
 [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md)** — the current
@@ -72,7 +73,9 @@ These are not style preferences. Violating any of them creates legal or safety e
 - Money: `int64` paise. Never `float64`.
 - IDs: UUIDv7.
 - SQL: written by hand in the repository layer. No ORM.
-- Tests: table-driven. Geospatial logic gets golden-file tests with real MMR coordinates.
+- Tests: table-driven, written first. Geospatial logic gets golden-file tests with real MMR
+  coordinates. Tests that touch the live bucket or database are guarded by `TRACESARKAR_LIVE=1`
+  so `make test` stays offline.
 
 ### Naming
 
