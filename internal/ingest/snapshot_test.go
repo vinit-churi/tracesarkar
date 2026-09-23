@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -28,7 +29,10 @@ func (f *fakeArchive) Put(_ context.Context, key string, body []byte, _ string) 
 
 func (f *fakeArchive) Exists(_ context.Context, key string) (bool, error) { return f.exists[key], nil }
 
+var errParseBoom = errors.New("boom")
+
 type fakeStore struct {
+	parsed      []string
 	lastSHA     map[string]string
 	fetches     []FetchRecord
 	documents   []RawDocument
@@ -55,8 +59,19 @@ func (f *fakeStore) RecordFetch(_ context.Context, rec FetchRecord) error {
 
 func (f *fakeStore) SaveRawDocument(_ context.Context, doc RawDocument) (string, error) {
 	f.documents = append(f.documents, doc)
-	f.lastSHA[doc.SourceID+"/"+doc.Endpoint] = doc.SHA256
 	return "doc-" + doc.SHA256[:8], nil
+}
+
+// LastDocumentSHA only reports documents that were parsed successfully, which
+// is what the real store does.
+func (f *fakeStore) MarkDocumentParsed(_ context.Context, docID string) error {
+	f.parsed = append(f.parsed, docID)
+	for _, doc := range f.documents {
+		if "doc-"+doc.SHA256[:8] == docID {
+			f.lastSHA[doc.SourceID+"/"+doc.Endpoint] = doc.SHA256
+		}
+	}
+	return nil
 }
 
 func (f *fakeStore) LoadWorks(_ context.Context, sourceID, endpoint string) (map[string]works.Record, error) {
@@ -284,4 +299,58 @@ type capturingStore struct {
 func (c *capturingStore) ApplySnapshot(ctx context.Context, in SnapshotWrite) error {
 	*c.captured = append(*c.captured, in)
 	return c.fakeStore.ApplySnapshot(ctx, in)
+}
+
+// A document that was archived but could not be parsed must not be treated as
+// "already seen" on the next run, or the data is lost silently.
+func TestSnapshotDoesNotMarkUnparsedBytesAsSeen(t *testing.T) {
+	srv, calls := roadsServer(t, snapshotBodyV1, snapshotBodyV1)
+	arch, st := newFakeArchive(), newFakeStore()
+	r := newTestRunner(srv.Client(), arch, st)
+
+	failing := func(body []byte, blocklist []string) ([]works.Record, error) {
+		return nil, errParseBoom
+	}
+	job := Job{SourceID: "bmc_roads_api", Endpoints: []Endpoint{
+		{Name: "publicdashboard", URL: srv.URL, Parse: failing, Ext: ".json"},
+	}}
+
+	if _, err := r.Run(context.Background(), job); err == nil {
+		t.Fatal("a parse failure must surface")
+	}
+	if len(st.parsed) != 0 {
+		t.Errorf("a failed parse must not be marked parsed: %v", st.parsed)
+	}
+
+	// Second run with a working parser: the same bytes must be parsed, not skipped.
+	job.Endpoints[0].Parse = works.ParseRoadsDashboard
+	summary, err := r.Run(context.Background(), job)
+	if err != nil {
+		t.Fatalf("second run: %v", err)
+	}
+	if *calls != 2 {
+		t.Errorf("expected a re-fetch, got %d calls", *calls)
+	}
+	if summary.Changed != 1 {
+		t.Errorf("the re-fetched bytes should be parsed and applied: %+v", summary)
+	}
+	if len(st.appliedKeys) == 0 {
+		t.Error("records from the retried document were never stored")
+	}
+}
+
+func TestSnapshotMarksDocumentParsedOnSuccess(t *testing.T) {
+	srv, _ := roadsServer(t, snapshotBodyV1)
+	arch, st := newFakeArchive(), newFakeStore()
+	r := newTestRunner(srv.Client(), arch, st)
+	job := Job{SourceID: "bmc_roads_api", Endpoints: []Endpoint{
+		{Name: "publicdashboard", URL: srv.URL, Parse: works.ParseRoadsDashboard, Ext: ".json"},
+	}}
+
+	if _, err := r.Run(context.Background(), job); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if len(st.parsed) != 1 {
+		t.Errorf("a successful run must mark the document parsed: %v", st.parsed)
+	}
 }

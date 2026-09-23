@@ -65,17 +65,34 @@ func ParseRoadsGeometry(body []byte, blocklist []string) ([]Record, error) {
 		for k, v := range f.Properties {
 			row[k] = v
 		}
-		// The location object holds the work code and dates.
+		featureID := str(f.Properties["_id"])
+
+		// The location object holds the work code, dates and status. Its own
+		// _id is kept under a distinct name: one location record can back
+		// several features, so it must not overwrite the feature id.
 		if loc, ok := f.Properties["location"].(map[string]any); ok {
 			for k, v := range loc {
+				if k == "_id" {
+					row["locationRecordID"] = v
+					continue
+				}
 				row[k] = v
 			}
 			delete(row, "location")
 		}
+		row["_id"] = featureID
+
+		// Each feature carries a sample "properties" object describing nothing.
+		delete(row, "properties")
 		rows = append(rows, row)
 	}
+
+	// Observed on 23 Sep 2026: 2,405 features, 2,405 distinct feature ids, but
+	// only 1,919 distinct location ids, 1,919 distinct (workCode, locationName)
+	// pairs, and locationID null in 1,678 rows. The feature id is the only key
+	// that identifies a record.
 	return buildRecords(rows, blocklist, func(row map[string]any) string {
-		return joinKey(str(row["workCode"]), str(row["locationName"]))
+		return str(row["_id"])
 	})
 }
 

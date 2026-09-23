@@ -62,6 +62,9 @@ type Store interface {
 	SaveRawDocument(ctx context.Context, doc RawDocument) (string, error)
 	LoadWorks(ctx context.Context, sourceID, endpoint string) (map[string]works.Record, error)
 	ApplySnapshot(ctx context.Context, in SnapshotWrite) error
+	// MarkDocumentParsed records that a document was parsed and applied. Until
+	// it is called, the bytes count as unseen and the next run retries them.
+	MarkDocumentParsed(ctx context.Context, documentID string) error
 }
 
 // Endpoint is one URL within a source, with the parser for its shape.
@@ -233,6 +236,9 @@ func (r *Runner) runEndpoint(ctx context.Context, job Job, ep Endpoint) (changes
 		Changes:    changes,
 	}); err != nil {
 		return nil, false, fmt.Errorf("apply snapshot: %w", err)
+	}
+	if err := r.Store.MarkDocumentParsed(ctx, docID); err != nil {
+		return nil, false, fmt.Errorf("mark document parsed: %w", err)
 	}
 
 	r.log().Info("snapshot",

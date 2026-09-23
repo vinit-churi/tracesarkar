@@ -129,3 +129,70 @@ func containsAny(haystack string, needles ...string) bool {
 	}
 	return false
 }
+
+// Ground truth from the live layer on 23 Sep 2026: each feature has a unique
+// properties._id, while location._id is SHARED between features (2,405 features,
+// 1,919 distinct location ids) and locationID is null in 1,678 of them. So the
+// feature id is the only usable key, and the nested location must not clobber it.
+const roadLayerBody = `{"type":"FeatureCollection","features":[
+ {"type":"Feature","geometry":{"type":"MultiLineString","coordinates":[]},
+  "properties":{"_id":"feature1","location":{"_id":"sharedLoc","locationID":null,
+    "workCode":"W-414","locationName":"Same Road","status":"Completed",
+    "contractorName":"M/s X","contractorRepName":"A Person","contractorRepMobile":"9999999999"},
+    "properties":{"name":"Sample GeoLocation"}}},
+ {"type":"Feature","geometry":{"type":"MultiLineString","coordinates":[]},
+  "properties":{"_id":"feature2","location":{"_id":"sharedLoc","locationID":null,
+    "workCode":"W-414","locationName":"Same Road","status":"In Progress","contractorName":"M/s X"},
+    "properties":{"name":"Sample GeoLocation"}}}
+]}`
+
+func TestParseRoadsGeometryKeysOnTheFeatureID(t *testing.T) {
+	recs, err := ParseRoadsGeometry([]byte(roadLayerBody), []string{"contractorRepName", "contractorRepMobile"})
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if len(recs) != 2 {
+		t.Fatalf("got %d records, want 2", len(recs))
+	}
+	if recs[0].NaturalKey == recs[1].NaturalKey {
+		t.Fatalf("features sharing a location record must keep distinct keys: %q", recs[0].NaturalKey)
+	}
+	keys := map[string]bool{recs[0].NaturalKey: true, recs[1].NaturalKey: true}
+	if !keys["feature1"] || !keys["feature2"] {
+		t.Errorf("natural keys should be the feature ids: %v", keys)
+	}
+}
+
+func TestParseRoadsGeometryKeepsTheLocationRecordIDSeparately(t *testing.T) {
+	recs, err := ParseRoadsGeometry([]byte(roadLayerBody), nil)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if got := recs[0].Fields["locationRecordID"]; got != "sharedLoc" {
+		t.Errorf("the location's own id should be kept under its own name: %v", got)
+	}
+	if got := recs[0].Fields["workCode"]; got != "W-414" {
+		t.Errorf("location fields should be flattened: %v", recs[0].Fields)
+	}
+}
+
+func TestParseRoadsGeometryStripsBlocklistedFieldsFromTheNestedObject(t *testing.T) {
+	recs, err := ParseRoadsGeometry([]byte(roadLayerBody), []string{"contractorRepName", "contractorRepMobile"})
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	encoded, _ := json.Marshal(recs)
+	if containsAny(string(encoded), "A Person", "9999999999") {
+		t.Fatalf("personal data from the nested location survived: %s", encoded)
+	}
+}
+
+func TestParseRoadsGeometryDropsTheGeoJSONBoilerplate(t *testing.T) {
+	recs, err := ParseRoadsGeometry([]byte(roadLayerBody), nil)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if _, present := recs[0].Fields["properties"]; present {
+		t.Errorf("the sample properties object should not be stored: %v", recs[0].Fields)
+	}
+}
