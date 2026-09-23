@@ -91,8 +91,17 @@ func TestLiveSnapshotRoundTrip(t *testing.T) {
 		t.Fatal("expected a document id")
 	}
 
+	// An archived document that has not been parsed does not count as seen, so
+	// the next run retries it rather than skipping the data.
+	if sha, err = db.LastDocumentSHA(ctx, source, endpoint); err != nil || sha != "" {
+		t.Fatalf("an unparsed document must not count as seen: got %q err=%v", sha, err)
+	}
+
+	if err := db.MarkDocumentParsed(ctx, docID); err != nil {
+		t.Fatalf("MarkDocumentParsed: %v", err)
+	}
 	if sha, err = db.LastDocumentSHA(ctx, source, endpoint); err != nil || sha != firstSHA {
-		t.Fatalf("LastDocumentSHA: got %q err=%v", sha, err)
+		t.Fatalf("LastDocumentSHA after parsing: got %q err=%v", sha, err)
 	}
 
 	if err := db.RecordFetch(ctx, ingest.FetchRecord{
