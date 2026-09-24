@@ -184,33 +184,35 @@ func runSnapshot(ctx context.Context, args []string) error {
 	}
 	defer closeDB()
 
-	reg, err := sources.Load(*registerPath)
-	if err != nil {
-		return err
-	}
-	if err := db.SyncRegister(ctx, reg); err != nil {
-		return err
-	}
-
-	arch, err := archive.New(archive.Options{
-		Endpoint:  cfg.R2.Endpoint,
-		Bucket:    cfg.R2.Bucket,
-		Region:    cfg.R2.Region,
-		AccessKey: cfg.R2.AccessKey,
-		Secret:    cfg.R2.Secret,
-	})
-	if err != nil {
-		return err
-	}
-
-	alerts := notify.New(cfg.NotifyWebhook, nil, slog.Default())
-
-	jobs, skipped := ingest.BuildJobs(reg, cfg.Tier)
-	for id, reason := range skipped {
-		slog.Info("source not scheduled", "source", id, "reason", reason, "tier", cfg.Tier)
-	}
-
+	// Setup is inside the run record too, so a failure before the first fetch is
+	// still visible afterwards.
 	return withRunLog(ctx, db, cfg, "run", func() (map[string]any, error) {
+		reg, err := sources.Load(*registerPath)
+		if err != nil {
+			return nil, err
+		}
+		if err := db.SyncRegister(ctx, reg); err != nil {
+			return nil, err
+		}
+
+		arch, err := archive.New(archive.Options{
+			Endpoint:  cfg.R2.Endpoint,
+			Bucket:    cfg.R2.Bucket,
+			Region:    cfg.R2.Region,
+			AccessKey: cfg.R2.AccessKey,
+			Secret:    cfg.R2.Secret,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		alerts := notify.New(cfg.NotifyWebhook, nil, slog.Default())
+
+		jobs, skipped := ingest.BuildJobs(reg, cfg.Tier)
+		for id, reason := range skipped {
+			slog.Info("source not scheduled", "source", id, "reason", reason, "tier", cfg.Tier)
+		}
+
 		return snapshotJobs(ctx, db, cfg, arch, alerts, jobs, only)
 	})
 }
@@ -319,36 +321,37 @@ func runWatch(ctx context.Context, args []string) error {
 	}
 	defer closeDB()
 
-	arch, err := archive.New(archive.Options{
-		Endpoint:  cfg.R2.Endpoint,
-		Bucket:    cfg.R2.Bucket,
-		Region:    cfg.R2.Region,
-		AccessKey: cfg.R2.AccessKey,
-		Secret:    cfg.R2.Secret,
-	})
-	if err != nil {
-		return err
-	}
-
-	reg, err := sources.Load(*registerPath)
-	if err != nil {
-		return err
-	}
-	src, ok := reg.Get("maha_gr_archive")
-	if !ok {
-		return fmt.Errorf("source maha_gr_archive is not in %s", *registerPath)
-	}
-
-	watcher := watch.NewGRWatcher(ingest.NewFetcher(nil, ingest.DefaultUserAgent), arch, db)
-	watcher.Limit = *limit
-	watcher.Rows = *rows
-	watcher.Log = slog.Default()
-	watcher.Source = src
-	watcher.Tier = cfg.Tier
-
+	// Everything after this point is inside the run record, including the setup
+	// that can fail: a missing register used to leave no trace at all.
 	var result watch.Result
 	runErr := withRunLog(ctx, db, cfg, "watch", func() (map[string]any, error) {
-		var err error
+		arch, err := archive.New(archive.Options{
+			Endpoint:  cfg.R2.Endpoint,
+			Bucket:    cfg.R2.Bucket,
+			Region:    cfg.R2.Region,
+			AccessKey: cfg.R2.AccessKey,
+			Secret:    cfg.R2.Secret,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		reg, err := sources.Load(*registerPath)
+		if err != nil {
+			return nil, err
+		}
+		src, ok := reg.Get("maha_gr_archive")
+		if !ok {
+			return nil, fmt.Errorf("source maha_gr_archive is not in %s", *registerPath)
+		}
+
+		watcher := watch.NewGRWatcher(ingest.NewFetcher(nil, ingest.DefaultUserAgent), arch, db)
+		watcher.Limit = *limit
+		watcher.Rows = *rows
+		watcher.Log = slog.Default()
+		watcher.Source = src
+		watcher.Tier = cfg.Tier
+
 		result, err = watcher.Run(ctx)
 		return map[string]any{
 			"examined": result.Seen, "new": result.New,
@@ -357,7 +360,8 @@ func runWatch(ctx context.Context, args []string) error {
 	})
 
 	if result.SkippedReason != "" {
-		slog.Info("watch not scheduled", "source", src.ID, "reason", result.SkippedReason, "tier", cfg.Tier)
+		slog.Info("watch not scheduled", "source", "maha_gr_archive",
+			"reason", result.SkippedReason, "tier", cfg.Tier)
 		return nil
 	}
 	slog.Info("watch finished",

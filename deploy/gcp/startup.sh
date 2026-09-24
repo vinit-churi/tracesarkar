@@ -93,7 +93,7 @@ log "collecting"
 run_status=${PIPESTATUS[0]}
 
 log "watching for new government resolutions"
-"$BINDIR/ingest" watch --limit 40 2>&1 | tee >(logger -t "$LOG_TAG")
+"$BINDIR/ingest" watch --limit 40 --register "$WORKDIR/sources.yaml" 2>&1 | tee >(logger -t "$LOG_TAG")
 
 log "collection status"
 "$BINDIR/ingest" status 2>&1 | tee >(logger -t "$LOG_TAG")
