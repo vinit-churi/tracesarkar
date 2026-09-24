@@ -119,9 +119,21 @@ a datacenter in India is enough.
 
 The collector now runs unattended there: it boots, reads its credentials from Secret Manager,
 downloads the binary and the source register from the `collector-latest` release, collects, and
-powers itself off. Two bugs were found and fixed doing this — `/run` is mounted `noexec` so the
-binary could not execute from the tmpfs holding the secrets, and the VM has no repository checkout
-so the source register had to ship with the binary.
+powers itself off. Four bugs were found by running it rather than reading it: `/run` is mounted
+`noexec` so the binary could not execute from the tmpfs holding the secrets; the VM has no
+repository checkout so the source register had to ship with the binary; the GR watcher collected
+without consulting the register at all; and a run that failed during setup left no trace anywhere.
+
+Every run is now recorded in `collector_runs` — opened as soon as the database is reachable, so
+setup failures are captured too — and `make status` prints the recent ones. That fix immediately
+caught the fourth bug: the VM's `watch` was failing silently because it was not given the register.
+
+**Billing note:** a stopped VM costs nothing for CPU or memory, and its ephemeral IP is released.
+The only standing charge is the 10 GB boot disk, about ₹42/month. Deleting and recreating the VM
+nightly would save that, but instance schedules cannot create machines, so it would mean an
+instance template plus a scheduler plus a function — three parts for ₹42. Cloud Run has no disk at
+all and is now more plausible than when it was rejected, since BMC accepts Google's Mumbai
+addresses; the open question is only whether a job's egress presents as Mumbai.
 
 ---
 
