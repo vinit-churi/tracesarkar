@@ -1,0 +1,18 @@
+name: diag
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Where is this runner
+        run: curl -s -m 20 https://ipinfo.io/json || true
+      - name: roads.mcgm.gov.in port 443
+        run: curl -s -o /dev/null -m 25 -w "443 http=%{http_code} connect=%{time_connect}\n" https://roads.mcgm.gov.in/ || echo "443 FAILED"
+      - name: roads.mcgm.gov.in port 3000
+        run: curl -s -o /dev/null -m 25 -w "3000 http=%{http_code} connect=%{time_connect}\n" https://roads.mcgm.gov.in:3000/api/ward/ || echo "3000 FAILED"
+      - name: swd.mcgm.gov.in port 443 (known good)
+        run: curl -s -o /dev/null -m 25 -w "swd http=%{http_code}\n" https://swd.mcgm.gov.in/swdwebapi2026/report.svc/report/getprogresscard || echo "swd FAILED"
+      - name: portal.mcgm.gov.in port 443
+        run: curl -s -o /dev/null -m 25 -w "portal http=%{http_code}\n" https://portal.mcgm.gov.in/ || echo "portal FAILED"
