@@ -12,6 +12,7 @@ on:
       - "internal/**"
       - "go.mod"
       - "go.sum"
+      - "data/sources.yaml"
       - ".github/workflows/release.yml"
   workflow_dispatch:
 
@@ -37,6 +38,9 @@ jobs:
         run: |
           go build -trimpath -ldflags "-s -w -X main.version=$GITHUB_SHA" -o ingest-linux-amd64 ./cmd/ingest
           sha256sum ingest-linux-amd64 | tee ingest-linux-amd64.sha256
+          # The collector reads the source register at runtime, and the VM has no
+          # checkout. Ship it with the binary so the two never drift apart.
+          cp data/sources.yaml sources.yaml
 
       - name: Publish as the rolling collector release
         env:
@@ -44,9 +48,9 @@ jobs:
         run: |
           # One rolling tag the VM can always point at.
           if gh release view collector-latest >/dev/null 2>&1; then
-            gh release upload collector-latest ingest-linux-amd64 ingest-linux-amd64.sha256 --clobber
+            gh release upload collector-latest ingest-linux-amd64 ingest-linux-amd64.sha256 sources.yaml --clobber
           else
-            gh release create collector-latest ingest-linux-amd64 ingest-linux-amd64.sha256 \
+            gh release create collector-latest ingest-linux-amd64 ingest-linux-amd64.sha256 sources.yaml \
               --title "collector (rolling)" \
               --notes "The collector binary the Indian VM downloads at boot. Rebuilt on every push to main; see ADR 0015."
           fi

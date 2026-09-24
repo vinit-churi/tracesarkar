@@ -7,14 +7,17 @@
 # powers itself off. The instance schedule's stop time is the safety net if
 # anything here hangs.
 #
-# Nothing sensitive is written to the boot disk: secrets live in tmpfs under
-# /run, which does not survive the shutdown.
+# Secrets live in tmpfs under /run, which does not survive the shutdown, so
+# nothing sensitive is written to the boot disk. The binary cannot live there
+# too: /run is mounted noexec on Debian, so it goes to /usr/local/lib, where
+# being world-readable costs nothing — it is a public release artefact.
 
 set -uo pipefail
 
 REPO="${REPO:-vinit-churi/tracesarkar}"
 RELEASE="${RELEASE:-collector-latest}"
-WORKDIR=/run/tracesarkar
+WORKDIR=/run/tracesarkar          # tmpfs: secrets, gone at shutdown
+BINDIR=/usr/local/lib/tracesarkar  # /run is noexec, so the binary lives here
 LOG_TAG=tracesarkar
 
 log() { echo "[$(date -u +%FT%TZ)] $*" | tee >(logger -t "$LOG_TAG"); }
@@ -29,7 +32,7 @@ finish() {
 }
 trap finish EXIT
 
-mkdir -p "$WORKDIR"
+mkdir -p "$WORKDIR" "$BINDIR"
 cd "$WORKDIR"
 
 log "fetching credentials from Secret Manager"
@@ -50,16 +53,16 @@ fi
 
 log "downloading the collector"
 BINARY_URL="https://github.com/${REPO}/releases/download/${RELEASE}/ingest-linux-amd64"
-if ! curl -fsSL --retry 3 --retry-delay 5 -o "$WORKDIR/ingest" "$BINARY_URL"; then
+if ! curl -fsSL --retry 3 --retry-delay 5 -o "$BINDIR/ingest" "$BINARY_URL"; then
   log "FATAL: could not download ${BINARY_URL}"
   exit 1
 fi
-chmod +x "$WORKDIR/ingest"
+chmod +x "$BINDIR/ingest"
 
 # Verify the checksum when it is published alongside the binary.
 if curl -fsSL --retry 2 -o "$WORKDIR/ingest.sha256" "${BINARY_URL}.sha256"; then
   expected=$(awk '{print $1}' "$WORKDIR/ingest.sha256")
-  actual=$(sha256sum "$WORKDIR/ingest" | awk '{print $1}')
+  actual=$(sha256sum "$BINDIR/ingest" | awk '{print $1}')
   if [ "$expected" != "$actual" ]; then
     log "FATAL: checksum mismatch for the collector binary"
     exit 1
@@ -67,24 +70,33 @@ if curl -fsSL --retry 2 -o "$WORKDIR/ingest.sha256" "${BINARY_URL}.sha256"; then
   log "checksum verified"
 fi
 
+# The collector reads the source register at runtime and this machine has no
+# checkout, so it comes from the same release as the binary.
+log "downloading the source register"
+if ! curl -fsSL --retry 3 --retry-delay 5 -o "$WORKDIR/sources.yaml" \
+     "https://github.com/${REPO}/releases/download/${RELEASE}/sources.yaml"; then
+  log "FATAL: could not download the source register"
+  exit 1
+fi
+
 export TRACESARKAR_ENV_FILE="$WORKDIR/.env"
 export TRACESARKAR_TIER=personal
 
 log "applying migrations"
-"$WORKDIR/ingest" migrate 2>&1 | tee >(logger -t "$LOG_TAG")
+"$BINDIR/ingest" migrate 2>&1 | tee >(logger -t "$LOG_TAG")
 
 # This VM exists because these sources refuse foreign IPs. It collects
 # everything; GitHub Actions separately covers the sources reachable from
 # anywhere, so a failure here does not stop the whole record.
 log "collecting"
-"$WORKDIR/ingest" run 2>&1 | tee >(logger -t "$LOG_TAG")
+"$BINDIR/ingest" run --register "$WORKDIR/sources.yaml" 2>&1 | tee >(logger -t "$LOG_TAG")
 run_status=${PIPESTATUS[0]}
 
 log "watching for new government resolutions"
-"$WORKDIR/ingest" watch --limit 40 2>&1 | tee >(logger -t "$LOG_TAG")
+"$BINDIR/ingest" watch --limit 40 2>&1 | tee >(logger -t "$LOG_TAG")
 
 log "collection status"
-"$WORKDIR/ingest" status 2>&1 | tee >(logger -t "$LOG_TAG")
+"$BINDIR/ingest" status 2>&1 | tee >(logger -t "$LOG_TAG")
 
 if [ "$run_status" -ne 0 ]; then
   log "collection reported errors (exit ${run_status})"
