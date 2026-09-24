@@ -43,10 +43,12 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
       `publicdashboard` (2,237), `roadlayer` (2,405) and `ward` (30)
 - [x] `[E]` Turn on the scheduled workflow by adding the repository secrets — **the 30-day clock
       starts from the first green scheduled run**
-- [ ] `[E]` Run `./deploy/gcp/setup.sh` to create the Indian collector VM (ADR 0015). Its first
-      boot settles whether BMC accepts datacenter IPs or only residential ones
-- [ ] `[E]` If datacenter IPs are refused, move collection to a machine on a home connection and
-      write the successor ADR
+- [x] `[E]` Indian collector VM created and verified (ADR 0015). BMC filters by geography, not by
+      network type: a Mumbai datacenter IP is accepted, so no residential machine is needed
+- [ ] `[E]` The GR watcher bypasses the register policy — it collects without a `MayRun` check,
+      unlike the snapshotter. Make it consult the register too
+- [ ] `[E]` Serial-console output is empty after the VM powers off, which makes a failed night hard
+      to diagnose. Ship the run summary somewhere durable (the webhook, or Cloud Logging)
 - [ ] `[L]` Narrow the credentials CI holds: an R2 token scoped to the `tracesarkar` bucket only,
       and a PostgreSQL user limited to our tables instead of `avnadmin`. The repository is public,
       so the blast radius of a leak should be small

@@ -29,11 +29,14 @@ difference, and the same binary succeeded from India minutes earlier and later.
 Most of MCGM's estate answers only Indian traffic; `swd.mcgm.gov.in` does not share that
 restriction. Any collector for the roads API or the BMC portal must run from an Indian IP address.
 
-**Not yet distinguished:** whether the filter is by geography (non-Indian IPs refused) or by network
-type (datacenter and cloud ranges refused, residential allowed). Only two vantage points were
-tested, and both were at the extremes: an Indian home connection, and foreign cloud. The first boot
-of a VM inside an Indian datacenter answers it, and that test is scheduled as part of the work in
-[ADR 0015](../../04-adr/0015-indian-egress-for-collection.md).
+**Answered the same day.** A third vantage point settled it: a Compute Engine VM in `asia-south1`
+at `34.100.176.104` (Google AS396982, geolocating to Mumbai) reached every host —
+`roads.mcgm.gov.in:3000` returned HTTP 200 with an 18 ms connect, as did roads 443, the drain API
+and the portal (302).
+
+So the filter is **geographic, not by network type**: an Indian datacenter is accepted, and a
+residential connection is not required. The collector now runs from such a VM
+([ADR 0015](../../04-adr/0015-indian-egress-for-collection.md)).
 
 ## Consequences recorded elsewhere
 

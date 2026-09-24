@@ -1,6 +1,6 @@
 # ADR 0015 — Collection runs from an Indian IP, on a scheduled start/stop VM
 
-**Status:** Accepted · **Date:** 2026-09-24
+**Status:** Accepted, and verified in production on 2026-09-24 · **Date:** 2026-09-24
 
 ## Context
 
@@ -55,7 +55,7 @@ Cost is roughly ₹45 per month, dominated by the boot disk rather than by compu
 | **Always-on VM in Mumbai** | ~₹600/month for a machine idle 99.8% of the time. Revisit at Phase 1, when a server is needed continuously for the public API; the collector then moves onto it and this VM goes away. |
 | **Spot VM** | Saves ~₹2/month and risks missed nights. See rationale. |
 | **Oracle Cloud Always Free (Mumbai)** | Free permanently and a real Indian IP. Rejected for now because free-tier instances can be reclaimed when idle, which is precisely our failure mode, and because it adds a second cloud account to operate. A reasonable fallback if cost ever matters more than certainty. |
-| **A machine at home (Raspberry Pi, old laptop)** | Free, and a residential Indian IP, which is the only option that certainly works today. Rejected as the default because it depends on domestic power and broadband. **It becomes the answer if the VM's first boot shows that Indian datacenter ranges are blocked too.** |
+| **A machine at home (Raspberry Pi, old laptop)** | Free, and a residential Indian IP. Was the fallback if BMC turned out to block datacenter ranges; the first boot showed it does not, so this is no longer needed. Still the answer if BMC ever starts filtering by network type as well. |
 | **Keep everything on GitHub Actions** | Loses the roads API entirely, which is most of the platform's value. |
 
 ## Consequences
@@ -64,10 +64,11 @@ Cost is roughly ₹45 per month, dominated by the boot disk rather than by compu
   lives in [`deploy/gcp/`](../../deploy/gcp/README.md).
 - The collector binary is built by CI and published as a release asset, so the VM downloads a
   known artefact at boot instead of compiling on a micro instance.
-- **The first boot is also an experiment.** If BMC answers an Indian datacenter IP, this design
-  stands. If it refuses, the filter is by network type rather than geography, the VM is discarded,
-  and collection moves to a machine on a residential Indian connection. That outcome gets its own
-  ADR.
+- **The first boot was also an experiment, and it passed.** On 24 September 2026 a VM at
+  `34.100.176.104` (Google AS396982, geolocating to Mumbai) reached `roads.mcgm.gov.in:3000` with
+  HTTP 200 and an 18 ms connect, along with roads 443, the drain API and the portal. **BMC filters
+  by geography, not by network type**, so a datacenter in India is enough and no residential
+  connection is needed.
 - Secrets now exist in three places — a local `.env`, GitHub Actions secrets, and GCP Secret
   Manager. Each should be scoped down and rotated; that is a backlog item, not a blocker.
 - Every future source needs a reachability check from where the code will run, not from a laptop.

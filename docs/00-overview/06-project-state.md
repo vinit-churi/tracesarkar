@@ -28,12 +28,12 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
 | Current phase | **Phase 0, in progress** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
-| Infrastructure | Cloudflare R2 bucket `tracesarkar` and an Aiven PostgreSQL database, both live |
+| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and a nightly collector VM in `asia-south1` — all live |
 | Branch | `main` |
 
-**The 30-day snapshot clock has not started yet.** GitHub Actions now collects the drain API and
-Government Resolutions daily, but **BMC's roads API refuses foreign runners**, so the most valuable
-source needs the Indian VM in §7 before the clock really starts.
+**The 30-day snapshot clock starts with the first scheduled run, 02:30 IST on 25 September 2026.**
+Collection is verified end to end from both runners: the Mumbai VM covers everything including the
+roads API, and GitHub Actions covers the drain API and Government Resolutions from anywhere.
 
 ---
 
@@ -113,9 +113,15 @@ this duty cycle spot saves about ₹2 a month and risks a night that cannot star
 capacity, and a missed night cannot be recovered. GitHub Actions keeps the sources that answer from
 anywhere, as redundancy.
 
-**Still unanswered, and the VM's first boot answers it:** whether BMC filters by geography or by
-network type. If Indian datacenter IPs are refused too, collection moves to a machine on a
-residential connection at your place.
+**Answered the same day.** The VM was built and run: from `34.100.176.104` in Mumbai, every BMC
+host answers, `roads.mcgm.gov.in:3000` in 18 ms. BMC filters by geography, not by network type, so
+a datacenter in India is enough.
+
+The collector now runs unattended there: it boots, reads its credentials from Secret Manager,
+downloads the binary and the source register from the `collector-latest` release, collects, and
+powers itself off. Two bugs were found and fixed doing this — `/run` is mounted `noexec` so the
+binary could not execute from the tmpfs holding the secrets, and the VM has no repository checkout
+so the source register had to ship with the binary.
 
 ---
 
@@ -158,10 +164,8 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 **Only you can do these:**
 
 - [x] ~~Add the repository secrets~~ — done 24 Sep 2026; collection runs daily at 02:30 IST
-- [ ] **Create a GCP project with billing enabled, install `gcloud`, and run
-      `./deploy/gcp/setup.sh`.** That builds the Indian collector VM. Its first boot also settles
-      whether BMC accepts datacenter IPs at all — watch for `endpoint":"publicdashboard"` in the
-      serial output, as [the deploy README](../../deploy/gcp/README.md) explains
+- [x] ~~Build the Indian collector VM~~ — done 24 Sep 2026 in project `cloud-mcp-501616`,
+      `tracesarkar-collector` in `asia-south1-a`, starting nightly at 02:30 IST
 - [ ] **Narrow what CI holds:** an R2 token scoped to the `tracesarkar` bucket, and a database user
       limited to our tables rather than `avnadmin`. The repository is public, so a leak should cost
       as little as possible. Then rotate both. The same credentials now also sit in GCP Secret
