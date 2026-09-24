@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/ingest"
+	"github.com/vinit-churi/tracesarkar/internal/sources"
 )
 
 type fakeArchive struct{ put map[string][]byte }
@@ -88,6 +89,9 @@ func newTestWatcher(srv *httptest.Server, arch Archive, st GRStore) *GRWatcher {
 	w.MetadataBase = srv.URL + "/metadata/"
 	w.DownloadBase = srv.URL + "/download/"
 	w.Limit = 10
+	// Registered and permitted, unless a test says otherwise.
+	w.Source = sources.Source{ID: "maha_gr_archive", Status: "candidate", Acquisition: "api"}
+	w.Tier = sources.TierPersonal
 	return w
 }
 
@@ -206,5 +210,67 @@ func TestGRWatcherContinuesWhenOneItemFails(t *testing.T) {
 	}
 	if result.New != 1 {
 		t.Errorf("the healthy item should still be archived: %+v", result)
+	}
+}
+
+// The snapshotter refuses sources the register forbids. The watcher must too,
+// or a source marked blocked would still be collected (D045).
+func TestGRWatcherRefusesASourceTheRegisterForbids(t *testing.T) {
+	srv := mirror(t, "text")
+	arch, st := &fakeArchive{}, &fakeGRStore{known: map[string]bool{}}
+	w := newTestWatcher(srv, arch, st)
+	w.Source = sources.Source{ID: "maha_gr_archive", Status: "blocked", Acquisition: "api"}
+	w.Tier = sources.TierPersonal
+
+	result, err := w.Run(context.Background())
+
+	if err != nil {
+		t.Fatalf("a refusal is not an error: %v", err)
+	}
+	if result.SkippedReason == "" {
+		t.Error("the refusal must explain itself")
+	}
+	if result.New != 0 || len(arch.put) != 0 {
+		t.Errorf("nothing may be collected: %+v, %d objects", result, len(arch.put))
+	}
+	if len(st.saved) != 0 {
+		t.Error("nothing may be stored")
+	}
+}
+
+func TestGRWatcherRunsWhenTheRegisterAllowsIt(t *testing.T) {
+	srv := mirror(t, "text")
+	arch, st := &fakeArchive{}, &fakeGRStore{known: map[string]bool{}}
+	w := newTestWatcher(srv, arch, st)
+	w.Source = sources.Source{ID: "maha_gr_archive", Status: "candidate", Acquisition: "api"}
+	w.Tier = sources.TierPersonal
+
+	result, err := w.Run(context.Background())
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if result.SkippedReason != "" {
+		t.Fatalf("should not have been skipped: %s", result.SkippedReason)
+	}
+	if result.New != 2 {
+		t.Errorf("expected both resolutions: %+v", result)
+	}
+}
+
+func TestGRWatcherRefusesWhenTheSourceIsNotInTheRegisterAtAll(t *testing.T) {
+	srv := mirror(t, "text")
+	arch, st := &fakeArchive{}, &fakeGRStore{known: map[string]bool{}}
+	w := newTestWatcher(srv, arch, st)
+	// Source cleared: the collector does not know what it is collecting.
+	w.Source = sources.Source{}
+	w.Tier = sources.TierPersonal
+
+	result, err := w.Run(context.Background())
+
+	if err == nil {
+		t.Fatal("collecting a source that is not registered must be an error")
+	}
+	if result.New != 0 || len(arch.put) != 0 {
+		t.Error("nothing may be collected")
 	}
 }

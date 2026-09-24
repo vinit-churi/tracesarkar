@@ -45,10 +45,13 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
       starts from the first green scheduled run**
 - [x] `[E]` Indian collector VM created and verified (ADR 0015). BMC filters by geography, not by
       network type: a Mumbai datacenter IP is accepted, so no residential machine is needed
-- [ ] `[E]` The GR watcher bypasses the register policy — it collects without a `MayRun` check,
-      unlike the snapshotter. Make it consult the register too
-- [ ] `[E]` Serial-console output is empty after the VM powers off, which makes a failed night hard
-      to diagnose. Ship the run summary somewhere durable (the webhook, or Cloud Logging)
+- [x] `[E]` The GR watcher now consults the register before collecting, like the snapshotter, and
+      refuses a source that is not registered at all
+- [x] `[E]` Every run is recorded in `collector_runs` — including runs that fail before any fetch,
+      and runs that never return. `ingest status` prints the recent ones, so a night that failed on
+      a machine which has since powered itself off is still diagnosable
+- [ ] `[E]` Alert on a night that does not run at all. The run log makes this detectable; nothing
+      watches it yet
 - [ ] `[L]` Narrow the credentials CI holds: an R2 token scoped to the `tracesarkar` bucket only,
       and a PostgreSQL user limited to our tables instead of `avnadmin`. The repository is public,
       so the blast radius of a leak should be small

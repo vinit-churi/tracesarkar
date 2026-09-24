@@ -289,7 +289,8 @@ Daily collection runs in two places, because BMC only answers some of it from ab
 | An archived body that fails to parse is retried, never skipped | `raw_documents.parsed_at`, set only after a snapshot is applied |
 | Blocklisted fields never reach the database | the parsers, with a test per source |
 | A natural-key collision stops the run | `buildRecords`, which refuses to merge two records silently |
-| Sources the register forbids are never scheduled | `sources.MayRun`, checked before every job |
+| Sources the register forbids are never scheduled | `sources.MayRun`, checked by the snapshotter and the watcher alike |
+| A failed night is diagnosable after the machine is gone | `collector_runs`, written before the work starts and updated when it ends |
 | A source unreachable from a runner is collected elsewhere, not dropped | The `network` field in the register, and the split above |
 
 ---

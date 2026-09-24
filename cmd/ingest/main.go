@@ -16,6 +16,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -29,6 +30,9 @@ import (
 	"github.com/vinit-churi/tracesarkar/internal/watch"
 	"github.com/vinit-churi/tracesarkar/internal/works"
 )
+
+// version is stamped by the release build.
+var version = "dev"
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -102,6 +106,42 @@ func load(ctx context.Context) (config.Config, *store.DB, func(), error) {
 	return cfg, store.NewDB(pool), pool.Close, nil
 }
 
+// withRunLog records that a command ran, and how it ended, so that a night which
+// fails on a machine that then powers itself off is still diagnosable.
+func withRunLog(ctx context.Context, db *store.DB, cfg config.Config, command string,
+	body func() (map[string]any, error)) error {
+
+	host, _ := os.Hostname()
+	if host == "" {
+		host = "unknown"
+	}
+	runID, startErr := db.StartRun(ctx, store.RunStart{
+		Command: command, Host: host, Tier: cfg.Tier, Version: version,
+	})
+	if startErr != nil {
+		// Losing the record is not a reason to skip the collection.
+		slog.Warn("could not record the start of this run", "error", startErr.Error())
+	}
+
+	detail, err := body()
+
+	if runID != "" {
+		message := ""
+		if err != nil {
+			message = err.Error()
+		}
+		// A fresh context: the run's own may already be cancelled.
+		finishCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if finishErr := db.FinishRun(finishCtx, runID, store.RunFinish{
+			OK: err == nil, Error: message, Detail: detail,
+		}); finishErr != nil {
+			slog.Warn("could not record the end of this run", "error", finishErr.Error())
+		}
+	}
+	return err
+}
+
 func runMigrate(ctx context.Context) error {
 	cfg, err := config.Load(envFile())
 	if err != nil {
@@ -164,6 +204,20 @@ func runSnapshot(ctx context.Context, args []string) error {
 	}
 
 	alerts := notify.New(cfg.NotifyWebhook, nil, slog.Default())
+
+	jobs, skipped := ingest.BuildJobs(reg, cfg.Tier)
+	for id, reason := range skipped {
+		slog.Info("source not scheduled", "source", id, "reason", reason, "tier", cfg.Tier)
+	}
+
+	return withRunLog(ctx, db, cfg, "run", func() (map[string]any, error) {
+		return snapshotJobs(ctx, db, cfg, arch, alerts, jobs, only)
+	})
+}
+
+func snapshotJobs(ctx context.Context, db *store.DB, cfg config.Config, arch *archive.Client,
+	alerts notify.Notifier, jobs []ingest.Job, only map[string]bool) (map[string]any, error) {
+
 	runner := &ingest.Runner{
 		Fetcher: ingest.NewFetcher(nil, ingest.DefaultUserAgent),
 		Archive: arch,
@@ -171,10 +225,8 @@ func runSnapshot(ctx context.Context, args []string) error {
 		Log:     slog.Default(),
 	}
 
-	jobs, skipped := ingest.BuildJobs(reg, cfg.Tier)
-	for id, reason := range skipped {
-		slog.Info("source not scheduled", "source", id, "reason", reason, "tier", cfg.Tier)
-	}
+	detail := map[string]any{}
+	var changedTotal, unchangedTotal, failedTotal, changeCount int
 
 	var failures int
 	for _, job := range jobs {
@@ -195,6 +247,11 @@ func runSnapshot(ctx context.Context, args []string) error {
 			slog.Warn("could not update source status", "source", job.SourceID, "error", err.Error())
 		}
 
+		changedTotal += summary.Changed
+		unchangedTotal += summary.Unchanged
+		failedTotal += summary.Failed
+		changeCount += len(summary.Changes)
+
 		slog.Info("run finished",
 			"source", job.SourceID,
 			"changed_endpoints", summary.Changed,
@@ -207,10 +264,15 @@ func runSnapshot(ctx context.Context, args []string) error {
 		}
 	}
 
+	detail["changed_endpoints"] = changedTotal
+	detail["unchanged_endpoints"] = unchangedTotal
+	detail["failed_endpoints"] = failedTotal
+	detail["changes"] = changeCount
+
 	if failures > 0 {
-		return fmt.Errorf("%d source(s) reported errors", failures)
+		return detail, fmt.Errorf("%d source(s) reported errors", failures)
 	}
-	return nil
+	return detail, nil
 }
 
 // sendSummary alerts on changes and on failures, and stays quiet otherwise.
@@ -246,6 +308,7 @@ func runWatch(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("watch", flag.ExitOnError)
 	limit := fs.Int("limit", 25, "how many new resolutions to fetch in one run")
 	rows := fs.Int("rows", 100, "how many recent items to examine")
+	registerPath := fs.String("register", "data/sources.yaml", "path to the source register")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -267,12 +330,36 @@ func runWatch(ctx context.Context, args []string) error {
 		return err
 	}
 
+	reg, err := sources.Load(*registerPath)
+	if err != nil {
+		return err
+	}
+	src, ok := reg.Get("maha_gr_archive")
+	if !ok {
+		return fmt.Errorf("source maha_gr_archive is not in %s", *registerPath)
+	}
+
 	watcher := watch.NewGRWatcher(ingest.NewFetcher(nil, ingest.DefaultUserAgent), arch, db)
 	watcher.Limit = *limit
 	watcher.Rows = *rows
 	watcher.Log = slog.Default()
+	watcher.Source = src
+	watcher.Tier = cfg.Tier
 
-	result, runErr := watcher.Run(ctx)
+	var result watch.Result
+	runErr := withRunLog(ctx, db, cfg, "watch", func() (map[string]any, error) {
+		var err error
+		result, err = watcher.Run(ctx)
+		return map[string]any{
+			"examined": result.Seen, "new": result.New,
+			"flagged": len(result.Hits), "skipped": result.SkippedReason,
+		}, err
+	})
+
+	if result.SkippedReason != "" {
+		slog.Info("watch not scheduled", "source", src.ID, "reason", result.SkippedReason, "tier", cfg.Tier)
+		return nil
+	}
 	slog.Info("watch finished",
 		"source", "maha_gr_archive",
 		"examined", result.Seen, "new", result.New, "flagged", len(result.Hits))
@@ -322,7 +409,74 @@ func runStatus(ctx context.Context) error {
 		fmt.Printf("%-16s %-18s %-22s %8d %8d %8d\n",
 			truncate(r.SourceID, 16), truncate(r.Endpoint, 18), last, r.Records, r.Attempts, r.Failures)
 	}
+
+	return printRecentRuns(ctx, db, 8)
+}
+
+// printRecentRuns is how a night that failed on a machine that has since powered
+// itself off is diagnosed.
+func printRecentRuns(ctx context.Context, db *store.DB, limit int) error {
+	runs, err := db.RecentRuns(ctx, limit)
+	if err != nil {
+		return err
+	}
+	if len(runs) == 0 {
+		return nil
+	}
+
+	fmt.Printf("\nrecent runs\n")
+	fmt.Printf("%-19s %-8s %-20s %-9s %s\n", "STARTED (UTC)", "COMMAND", "HOST", "OUTCOME", "DETAIL")
+	for _, r := range runs {
+		outcome := "running"
+		switch {
+		case r.FinishedAt == nil && time.Since(r.StartedAt) > time.Hour:
+			outcome = "no return"
+		case r.FinishedAt == nil:
+			outcome = "running"
+		case r.OK:
+			outcome = "ok"
+		default:
+			outcome = "FAILED"
+		}
+		detail := r.Error
+		if detail == "" {
+			detail = summariseDetail(r.Detail)
+		}
+		if len(detail) > 64 {
+			detail = detail[:61] + "..."
+		}
+		fmt.Printf("%-19s %-8s %-20s %-9s %s\n",
+			r.StartedAt.UTC().Format("2006-01-02 15:04"), truncate(r.Command, 8),
+			truncate(r.Host, 20), outcome, detail)
+	}
 	return nil
+}
+
+func summariseDetail(detail map[string]any) string {
+	if len(detail) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(detail))
+	for k := range detail {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		v := detail[k]
+		if v == nil || v == "" {
+			continue
+		}
+		if f, ok := v.(float64); ok {
+			if f == 0 {
+				continue
+			}
+			parts = append(parts, fmt.Sprintf("%s=%g", k, f))
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+	}
+	return strings.Join(parts, " ")
 }
 
 func runChanges(ctx context.Context, args []string) error {

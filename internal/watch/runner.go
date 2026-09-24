@@ -10,6 +10,7 @@ import (
 
 	"github.com/vinit-churi/tracesarkar/internal/archive"
 	"github.com/vinit-churi/tracesarkar/internal/ingest"
+	"github.com/vinit-churi/tracesarkar/internal/sources"
 )
 
 // Archive is the object-storage surface the watcher needs.
@@ -47,6 +48,9 @@ type Result struct {
 	Seen int
 	New  int
 	Hits []Hit
+	// SkippedReason is set when the register's policy refused this source, in
+	// which case nothing was collected.
+	SkippedReason string
 }
 
 // GRWatcher archives newly published Government Resolutions.
@@ -55,6 +59,12 @@ type GRWatcher struct {
 	Archive Archive
 	Store   GRStore
 	Log     *slog.Logger
+
+	// Source is this collector's entry in the register, and Tier the exposure
+	// tier it runs at. Collection is refused unless the register allows it
+	// (D045), exactly as the snapshotter's jobs are.
+	Source sources.Source
+	Tier   string
 
 	// Limit caps how many new resolutions one run downloads.
 	Limit int
@@ -94,6 +104,21 @@ func (w *GRWatcher) log() *slog.Logger {
 // stop the rest.
 func (w *GRWatcher) Run(ctx context.Context) (Result, error) {
 	var result Result
+
+	// The register decides what may be collected, and this collector is not
+	// exempt from it just because it reads documents rather than works data.
+	if w.Source.ID == "" {
+		return result, fmt.Errorf("gr watcher: no registered source configured; refusing to collect")
+	}
+	tier := w.Tier
+	if tier == "" {
+		tier = sources.TierPersonal
+	}
+	if ok, reason := sources.MayRun(w.Source, tier); !ok {
+		result.SkippedReason = reason
+		w.log().Info("gr watcher not scheduled", "source", w.Source.ID, "reason", reason, "tier", tier)
+		return result, nil
+	}
 
 	searchRes, err := w.Fetcher.Fetch(ctx, w.searchURL())
 	if err != nil {

@@ -680,6 +680,25 @@ CREATE TABLE report_labels (
   labelled_at       timestamptz NOT NULL DEFAULT now()
 );
 
+-- One row per collector invocation, whatever the outcome. The collector VM
+-- powers itself off when it finishes and its serial console goes with it, so
+-- the outcome of a run has to be durable. fetch_log records attempts against a
+-- source; this records the run, and so captures failures that happen before any
+-- fetch is attempted.
+CREATE TABLE collector_runs (
+  id          uuid PRIMARY KEY,
+  command     text NOT NULL,           -- run | watch | migrate
+  host        text NOT NULL,
+  tier        text NOT NULL,
+  version     text,
+  started_at  timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz,             -- null while running, or if it never returned
+  ok          boolean,
+  error       text,
+  detail      jsonb NOT NULL DEFAULT '{}'
+);
+CREATE INDEX ON collector_runs (started_at DESC);
+
 -- A running clock. It keeps the legal_constants version it started under.
 CREATE TABLE clock_instances (
   id          uuid PRIMARY KEY,
