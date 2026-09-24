@@ -205,9 +205,19 @@ enforced by IAM policy, not by convention.
 
 **Phase 0 exception ([D046](../00-overview/05-decision-log.md)).** Snapshot history cannot be
 re-collected later, so the Phase 0 ingesters write to the **production archive bucket** from their
-first run, even though they run on the staging node. They hold write-only credentials scoped to
-`archive/` and `media/`. When production exists, the ingesters move there and staging loses those
-credentials.
+first run, wherever they happen to run. They hold write-only credentials scoped to `archive/` and
+`media/`.
+
+**Where Phase 0 actually runs ([ADR 0015](../04-adr/0015-indian-egress-for-collection.md)).** There
+is no VPS yet. Collection is split by what each source will answer:
+
+| Runner | Collects | Why there |
+|---|---|---|
+| `e2-micro` in `asia-south1`, started 02:30 IST by an instance schedule, powers itself off | Everything, including the roads API and the BMC portal | Those hosts refuse foreign cloud runners |
+| GitHub Actions, daily 08:30 IST | The storm-water drain API, the Government Resolution watcher | They answer from any network; free, and redundant with the VM |
+
+At Phase 1 both fold into the single VPS described above, and the collector becomes one more
+service on it.
 
 ---
 

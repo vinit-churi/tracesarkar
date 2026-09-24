@@ -1,10 +1,12 @@
 name: snapshot
 
-# Phase 0, P1: a daily snapshot of the works data BMC publishes.
+# Phase 0: the half of collection that is reachable from anywhere.
 #
-# This exists so the record starts now, before there is a VPS. It writes to the
-# production archive bucket and the Aiven database, exactly as the eventual
-# always-on runner will (D046). When that runner exists, disable this workflow.
+# BMC's roads API and portal refuse foreign cloud runners, so they are collected
+# from a VM in asia-south1 instead (ADR 0015). What remains here answers from any
+# network: the storm-water drain API and the Government Resolution mirror. The
+# overlap with the VM is deliberate redundancy — unchanged bytes cost one
+# fetch_log row and nothing else.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   R2_BUCKET_URL, R2_BUCKET_NAME, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY,
@@ -13,8 +15,9 @@ name: snapshot
 
 on:
   schedule:
-    # 02:30 IST, inside the preferred 00:00–06:00 IST crawl window.
-    - cron: "0 21 * * *"
+    # 08:30 IST — deliberately not 02:30, so this and the VM are not a single
+    # simultaneous point of failure.
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -54,7 +57,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: go run ./cmd/ingest migrate
 
-      - name: Snapshot
+      - name: Snapshot the sources reachable from anywhere
         env:
           POSTGRESQL_CONNECTION: ${{ secrets.POSTGRESQL_CONNECTION }}
           POSTGRES_CA_PATH: ca.pem
@@ -64,7 +67,8 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
           TRACESARKAR_TIER: personal
-        run: go run ./cmd/ingest run
+        # Named explicitly: bmc_roads_api would only time out from here.
+        run: go run ./cmd/ingest run bmc_swd_api
 
       - name: Watch for new Government Resolutions
         env:

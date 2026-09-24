@@ -1,0 +1,52 @@
+name: release
+
+# Builds the collector for Linux and publishes it as a rolling release asset, so
+# the Indian collector VM can download a known binary at boot instead of
+# compiling Go on a micro instance. See ADR 0015.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Build a static linux/amd64 binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go build -trimpath -ldflags "-s -w -X main.version=$GITHUB_SHA" -o ingest-linux-amd64 ./cmd/ingest
+          sha256sum ingest-linux-amd64 | tee ingest-linux-amd64.sha256
+
+      - name: Publish as the rolling collector release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # One rolling tag the VM can always point at.
+          if gh release view collector-latest >/dev/null 2>&1; then
+            gh release upload collector-latest ingest-linux-amd64 ingest-linux-amd64.sha256 --clobber
+          else
+            gh release create collector-latest ingest-linux-amd64 ingest-linux-amd64.sha256 \
+              --title "collector (rolling)" \
+              --notes "The collector binary the Indian VM downloads at boot. Rebuilt on every push to main; see ADR 0015."
+          fi

@@ -41,8 +41,16 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
 
 - [x] `[E]` **P1 `bmc_roads_api` ingester** with golden fixtures — collecting
       `publicdashboard` (2,237), `roadlayer` (2,405) and `ward` (30)
-- [ ] `[E]` Turn on the scheduled workflow by adding the repository secrets — **this starts the
-      30-day clock**
+- [x] `[E]` Turn on the scheduled workflow by adding the repository secrets — **the 30-day clock
+      starts from the first green scheduled run**
+- [ ] `[E]` Run `./deploy/gcp/setup.sh` to create the Indian collector VM (ADR 0015). Its first
+      boot settles whether BMC accepts datacenter IPs or only residential ones
+- [ ] `[E]` If datacenter IPs are refused, move collection to a machine on a home connection and
+      write the successor ADR
+- [ ] `[L]` Narrow the credentials CI holds: an R2 token scoped to the `tracesarkar` bucket only,
+      and a PostgreSQL user limited to our tables instead of `avnadmin`. The repository is public,
+      so the blast radius of a leak should be small
+- [ ] `[E]` Rotate both credentials once narrowed, and record the rotation date
 - [x] `[E]` P8 alerts: webhook with a logging fallback
 - [ ] `[E]` Point the webhook at a real channel (`NOTIFY_WEBHOOK_URL`)
 - [x] `[E]` P1 `bmc_swd_api` progress-card ingester

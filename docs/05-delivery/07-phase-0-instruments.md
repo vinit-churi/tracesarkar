@@ -49,9 +49,13 @@ phase creates an **issue**.
 
 ## 4. Hosting
 
+Revised 24 September 2026 by [ADR 0015](../04-adr/0015-indian-egress-for-collection.md): BMC's
+roads API and portal refuse foreign cloud runners, so collection is split by reachability.
+
 | Component | Choice | Note |
 |---|---|---|
-| Compute | One small VPS running Dokploy as a single-node Swarm — the `staging` environment in [deployment](../03-architecture/09-deployment.md) | Becomes v0.1's staging |
+| Compute, India-only sources | An `e2-micro` in `asia-south1`, started at 02:30 IST by a Compute Engine instance schedule; the startup script collects and powers the machine off | ~₹45/month, alive about three minutes a night. [Deployment kit](../../deploy/gcp/README.md) |
+| Compute, sources reachable anywhere | GitHub Actions, daily at 08:30 IST | The drain API and the GR watcher. Free, and redundant with the VM |
 | Database | PostgreSQL 16 + PostGIS in a container on the VPS | Nightly `pg_dump` to R2 under `backups/`, 30-day lifecycle |
 | Archive | Cloudflare R2, S3-compatible — **the production archive bucket from the first run**, because snapshot history cannot be re-collected | A bucket lock with indefinite retention makes `archive/` write-once. `media/` is **not** locked: report photographs must stay erasable under the data-principal rights in [security and privacy](../03-architecture/11-security-and-privacy.md). Credentials are scoped per prefix. `backups/` is not locked |
 | Secrets | Dokploy secret store | Never in the repository or an image layer |
@@ -267,10 +271,14 @@ make test                     # offline tests
 make test-live                # tests that touch the real bucket and database
 ```
 
-Daily collection runs from `.github/workflows/snapshot.yml` until an always-on runner exists. It
-needs these repository secrets: `R2_BUCKET_URL`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY`,
-`R2_SECRET_ACCESS_KEY`, `POSTGRESQL_CONNECTION`, `POSTGRES_CA` (the certificate itself) and,
-optionally, `NOTIFY_WEBHOOK_URL`.
+Daily collection runs in two places, because BMC only answers some of it from abroad:
+
+- **The Indian VM** (`deploy/gcp/`) collects everything, including the roads API. Set up with
+  `./deploy/gcp/setup.sh`; credentials come from Secret Manager.
+- **GitHub Actions** (`.github/workflows/snapshot.yml`) collects the drain API and watches for new
+  Government Resolutions. It needs these repository secrets: `R2_BUCKET_URL`, `R2_BUCKET_NAME`,
+  `R2_ACCESS_KEY`, `R2_SECRET_ACCESS_KEY`, `POSTGRESQL_CONNECTION`, `POSTGRES_CA` (the certificate
+  itself) and, optionally, `NOTIFY_WEBHOOK_URL`.
 
 **What the runner guarantees, and where it is enforced:**
 
@@ -282,6 +290,7 @@ optionally, `NOTIFY_WEBHOOK_URL`.
 | Blocklisted fields never reach the database | the parsers, with a test per source |
 | A natural-key collision stops the run | `buildRecords`, which refuses to merge two records silently |
 | Sources the register forbids are never scheduled | `sources.MayRun`, checked before every job |
+| A source unreachable from a runner is collected elsewhere, not dropped | The `network` field in the register, and the split above |
 
 ---
 

@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated: 23 September 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 24 September 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
 
 ---
@@ -31,8 +31,9 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 | Infrastructure | Cloudflare R2 bucket `tracesarkar` and an Aiven PostgreSQL database, both live |
 | Branch | `main` |
 
-**The 30-day snapshot clock has not started yet.** It starts when the scheduled workflow can run,
-which needs the repository secrets in §6.
+**The 30-day snapshot clock has not started yet.** GitHub Actions now collects the drain API and
+Government Resolutions daily, but **BMC's roads API refuses foreign runners**, so the most valuable
+source needs the Indian VM in §7 before the clock really starts.
 
 ---
 
@@ -95,6 +96,29 @@ null blocklist column and a missing `endpoint` column). Everything else was writ
 
 ---
 
+## 4A. What happened on 24 September 2026
+
+The repository secrets went in and the workflow ran for real — and failed in a way worth the
+failure. From a GitHub runner in the US, `roads.mcgm.gov.in` and `portal.mcgm.gov.in` refuse
+connections outright, on every port, while `swd.mcgm.gov.in` and the Internet Archive answer
+normally. All four respond from your home connection in Mumbai.
+
+**BMC geo-restricts most of its estate.** The drain API collected fine from CI and even recorded
+five changed values, so the pipeline is sound; the roads API simply cannot be reached from abroad.
+
+We decided how to handle it ([ADR 0015](../04-adr/0015-indian-egress-for-collection.md)): a small
+VM in `asia-south1` that an instance schedule starts at 02:30 IST, which collects and then powers
+itself off — about ₹45 a month, alive three minutes a night. On-demand rather than spot, because at
+this duty cycle spot saves about ₹2 a month and risks a night that cannot start for want of
+capacity, and a missed night cannot be recovered. GitHub Actions keeps the sources that answer from
+anywhere, as redundancy.
+
+**Still unanswered, and the VM's first boot answers it:** whether BMC filters by geography or by
+network type. If Indian datacenter IPs are refused too, collection moves to a machine on a
+residential connection at your place.
+
+---
+
 ## 5. Decisions to confirm
 
 These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
@@ -133,12 +157,17 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 **Only you can do these:**
 
-- [ ] **Add the repository secrets so the daily snapshot runs.** GitHub → Settings → Secrets and
-      variables → Actions. Needed: `R2_BUCKET_URL`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY`,
-      `R2_SECRET_ACCESS_KEY`, `POSTGRESQL_CONNECTION`, `POSTGRES_CA` (paste the certificate
-      itself), and optionally `NOTIFY_WEBHOOK_URL`. The values are in your local `.env` and
-      `ca.pem`. **Until this is done the 30-day clock has not started**, and days of BMC's record
-      go unkept
+- [x] ~~Add the repository secrets~~ — done 24 Sep 2026; collection runs daily at 02:30 IST
+- [ ] **Create a GCP project with billing enabled, install `gcloud`, and run
+      `./deploy/gcp/setup.sh`.** That builds the Indian collector VM. Its first boot also settles
+      whether BMC accepts datacenter IPs at all — watch for `endpoint":"publicdashboard"` in the
+      serial output, as [the deploy README](../../deploy/gcp/README.md) explains
+- [ ] **Narrow what CI holds:** an R2 token scoped to the `tracesarkar` bucket, and a database user
+      limited to our tables rather than `avnadmin`. The repository is public, so a leak should cost
+      as little as possible. Then rotate both. The same credentials now also sit in GCP Secret
+      Manager
+- [ ] Optional: set `NOTIFY_WEBHOOK_URL` (any endpoint that accepts a JSON POST) so changes reach
+      you instead of only the workflow logs
 - [ ] Read §5 and confirm or reverse each decision
 - [ ] Decide whether to tell BMC that its health-department map layer exposes patient records
 - [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM. Nothing collected can reach a

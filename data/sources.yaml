@@ -12,7 +12,8 @@
 # false. Its output may not reach a flagged or public surface until terms_reviewed_on
 # is filled. blocked sources never run. The blocklist applies at every tier.
 #
-# status: candidate | planned | reviewing | active | blocked | retired
+# status:  candidate | planned | reviewing | active | blocked | retired
+# network: any | india_only — where a collector must run from (D050, ADR 0015)
 #
 # candidate = found and probed, not yet chosen. See docs/01-research/09-vertical-exploration.md
 
@@ -53,6 +54,7 @@ sources:
     robots_ok: null
     archive_prefix: s3://tracesarkar-archive/bmc_tenders/
     status: planned
+    network: india_only        # refuses foreign cloud runners; see ADR 0015
     notes: >
       SAP portal; URLs are brittle. Expect frequent parser maintenance. The e-tender
       listing (irj/portal/anonymous/qletenders_new) held 352 notices on 18 Sep 2026
@@ -282,10 +284,13 @@ sources:
     archive_prefix: s3://tracesarkar-archive/bmc_roads_api/
     status: candidate
     blocklist: contractorRepName, contractorRepMobile
+    network: india_only        # refuses foreign cloud runners; see ADR 0015
     notes: >
       2,237 CC-road works and 2,405 geometries keyed by work code. dlpPeriod is null
       throughout. Status counts move between snapshots (58 -> 60 Deleted, Aug -> Sep
       2026), so archive every change. Open question Q27.
+      Reachable only from an Indian IP: a GitHub runner in the US gets a connection
+      timeout on both 443 and 3000 (probe of 24 Sep 2026).
 
   - id: bmc_swd_api
     name: BMC storm-water drain desilting API
@@ -299,6 +304,7 @@ sources:
     archive_prefix: s3://tracesarkar-archive/bmc_swd_api/
     status: candidate
     blocklist: VehicleNo, SlipNo
+    network: any               # answers foreign runners, unlike the rest of MCGM
     notes: >
       Progress card is GET; nallah-level records (agency, work code, ward, lat/long)
       are POST. Prior seasons under WMS2025 and wms_2022. Open question Q32.
