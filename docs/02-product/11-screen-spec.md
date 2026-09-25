@@ -190,6 +190,10 @@ Sticky, appears only when the outbox is non-empty: `3 reports waiting to send ·
 
 ## 4. Screen inventory
 
+A rendered walkthrough of the v0.1 set, with what is built and what is not marked on each screen,
+is in [`15-v1-screens.html`](15-v1-screens.html) — open it in a browser. It is a sketch for
+orientation; where it and this file disagree, this file wins.
+
 | ID | Screen | Milestone | Notes |
 |---|---|---|---|
 | S01 | Home / launcher | v0.1 | Camera is the screen |

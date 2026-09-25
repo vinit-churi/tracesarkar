@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TraceSarkar v1 Screens</title>
+<style>
+  :root {
+    /* Page chrome. */
+    --page-bg: #F4F3F0;
+    --page-fg: #141518;
+    --page-muted: #5C606A;
+    --page-line: #DDDAD3;
+    --page-card: #FFFFFF;
+
+    /* Product tokens — docs/02-product/11-screen-spec.md §2.1.
+       These never change with the viewer's colour scheme: they are what the
+       product looks like, not what this page looks like. */
+    --ink: #141518;
+    --ink-70: #4A4D55;
+    --ink-45: #7C8089;
+    --paper: #FBFAF8;
+    --surface: #FFFFFF;
+    --hairline: #E3E1DC;
+    --accent: #6B2C4F;
+    --accent-wash: #F5EAF0;
+    --alert: #A33A1F;
+    --alert-wash: #FBEDE8;
+    --caution: #8A6410;
+    --caution-wash: #FAF3E2;
+    --confirm: #1F6A4D;
+    --confirm-wash: #EAF3EF;
+    --evidence: #F2F0EB;
+
+    --radius-card: 12px;
+    --radius-chip: 8px;
+    --radius-btn: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #17181B;
+      --page-fg: #ECEAE6;
+      --page-muted: #9A9EA8;
+      --page-line: #2E3036;
+      --page-card: #1E2024;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page-bg: #17181B;
+    --page-fg: #ECEAE6;
+    --page-muted: #9A9EA8;
+    --page-line: #2E3036;
+    --page-card: #1E2024;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--page-fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Noto Sans Devanagari", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 80px; }
+
+  /* ---------- page header ---------- */
+
+  header.page { padding: 48px 0 24px; border-bottom: 1px solid var(--page-line); }
+  header.page h1 {
+    font-size: clamp(28px, 5vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+  header.page p { margin: 0 0 12px; max-width: 68ch; color: var(--page-muted); }
+  header.page p strong { color: var(--page-fg); }
+  .authority {
+    margin-top: 20px; padding: 12px 14px;
+    border-left: 3px solid var(--accent);
+    background: var(--page-card);
+    border-radius: 0 var(--radius-chip) var(--radius-chip) 0;
+    font-size: 14px; color: var(--page-muted);
+  }
+  .authority code { font-size: 13px; color: var(--page-fg); }
+
+  /* ---------- legend + filter ---------- */
+
+  .state {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px; margin-top: 28px;
+  }
+  .state-col {
+    background: var(--page-card); border: 1px solid var(--page-line);
+    border-radius: var(--radius-card); padding: 16px 18px;
+  }
+  .state-col h3 { margin: 0 0 10px; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .state-col:first-child h3 { color: var(--confirm); }
+  .state-col:last-child h3 { color: var(--caution); }
+  .state-col ul { margin: 0; padding-left: 18px; }
+  .state-col li { font-size: 13.5px; line-height: 1.5; margin-bottom: 7px; color: var(--page-muted); }
+  .state-col li b { color: var(--page-fg); font-weight: 600; }
+  .state-col code { font-size: 12px; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin: 24px 0 8px; padding: 0; list-style: none;
+  }
+  .legend li { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--page-muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dot.built { background: var(--confirm); }
+  .dot.partial { background: var(--caution); }
+  .dot.todo { background: var(--ink-45); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+  .filters button {
+    font: inherit; font-size: 13px; padding: 7px 13px; cursor: pointer;
+    background: var(--page-card); color: var(--page-fg);
+    border: 1px solid var(--page-line); border-radius: 999px;
+    min-height: 36px;
+  }
+  .filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ---------- sections ---------- */
+
+  section.group { padding-top: 44px; }
+  section.group > h2 {
+    font-size: 22px; letter-spacing: -0.01em; margin: 0 0 4px;
+  }
+  section.group > .sub { margin: 0 0 24px; color: var(--page-muted); font-size: 14px; max-width: 68ch; }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+  .grid.web { gap: 32px; }
+
+  figure.screen { margin: 0; width: 320px; }
+  figure.screen.wide { width: 100%; max-width: 640px; }
+  figure.screen[hidden] { display: none; }
+
+  figcaption { margin-top: 12px; }
+  .cap-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .sid { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted); font-variant-numeric: tabular-nums; }
+  .cap-top h3 { font-size: 15px; margin: 0; font-weight: 600; }
+  .status {
+    font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; border: 1px solid var(--page-line);
+    color: var(--page-muted); white-space: nowrap;
+  }
+  .status.built { color: var(--confirm); border-color: color-mix(in srgb, var(--confirm) 40%, transparent); }
+  .status.partial { color: var(--caution); border-color: color-mix(in srgb, var(--caution) 45%, transparent); }
+  figcaption p { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--page-muted); }
+  figcaption p.need { color: var(--page-fg); }
+  figcaption p.need b { font-weight: 600; }
+
+  /* ---------- device frames ---------- */
+
+  .phone {
+    width: 320px; height: 620px; overflow: hidden;
+    border: 1px solid var(--hairline); border-radius: 26px;
+    background: var(--paper); color: var(--ink);
+    display: flex; flex-direction: column;
+    font-size: 14px; line-height: 1.45;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  .statusbar {
+    flex: none; height: 26px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 16px;
+    font-size: 11px; color: var(--ink-45); font-variant-numeric: tabular-nums;
+  }
+  .phone .body { flex: 1; overflow: hidden; padding: 0 16px; }
+  .phone .body.flush { padding: 0; }
+
+  .browser {
+    width: 100%; border: 1px solid var(--hairline); border-radius: 12px;
+    overflow: hidden; background: var(--surface); color: var(--ink);
+    font-size: 14px; line-height: 1.45;
+  }
+  .chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px; border-bottom: 1px solid var(--hairline);
+    background: var(--evidence);
+  }
+  .chrome .tl { display: flex; gap: 5px; }
+  .chrome .tl i { width: 9px; height: 9px; border-radius: 50%; background: var(--hairline); display: block; }
+  .chrome .url {
+    flex: 1; font-size: 11px; color: var(--ink-45);
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 3px 8px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .browser .body { padding: 20px; background: var(--paper); }
+
+  /* ---------- in-screen product components ---------- */
+
+  .appbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0 12px;
+  }
+  .wordmark { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .lang { font-size: 11px; color: var(--ink-45); letter-spacing: .02em; }
+  .lang b { color: var(--ink); font-weight: 600; }
+
+  .h-display { font-size: 22px; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .h-title { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+  .meta { font-size: 11.5px; line-height: 1.4; color: var(--ink-45); }
+  .body-s { font-size: 13px; color: var(--ink-70); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 48px; padding: 0 14px; border-radius: var(--radius-btn);
+    background: var(--ink); color: var(--paper);
+    font-size: 15px; font-weight: 500; text-align: center;
+  }
+  .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--hairline); }
+  .btn.tall { min-height: 96px; font-size: 17px; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row > * { flex: 1; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--radius-card); padding: 12px;
+  }
+
+  .statement {
+    background: var(--evidence); border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-chip) var(--radius-chip) 0;
+    padding: 10px 12px;
+  }
+  .statement .label {
+    font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 4px;
+  }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: var(--radius-chip);
+    font-size: 11.5px; font-weight: 500; white-space: nowrap;
+  }
+  .chip svg { flex: none; }
+  .chip.reported   { background: #F0EFEC; color: var(--ink-45); }
+  .chip.corrob     { background: #F0EFEC; color: var(--ink); }
+  .chip.breached   { background: var(--alert-wash); color: var(--alert); }
+  .chip.claimed    { background: var(--caution-wash); color: var(--caution); }
+  .chip.confirmed  { background: var(--confirm-wash); color: var(--confirm); }
+  .chip.gps-good   { background: var(--confirm-wash); color: var(--confirm); }
+  .chip.gps-weak   { background: var(--caution-wash); color: var(--caution); }
+
+  .deadline {
+    background: var(--alert-wash); border-radius: var(--radius-chip);
+    padding: 9px 11px;
+  }
+  .deadline .line1 { font-size: 13px; font-weight: 600; color: var(--alert); display: flex; align-items: center; gap: 6px; }
+  .deadline .cite { font-size: 11px; color: var(--alert); opacity: .85; margin-top: 2px; }
+
+  .photo {
+    background: linear-gradient(135deg, #C9C3B8 0%, #A9A296 48%, #8E887C 100%);
+    position: relative; border-radius: var(--radius-chip);
+  }
+  .photo.flush { border-radius: 0; }
+  .photo .redacted {
+    position: absolute; left: 8px; bottom: 8px;
+    background: rgba(20,21,24,.78); color: #fff;
+    font-size: 10.5px; padding: 3px 7px; border-radius: 6px;
+  }
+  .viewfinder {
+    position: relative; height: 100%;
+    background: linear-gradient(160deg, #6E675C 0%, #4A453D 60%, #2E2B26 100%);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 14px;
+  }
+  .vf-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .vf-pill {
+    background: rgba(251,250,248,.92); border-radius: 999px;
+    padding: 4px 10px; font-size: 11.5px; font-weight: 600;
+  }
+  .vf-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(20,21,24,.42); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .coach {
+    background: rgba(20,21,24,.55); color: #fff; font-size: 12px;
+    padding: 6px 10px; border-radius: var(--radius-chip); align-self: flex-start;
+  }
+  .vf-bottom { display: flex; align-items: center; justify-content: space-between; }
+  .shutter {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #fff; border: 4px solid rgba(255,255,255,.45);
+    box-shadow: 0 2px 10px rgba(0,0,0,.3);
+  }
+  .vf-side { width: 44px; text-align: center; color: #fff; font-size: 11.5px; }
+
+  .rows { display: flex; flex-direction: column; }
+  .row {
+    display: flex; gap: 10px; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--hairline);
+  }
+  .row:last-child { border-bottom: 0; }
+  .thumb { width: 44px; height: 44px; border-radius: 7px; flex: none;
+           background: linear-gradient(135deg, #C9C3B8, #8E887C); }
+  .row .grow { flex: 1; min-width: 0; }
+  .row .t { font-size: 13.5px; font-weight: 500; }
+  .row .s { font-size: 11.5px; color: var(--ink-45); }
+
+  .stages { display: flex; flex-direction: column; gap: 11px; }
+  .stage { display: flex; gap: 9px; align-items: baseline; font-size: 13px; }
+  .stage .mark { width: 14px; flex: none; text-align: center; }
+  .stage.done .mark { color: var(--confirm); }
+  .stage.busy .mark { color: var(--caution); }
+  .stage.wait { color: var(--ink-45); }
+  .stage .lab { flex: 1; }
+  .stage .val { color: var(--ink-70); font-size: 12.5px; text-align: right; }
+  .stage.negative .val { color: var(--ink-45); }
+
+  .kv { display: grid; grid-template-columns: 86px 1fr; gap: 5px 10px; font-size: 12.5px; }
+  .kv dt { color: var(--ink-45); }
+  .kv dd { margin: 0; }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab {
+    font-size: 11.5px; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--hairline); color: var(--ink-70); white-space: nowrap;
+  }
+  .tab.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .nav {
+    flex: none; display: flex; border-top: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .nav div { flex: 1; text-align: center; padding: 7px 0 9px; font-size: 10px; color: var(--ink-45); }
+  .nav div.on { color: var(--ink); font-weight: 600; }
+  .nav .ic { display: block; font-size: 15px; line-height: 1.3; }
+
+  .sourceline { font-size: 11px; color: var(--ink-45); line-height: 1.4; }
+  .sourceline a { color: var(--ink-45); text-decoration: underline; }
+
+  .stack > * + * { margin-top: 10px; }
+  .stack-s > * + * { margin-top: 6px; }
+  .stack-l > * + * { margin-top: 14px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-chip); padding: 9px; }
+  .stat .n { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat .l { font-size: 10.5px; color: var(--ink-45); line-height: 1.3; margin-top: 3px; }
+
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pair .box { border: 1px solid var(--hairline); border-radius: var(--radius-chip); padding: 10px; background: var(--surface); }
+  .pair .box .n { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pair .box.claimed .n { color: var(--caution); }
+  .pair .box.confirmed .n { color: var(--confirm); }
+  .pair .box .l { font-size: 11px; color: var(--ink-45); margin-top: 2px; }
+
+  .timeline { border-left: 1px solid var(--hairline); padding-left: 14px; display: flex; flex-direction: column; gap: 13px; }
+  .ev { position: relative; font-size: 12.5px; }
+  .ev::before {
+    content: ""; position: absolute; left: -18.5px; top: 5px;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--hairline);
+  }
+  .ev.now::before { background: var(--accent); }
+  .ev .who { font-size: 10.5px; color: var(--ink-45); letter-spacing: .03em; text-transform: uppercase; }
+
+  .share-text {
+    border: 1px solid var(--hairline); border-radius: var(--radius-chip);
+    padding: 10px; font-size: 12.5px; background: var(--surface);
+  }
+  .channels { display: flex; gap: 6px; }
+  .channel { flex: 1; text-align: center; font-size: 11px; padding: 9px 4px;
+             border: 1px solid var(--hairline); border-radius: var(--radius-chip); }
+  .channel.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .footnote {
+    margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--page-line);
+    font-size: 13px; color: var(--page-muted); max-width: 72ch;
+  }
+  .footnote h2 { font-size: 16px; color: var(--page-fg); margin: 0 0 10px; }
+  .footnote ul { padding-left: 18px; margin: 0 0 14px; }
+  .footnote li { margin-bottom: 6px; }
+  .footnote code { font-size: 12px; }
+
+  @media (max-width: 400px) {
+    figure.screen, .phone { width: 100%; }
+    .phone { height: 600px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>What v1 looks like</h1>
+  <p>Every screen in the <strong>v0.1 milestone</strong> — the first release a citizen could use —
+     drawn at size. Fifteen on a phone, two on the web.</p>
+  <p>Each one is marked with what exists <strong>today</strong>, so the gap between the design and
+     the code is visible rather than assumed.</p>
+
+  <div class="authority">
+    These are sketches for orientation. <code>docs/02-product/11-screen-spec.md</code> is the
+    authority: where it and a picture here disagree, the file wins. Sample data is illustrative —
+    no real contractor is named, and the one place a name would appear shows the
+    below-threshold copy instead.
+  </div>
+
+  <div class="state">
+    <div class="state-col">
+      <h3>Working today</h3>
+      <ul>
+        <li><b>Backend, deployed and live</b> over HTTPS with a valid certificate</li>
+        <li><b>Accounts</b> — email and password; duplicate, weak and malformed addresses refused</li>
+        <li><b>Sessions</b> — signed tokens; a tampered, rewritten or <code>alg:none</code> token is refused</li>
+        <li><b>Capture</b> — photograph plus position, stored before the reply, attributed to whoever sent it</li>
+        <li><b>Retry-safe</b> — the same capture twice gives one report and one photograph</li>
+        <li><b>Collection</b> — BMC works data archived twice a day, 4,673 records</li>
+      </ul>
+    </div>
+    <div class="state-col">
+      <h3>Not there yet</h3>
+      <ul>
+        <li><b>The pipeline</b> — classification, jurisdiction, contract attribution. Thirteen of these screens wait on it</li>
+        <li><b>Rate limiting</b> — twelve wrong passwords in a row were all answered at full speed</li>
+        <li><b>Password reset</b> — a forgotten password means a new account</li>
+        <li><b>Email verification</b> — any address can be registered, owned or not</li>
+        <li><b>Token revocation</b> — signing out clears the device, not the token</li>
+        <li><b>Phone verification</b> — the gate before anything becomes public</li>
+      </ul>
+    </div>
+  </div>
+
+  <ul class="legend">
+    <li><span class="dot built"></span> Built and working today</li>
+    <li><span class="dot partial"></span> Partly built</li>
+    <li><span class="dot todo"></span> Not built yet</li>
+  </ul>
+
+  <div class="filters" role="group" aria-label="Filter screens">
+    <button type="button" data-filter="all" aria-pressed="true">All 17</button>
+    <button type="button" data-filter="partial" aria-pressed="false">Partly built</button>
+    <button type="button" data-filter="todo" aria-pressed="false">Still to build</button>
+  </div>
+</header>
+
+<!-- ============================ MOBILE ============================ -->
+<section class="group">
+  <h2>On a phone</h2>
+  <p class="sub">The capture path is the product. Everything from S01 to S07 exists to get one
+     honest photograph, geotagged, into the system without asking the citizen to type anything.</p>
+
+  <div class="grid" id="mobile">
+
+    <!-- S01 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar">
+            <span class="wordmark">TraceSarkar</span>
+            <span class="lang"><b>EN</b> · मराठी · हिंदी</span>
+          </div>
+          <div class="stack">
+            <div class="btn tall">◉&nbsp; Report a problem</div>
+
+            <div>
+              <div class="meta" style="margin-bottom:6px;">3 open issues within 500 m</div>
+              <div style="display:flex; gap:6px;">
+                <div class="thumb" style="width:33%; height:52px;"></div>
+                <div class="thumb" style="width:33%; height:52px;"></div>
+                <div class="thumb" style="width:33%; height:52px;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="h-title" style="font-size:13px;">Your contribution</div>
+              <div class="stat-grid">
+                <div class="stat"><div class="n">2</div><div class="l">Confirmed fixes you helped close</div></div>
+                <div class="stat"><div class="n">7</div><div class="l">Re-checks done</div></div>
+                <div class="stat"><div class="n">4</div><div class="l">Reports corroborated by others</div></div>
+              </div>
+            </div>
+
+            <div class="rows">
+              <div class="row">
+                <div class="thumb"></div>
+                <div class="grow">
+                  <div class="t">Pothole · Dadar West</div>
+                  <div class="s">2 days ago</div>
+                </div>
+                <span class="chip breached">
+                  <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.2V6l2 1.3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                  Deadline passed
+                </span>
+              </div>
+              <div class="row">
+                <div class="thumb"></div>
+                <div class="grow">
+                  <div class="t">Open drain · Kandivali</div>
+                  <div class="s">6 days ago</div>
+                </div>
+                <span class="chip claimed">
+                  <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9M3 2h6l-1.4 2L9 6H3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                  Authority says fixed
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="on"><span class="ic">⌂</span>Home</div>
+          <div><span class="ic">◍</span>Map</div>
+          <div><span class="ic">◉</span>Capture</div>
+          <div><span class="ic">≡</span>Reports</div>
+          <div><span class="ic">○</span>You</div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S01</span><h3>Home</h3><span class="status">Not built</span></div>
+        <p>Camera in one tap. Counters are contribution, never volume — no report count, no rupee
+           figure, no leaderboard.</p>
+        <p class="need"><b>Needs:</b> nearby-issues query, contribution counters.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S02 -->
+    <figure class="screen" data-status="partial">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body flush" style="flex:1;">
+          <div class="viewfinder">
+            <div class="vf-top">
+              <div class="vf-icon">×</div>
+              <div class="vf-pill">
+                <span style="color:var(--confirm);">GPS ✓</span> ±6 m
+              </div>
+              <div class="vf-icon">⚡</div>
+            </div>
+            <div class="coach">Capture the defect and some surroundings.</div>
+            <div class="vf-bottom">
+              <div class="vf-side">▣<br>Gallery</div>
+              <div class="shutter"></div>
+              <div class="vf-side">⟲<br>Flip</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S02</span><h3>Capture</h3><span class="status partial">Partly built</span></div>
+        <p>No category picker, no description field, no wizard. Zero required text input. The GPS
+           pill degrades honestly: amber past 15 m, and past 50 m it says step into the open.</p>
+        <p class="need"><b>Today:</b> photo + GPS + upload work, with the same accuracy bands.
+           <b>Needs:</b> live viewfinder, flash, coaching line.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S03 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body flush" style="flex:1;">
+          <div class="viewfinder">
+            <div class="vf-top">
+              <div class="vf-icon">×</div>
+              <div class="vf-pill"><span style="color:var(--confirm);">GPS ✓</span> ±6 m</div>
+              <div class="vf-icon">⚡</div>
+            </div>
+            <div class="coach">One step back — a wide shot so the place is identifiable.</div>
+            <div class="vf-bottom">
+              <div class="vf-side" style="font-weight:600;">Skip</div>
+              <div class="shutter"></div>
+              <div class="vf-side">⟲<br>Flip</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S03</span><h3>Wide frame</h3><span class="status">Not built</span></div>
+        <p>Optional second frame. <b>Skip</b> carries equal weight to the shutter and never blocks.</p>
+        <p class="need"><b>Needs:</b> multi-frame capture; the API already accepts several roles.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S04 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">Working on it</span></div>
+          <div class="stack">
+            <div class="photo" style="height:92px;"></div>
+            <div class="stages">
+              <div class="stage done"><span class="mark">✓</span><span class="lab">Looked at the photo</span><span class="val">Pothole · road defect</span></div>
+              <div class="stage done"><span class="mark">✓</span><span class="lab">Found the ward</span><span class="val">BMC · R/S · Kandivali W</span></div>
+              <div class="stage done"><span class="mark">✓</span><span class="lab">Found the department</span><span class="val">Roads &amp; Traffic</span></div>
+              <div class="stage busy"><span class="mark">◐</span><span class="lab">Checking contracts</span><span class="val">…</span></div>
+              <div class="stage wait"><span class="mark">○</span><span class="lab">Checking recent reports</span><span class="val"></span></div>
+            </div>
+            <div class="card" style="background:var(--evidence); border:0;">
+              <div class="meta">Each line resolves on its own. A negative result is still a result:
+                <i>“No contract data for this ward yet.”</i></div>
+            </div>
+            <div class="btn secondary">Submit now — we'll finish in the background</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S04</span><h3>Enriching</h3><span class="status">Not built</span></div>
+        <p>Streamed stages, not a percentage ring — a spinner hides which stage is slow and lies when
+           one fails. Enrichment never blocks submission; the capture is already saved.</p>
+        <p class="need"><b>Needs:</b> classification, jurisdiction resolver, attribution join —
+           the three pieces of the pipeline that do not exist yet.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S05 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">Quick check</span></div>
+          <div class="stack-l">
+            <div>
+              <h3 class="h-display">Where exactly is this?</h3>
+              <div class="body-s">Different authorities look after each.</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <div class="photo" style="height:120px;"></div>
+                <div class="body-s" style="margin-top:6px; text-align:center;">ON the flyover</div>
+              </div>
+              <div>
+                <div class="photo" style="height:120px;"></div>
+                <div class="body-s" style="margin-top:6px; text-align:center;">UNDER the flyover</div>
+              </div>
+            </div>
+            <div class="btn secondary">Not sure</div>
+            <div class="meta">Exactly one question, with pictures rather than a list of authority
+              names. “Not sure” routes to the higher authority and flags it as disputed.</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S05</span><h3>Disambiguation</h3><span class="status">Not built</span></div>
+        <p>Shown only when the resolver genuinely cannot decide. Never a dropdown of departments,
+           never two questions.</p>
+        <p class="need"><b>Needs:</b> the confidence gate in the jurisdiction resolver.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S06 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">Check and send</span></div>
+          <div class="stack">
+            <div style="display:flex; gap:6px;">
+              <div class="photo" style="flex:1; height:78px;"><span class="redacted">Redacted</span></div>
+              <div class="photo" style="flex:1; height:78px;"></div>
+            </div>
+            <div class="card stack-s">
+              <div class="body-s">Classified automatically · <b>Pothole</b>
+                <span style="color:var(--accent);">· Wrong? Change</span></div>
+              <div class="body-s">SK Bole Marg, Dadar West · ±6 m
+                <span style="color:var(--accent);">· move pin</span></div>
+              <div class="body-s">BMC · R/S ward · Roads &amp; Traffic
+                <span style="color:var(--accent);">· not right?</span></div>
+            </div>
+            <div class="deadline">
+              <div class="line1">⏱ If BMC does not attend within 48 hours, you'll be able to escalate.</div>
+              <div class="cite">Bombay High Court, Oct 2025 · read the order</div>
+            </div>
+            <div class="body-s" style="color:var(--ink-45);">+ Add a note (optional)</div>
+            <div class="btn">Submit report</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S06</span><h3>Confirm and submit</h3><span class="status">Not built</span></div>
+        <p>Everything pre-filled; the citizen only corrects. The platform fills in — no screen asks
+           for something it can derive. The 48 hours is rendered from config with its citation,
+           never hard-coded.</p>
+        <p class="need"><b>Needs:</b> enrichment results to correct, and the legal-constants table.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S07 -->
+    <figure class="screen" data-status="partial">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">&nbsp;</span></div>
+          <div class="stack-l">
+            <div>
+              <div style="font-size:30px; color:var(--confirm); line-height:1;">✓</div>
+              <h3 class="h-display" style="margin-top:8px;">Reported</h3>
+              <div class="body-s">BMC · R/S ward · Roads &amp; Traffic<br>48-hour clock started</div>
+            </div>
+            <div class="statement">
+              <div class="label">TraceSarkar record</div>
+              <div class="body-s" style="color:var(--ink);">This stretch is under warranty until
+                28 Nov 2028.</div>
+              <div class="sourceline" style="margin-top:5px;">Source · Mahatenders · retrieved
+                14 Jul 2026 · <a href="#s09">view archived copy</a></div>
+            </div>
+            <div class="stack-s">
+              <div class="btn">■&nbsp; Share this</div>
+              <div class="btn-row">
+                <div class="btn secondary">View issue</div>
+                <div class="btn secondary">Report another</div>
+              </div>
+            </div>
+            <div class="meta">Share is the primary action, not a header icon — it is how a report
+              reaches the people who can add weight to it.</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S07</span><h3>Submitted</h3><span class="status partial">Partly built</span></div>
+        <p>Share is the distribution engine, so it gets the full-width primary.</p>
+        <p class="need"><b>Today:</b> confirmation with a report id. <b>Needs:</b> the attribution
+           line and the share kit behind it.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S08 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body flush" style="overflow:hidden;">
+          <div class="photo flush" style="height:128px;"><span class="redacted">Redacted · why?</span></div>
+          <div style="padding:12px 16px;" class="stack">
+            <div>
+              <div class="h-title">Pothole · SK Bole Marg</div>
+              <div style="margin-top:5px;">
+                <span class="chip breached">
+                  <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.2V6l2 1.3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                  Deadline passed
+                </span>
+              </div>
+              <div class="meta" style="margin-top:5px;">Classified automatically · pothole ·
+                <span style="color:var(--accent);">Wrong? Change</span></div>
+            </div>
+
+            <div class="statement">
+              <div class="label">TraceSarkar record</div>
+              <div class="body-s" style="color:var(--ink);"><b>BMC · R/S ward · Roads &amp; Traffic</b></div>
+              <div class="sourceline" style="margin-top:4px;">Boundaries v2023 · department mapping
+                retrieved 9 Aug 2026</div>
+            </div>
+
+            <div class="deadline">
+              <div class="line1">⏱ 48 hours to attend · 6 h elapsed</div>
+              <div class="cite">Bombay High Court, Oct 2025 · read the order</div>
+            </div>
+
+            <div class="card stack-s">
+              <div class="h-title" style="font-size:14px;">This stretch is under warranty</div>
+              <dl class="kv">
+                <dt>Contract</dt><dd class="mono">WS/2023/ROAD/117</dd>
+                <dt>Value</dt><dd class="mono">₹4,11,00,000</dd>
+                <dt>Completed</dt><dd>28 Nov 2023</dd>
+                <dt>Warranty</dt><dd>until 28 Nov 2028</dd>
+              </dl>
+              <div class="body-s" style="color:var(--ink-45);">Contractor name withheld — awaiting a
+                second independent source.</div>
+              <div class="sourceline">Source · Mahatenders · retrieved 14 Jul 2026 ·
+                <a href="#s09">view archived copy</a></div>
+              <div class="body-s" style="color:var(--accent);">how was this matched? · dispute this</div>
+            </div>
+
+            <div class="stack-s">
+              <div class="btn">■&nbsp; Share</div>
+              <div class="btn secondary">File with BMC</div>
+              <div class="btn secondary" style="color:var(--ink-45);">Draft an RTI — available after
+                the 48-hour deadline</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S08</span><h3>Issue detail</h3><span class="status">Not built</span></div>
+        <p>The screen the product exists for. Order is evidence → responsibility → money → clock →
+           action. An unavailable action stays visible with its reason rather than disappearing.</p>
+        <p class="need"><b>Needs:</b> everything downstream of capture — and no button here files
+           anything.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S09 -->
+    <figure class="screen" data-status="todo" id="s09">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">Contract record</span></div>
+          <div class="stack">
+            <div class="card stack-s">
+              <div class="meta" style="text-transform:uppercase; letter-spacing:.08em;">Identification</div>
+              <dl class="kv">
+                <dt>Contract</dt><dd class="mono">WS/2023/ROAD/117</dd>
+                <dt>Authority</dt><dd>BMC · Roads &amp; Traffic</dd>
+                <dt>Contractor</dt><dd style="color:var(--ink-45);">Withheld — one source</dd>
+              </dl>
+            </div>
+            <div class="card stack-s">
+              <div class="meta" style="text-transform:uppercase; letter-spacing:.08em;">Money</div>
+              <dl class="kv">
+                <dt>Award</dt><dd class="mono">₹4,11,00,000</dd>
+                <dt>Retention</dt><dd style="color:var(--ink-45);">Not sourced</dd>
+              </dl>
+              <div class="sourceline">Source · Mahatenders · retrieved 14 Jul 2026</div>
+            </div>
+            <div class="card stack-s">
+              <div class="meta" style="text-transform:uppercase; letter-spacing:.08em;">How this was matched</div>
+              <div class="body-s">The reported point falls 4 m from a road segment carried in BMC's
+                own works data under this contract. Buffer 15 m · confidence high.</div>
+              <div class="body-s" style="color:var(--ink-45);">A more precise GPS fix, or a
+                corrected ward boundary, would change this.</div>
+            </div>
+            <div class="body-s" style="color:var(--accent);">dispute this record · right of reply</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S09</span><h3>Contract evidence</h3><span class="status">Not built</span></div>
+        <p>Every row is field · value · source. An unsourced field is not rendered, and its absence
+           is stated. A bare “Verified” badge is prohibited — it reads as the platform vouching for
+           the contractor.</p>
+        <p class="need"><b>Needs:</b> the tender ingest and the match-basis record.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S10 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar">
+            <span class="wordmark">Share</span>
+            <span class="lang"><b>EN</b> · मराठी · हिंदी</span>
+          </div>
+          <div class="stack">
+            <div class="photo" style="height:132px;">
+              <span class="redacted">Dadar West · 24 Sep 2026 · approximate</span>
+            </div>
+            <div class="share-text">
+              Pothole on SK Bole Marg, Dadar West. Reported to BMC R/S ward.
+              This stretch is under warranty until Nov 2028 (contract WS/2023/ROAD/117).
+              48-hour clock started.
+            </div>
+            <div class="meta">Editable — and generated separately in each language from the same
+              facts, never machine-translated.</div>
+            <div class="channels">
+              <div class="channel primary">WhatsApp</div>
+              <div class="channel">X</div>
+              <div class="channel">Copy</div>
+              <div class="channel">More</div>
+            </div>
+            <div class="meta">Burned into the image: coarsened location, date, contract ID, the
+              mark. Never an exact coordinate, a face, a plate, or an accusation.</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S10</span><h3>Share kit</h3><span class="status">Not built</span></div>
+        <p>WhatsApp first, because that is where the behaviour already is.</p>
+        <p class="need"><b>Needs:</b> per-language generation, image annotation, redaction.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S11 -->
+    <figure class="screen" data-status="partial">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">My reports</span></div>
+          <div class="stack">
+            <div class="tabs">
+              <span class="tab on">All</span>
+              <span class="tab">Open</span>
+              <span class="tab">Deadline passed</span>
+              <span class="tab">Authority says fixed</span>
+              <span class="tab">Confirmed fixed</span>
+              <span class="tab">Escalated</span>
+            </div>
+            <div class="rows">
+              <div class="row">
+                <div class="thumb"></div>
+                <div class="grow">
+                  <div class="t">Pothole · Dadar West</div>
+                  <div class="s">Re-check waiting · 2 d</div>
+                </div>
+                <span class="chip claimed">
+                  <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9M3 2h6l-1.4 2L9 6H3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                  Authority says fixed
+                </span>
+              </div>
+              <div class="row">
+                <div class="thumb"></div>
+                <div class="grow">
+                  <div class="t">Open drain · Kandivali</div>
+                  <div class="s">31 h left</div>
+                </div>
+                <span class="chip corrob">
+                  <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6.4l2 2 4.2-4.6M6 8.4l.6.6 4.2-4.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                  Corroborated
+                </span>
+              </div>
+              <div class="row">
+                <div class="thumb"></div>
+                <div class="grow">
+                  <div class="t">Streetlight · Bandra</div>
+                  <div class="s">Closed 8 Sep</div>
+                </div>
+                <span class="chip confirmed">
+                  <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="3" width="10" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M4 6.3l1.4 1.4L8.2 5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                  Confirmed fixed
+                </span>
+              </div>
+            </div>
+            <div class="card" style="background:var(--evidence); border:0;">
+              <div class="meta"><b>Authority says fixed</b> and <b>Confirmed fixed</b> are separate
+                filters and separate counts. Collapsing them into “Resolved” would destroy the one
+                statistic this platform exists to produce.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S11</span><h3>My reports</h3><span class="status partial">Partly built</span></div>
+        <p>Six filters, not five. Rows with an action waiting sort to the top.</p>
+        <p class="need"><b>Today:</b> a capture is correctly attributed to the account that sent
+           it — that was a bug, found and fixed on 25 Sep. <b>Needs:</b> a list endpoint and issue
+           state, so the list survives closing the app.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S12 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">Timeline</span></div>
+          <div class="timeline">
+            <div class="ev"><div class="who">Citizen</div>Reported · 24 Sep, 9:41</div>
+            <div class="ev"><div class="who">Citizen ×3</div>Corroborated · 24 Sep, 14:02</div>
+            <div class="ev"><div class="who">Platform</div>Filed with BMC · ref MCGM/2026/44817
+              <div class="sourceline">acknowledgement archived</div></div>
+            <div class="ev"><div class="who">Authority</div>Acknowledged · 25 Sep, 11:10</div>
+            <div class="ev"><div class="who">Platform</div>48 hours have passed. BMC has not
+              recorded an action.</div>
+            <div class="ev now"><div class="who">Authority</div>Claimed resolved · 27 Sep
+              <div class="sourceline">Awaiting a citizen photograph to confirm.</div></div>
+          </div>
+          <div class="sourceline" style="margin-top:14px;">This timeline is hash-chained. ·
+            <a href="#">verify</a></div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S12</span><h3>Issue timeline</h3><span class="status">Not built</span></div>
+        <p>Append-only. Every event names its actor — citizen, authority or platform — because who
+           is speaking is a legal distinction. Wording stays procedural: <i>“BMC has not recorded an
+           action”</i>, never <i>“BMC failed”</i>.</p>
+        <p class="need"><b>Needs:</b> the event log and its hash chain.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S13 -->
+    <figure class="screen" data-status="partial">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">&nbsp;</span></div>
+          <div class="stack-l">
+            <div>
+              <h3 class="h-display">Your number, once</h3>
+              <div class="body-s">So a report can be traced to a person, and so you can be told what
+                happens next.</div>
+            </div>
+            <div class="card" style="text-align:center; font-size:19px; letter-spacing:.28em;
+                        font-variant-numeric:tabular-nums; padding:16px;">• • • • • •</div>
+            <div class="btn">Verify</div>
+            <div class="meta">Resend in 24 s</div>
+            <div class="card stack-s" style="background:var(--evidence); border:0;">
+              <div class="body-s"><b>What it is used for:</b> one account, and notifications you
+                switch on.</div>
+              <div class="body-s"><b>What it is not:</b> no email required. No Aadhaar. No KYC.
+                Never shown on a public page.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S13</span><h3>Phone verification</h3><span class="status partial">Partly built</span></div>
+        <p>Asked at submit, once — never a wall before the first photograph.</p>
+        <p class="need"><b>Today:</b> email and password work end to end; token forgery is
+           refused. <b>Needs:</b> phone OTP (gates the public tier), plus rate limiting, password
+           reset, email verification and token revocation — none of which exist yet.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S16 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">&nbsp;</span></div>
+          <div class="stack-l">
+            <div class="photo" style="height:120px;"></div>
+            <div>
+              <h3 class="h-display">This looks like a private building repair</h3>
+              <div class="body-s">We only cover public infrastructure — roads, drains, footpaths,
+                street lighting, public land.</div>
+            </div>
+            <div class="btn secondary">I disagree — this is public</div>
+            <div class="meta">Your photograph is kept for you, and you can delete it.</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S16</span><h3>Out of scope</h3><span class="status">Not built</span></div>
+        <p>Specific, never a generic error, never accusatory. Always contestable, and the photograph
+           is never silently discarded.</p>
+        <p class="need"><b>Needs:</b> the classifier's scope decision.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S32 -->
+    <figure class="screen" data-status="todo">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+        <div class="body">
+          <div class="appbar"><span class="wordmark">Settings</span></div>
+          <div class="stack">
+            <div class="card stack-s">
+              <div class="h-title" style="font-size:13px;">Language</div>
+              <div class="tabs">
+                <span class="tab on">English</span>
+                <span class="tab">मराठी</span>
+                <span class="tab">हिंदी</span>
+              </div>
+            </div>
+            <div class="rows">
+              <div class="row"><div class="grow"><div class="t">Notifications</div>
+                <div class="s">WhatsApp · SMS · in-app</div></div><span class="meta">›</span></div>
+              <div class="row"><div class="grow"><div class="t">My data</div>
+                <div class="s">Export everything · delete my account</div></div><span class="meta">›</span></div>
+              <div class="row"><div class="grow"><div class="t">What we publish about your reports</div>
+                <div class="s">In plain language, with an example</div></div><span class="meta">›</span></div>
+              <div class="row"><div class="grow"><div class="t">Privacy notice</div></div><span class="meta">›</span></div>
+              <div class="row"><div class="grow"><div class="t">Grievance officer</div>
+                <div class="s">Name, address, response window</div></div><span class="meta">›</span></div>
+            </div>
+            <div class="meta">Language is switchable from every screen, not only here.</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S32</span><h3>Settings</h3><span class="status">Not built</span></div>
+        <p>Language from day one, and a plain-language statement of exactly what becomes public.
+           The grievance-officer contact is required by the IT Rules.</p>
+        <p class="need"><b>Needs:</b> i18n, data export and delete.</p>
+      </figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ WEB ============================ -->
+<section class="group">
+  <h2>On the web</h2>
+  <p class="sub">Two pages, both public, both server-rendered with no login and a 2G budget. This is
+     where a shared link lands — and where anyone can check the platform's own numbers.</p>
+
+  <div class="grid web">
+
+    <!-- S14 -->
+    <figure class="screen wide" data-status="todo">
+      <div class="browser">
+        <div class="chrome">
+          <div class="tl"><i></i><i></i><i></i></div>
+          <div class="url">tracesarkar.org/i/8f2a-pothole-sk-bole-marg</div>
+        </div>
+        <div class="body">
+          <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div style="flex:1 1 240px; min-width:220px;">
+              <div class="photo" style="height:170px;"><span class="redacted">Redacted · why?</span></div>
+              <div style="margin-top:10px;">
+                <div class="h-title">Pothole · SK Bole Marg, Dadar West</div>
+                <div style="margin-top:6px;">
+                  <span class="chip breached">
+                    <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.2V6l2 1.3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+                    Deadline passed
+                  </span>
+                </div>
+                <div class="meta" style="margin-top:8px;">Location shown to the nearest 100 m.</div>
+              </div>
+            </div>
+            <div style="flex:1 1 240px; min-width:220px;" class="stack">
+              <div class="statement">
+                <div class="label">TraceSarkar record</div>
+                <div class="body-s" style="color:var(--ink);"><b>BMC · R/S ward · Roads &amp; Traffic</b></div>
+                <div class="sourceline" style="margin-top:4px;">Boundaries v2023 · department
+                  mapping retrieved 9 Aug 2026</div>
+              </div>
+              <div class="deadline">
+                <div class="line1">⏱ 48 hours to attend · 14 h elapsed</div>
+                <div class="cite">Bombay High Court, Oct 2025 · read the order</div>
+              </div>
+              <div class="card stack-s">
+                <div class="h-title" style="font-size:13.5px;">This stretch is under warranty</div>
+                <dl class="kv">
+                  <dt>Contract</dt><dd class="mono">WS/2023/ROAD/117</dd>
+                  <dt>Value</dt><dd class="mono">₹4,11,00,000</dd>
+                  <dt>Warranty</dt><dd>until 28 Nov 2028</dd>
+                </dl>
+                <div class="body-s" style="color:var(--ink-45);">Contractor name withheld — awaiting
+                  a second independent source.</div>
+                <div class="sourceline">Source · Mahatenders · retrieved 14 Jul 2026 · view archived copy</div>
+              </div>
+            </div>
+          </div>
+          <div class="sourceline" style="margin-top:16px; padding-top:10px; border-top:1px solid var(--hairline);">
+            Boundaries v2023 · contracts retrieved 9 Aug 2026 · CC BY-SA 4.0 · corrections ·
+            right of reply
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S14</span><h3>Public issue permalink</h3><span class="status">Not built</span></div>
+        <p>Where a shared link lands. Same content as the issue detail, minus the owner-only actions
+           and with the location coarsened — a public surface never carries a precise reporter
+           position. Budget: 150 KB including the photograph, on 2G.</p>
+        <p class="need"><b>Needs:</b> server-rendered public pages, redaction, coarsening,
+           OG cards.</p>
+      </figcaption>
+    </figure>
+
+    <!-- S15 -->
+    <figure class="screen wide" data-status="todo">
+      <div class="browser">
+        <div class="chrome">
+          <div class="tl"><i></i><i></i><i></i></div>
+          <div class="url">tracesarkar.org/ward/bmc-rs-kandivali-west</div>
+        </div>
+        <div class="body">
+          <div class="stack">
+            <div>
+              <h3 class="h-display" style="font-size:24px;">R/S — Kandivali West</h3>
+              <div class="meta">Brihanmumbai Municipal Corporation</div>
+            </div>
+
+            <div class="pair" style="grid-template-columns:repeat(2,1fr);">
+              <div class="box claimed">
+                <div class="n">88</div>
+                <div class="l">Authority says fixed</div>
+              </div>
+              <div class="box confirmed">
+                <div class="n">12</div>
+                <div class="l">Confirmed by a citizen photograph</div>
+              </div>
+            </div>
+            <div class="meta">These two are placed next to each other on purpose, and are never
+              added together.</div>
+
+            <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+              <div class="stat"><div class="n">214</div><div class="l">Open</div></div>
+              <div class="stat"><div class="n">61</div><div class="l">Past deadline</div></div>
+              <div class="stat"><div class="n">44 d</div><div class="l">Median age</div></div>
+            </div>
+
+            <div class="tabs">
+              <span class="tab on">Map</span>
+              <span class="tab">List</span>
+              <span class="tab">By category</span>
+              <span class="tab">Contractors</span>
+            </div>
+
+            <div class="photo" style="height:120px; background:
+                 linear-gradient(135deg,#E6E3DC 0%,#D8D4CB 100%);"></div>
+
+            <div class="sourceline" style="padding-top:10px; border-top:1px solid var(--hairline);">
+              Boundaries v2023 · contracts retrieved 9 Aug 2026 · CC BY-SA 4.0 · corrections
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="cap-top"><span class="sid">S15</span><h3>Ward page</h3><span class="status">Not built</span></div>
+        <p>The <b>88 → 12</b> contrast is the single most important number pair on the platform. It
+           is the reason the two states never share a label, a filter or a count.</p>
+        <p class="need"><b>Needs:</b> ward aggregates, the map tiles, and the contractor threshold
+           gate.</p>
+      </figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<div class="footnote">
+  <h2>What stands between here and v1</h2>
+  <p>Capture works end to end today, against a deployed backend rather than a laptop: a photograph
+     and a position reach the server, are stored before the reply, survive a retry, and are
+     attributed to the account that sent them. That last part was a bug — every report was being
+     filed under one shared account — found by checking the database rather than trusting the code,
+     and fixed on 25&nbsp;September.</p>
+  <p>Everything else on these screens depends on three pieces that do not exist yet, in this
+     order:</p>
+  <ul>
+    <li><b>Classification</b> — what is in the photograph. Unlocks S04, S06, S16.</li>
+    <li><b>Jurisdiction</b> — which ward and department own that point, and the confidence gate that
+        decides when to ask the one question. Unlocks S04, S05, S06, S15.</li>
+    <li><b>Attribution</b> — joining the point to a contract in the works data already collected
+        twice a day. Unlocks S08, S09, S14 — and it is the thesis of the whole product.</li>
+  </ul>
+  <p>After those: the share kit (S10), issue state and its timeline (S11, S12), the public web pages
+     (S14, S15), and phone verification (S13), which gates anything public.</p>
+  <p>Auth itself holds up where it was tested — a duplicate address, a weak password, a tampered
+     token, a payload rewritten to another account and an <code>alg:none</code> forgery are all
+     refused, and a wrong password is answered identically to an address that was never registered,
+     so the service cannot be used to discover who has an account. What is missing is everything
+     around it: <b>rate limiting</b> (twelve wrong passwords in a row were answered at full speed),
+     <b>password reset</b>, <b>email verification</b> and <b>token revocation</b>. None is a bug;
+     each is a reason this is not ready for anyone but its operator.</p>
+  <p>Four rules shaped every screen above, and are worth stating plainly because they are what makes
+     this different from the platforms that came before it: <b>nothing is ever filed by the
+     platform</b> — every instrument is a draft a person reviews and submits; <b>no fact about a
+     named party appears without a source and a retrieval date</b>; <b>nothing asserts
+     wrongdoing</b>, only what happened and when; and <b>“authority says fixed” is never the same
+     thing as “a citizen photographed it fixed”</b>.</p>
+</div>
+
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.filters button');
+  const screens = document.querySelectorAll('figure.screen');
+
+  buttons.forEach(btn => btn.addEventListener('click', () => {
+    const want = btn.dataset.filter;
+    buttons.forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    screens.forEach(fig => {
+      fig.hidden = want !== 'all' && fig.dataset.status !== want;
+    });
+  }));
+</script>
+</body>
+</html>

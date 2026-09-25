@@ -301,6 +301,52 @@ projects, so a noisy neighbour is a new way this can degrade.
 
 ---
 
+## 4F. The deployed backend, audited
+
+The question was whether the deployment and the auth actually hold up, so they were tested rather
+than assumed — against the deployed service, not a laptop.
+
+**What holds.** Valid Let's Encrypt certificate to 24 Dec 2026, HTTP/2, and `http://` redirects to
+`https://`. Registration refuses a duplicate address (409), a password under ten characters (400)
+and a malformed address (400). Sign-in with a wrong password and sign-in with an address that was
+never registered return **byte-identical** responses, so the service cannot be used to discover who
+has an account. Every token forgery was refused: a flipped signature character, a payload rewritten
+to point at another account id, and an `alg: none` header. CORS echoes only the configured origin
+and returns nothing for an unknown one. Posting a capture without a token is refused.
+
+**What did not hold — and this one mattered.** Every report was being filed under the server's own
+`field-kit` account, even when a signed-in person posted it with their session token. The
+middleware was already verifying the session and putting the claims in the request context; the
+capture handler ignored them and used the configured account unconditionally. Four reports in the
+database, all attributed to `field-kit`, including ones posted by accounts with an email on them.
+
+It is not cosmetic. **My reports** could never have worked, no report could be traced back to the
+person who took the photograph, and the per-account corroboration and trust scoring the platform
+depends on would all have been computed against one shared account. Fixed test-first, deployed, and
+confirmed in the database: a capture posted with a session token is now attributed to that account,
+while the field kit's static token — which names nobody — still resolves to the server's account.
+
+### What is still missing from auth, stated plainly
+
+None of these are bugs; they are things that were never built, and each one is a reason this is not
+ready for anyone but the operator:
+
+| Gap | Why it matters |
+|---|---|
+| **No rate limiting** | Twelve wrong passwords in a row, all answered 401 at full speed. Online password guessing is currently free |
+| **No password reset** | A forgotten password means a new account. There is no recovery path at all |
+| **No email verification** | Anyone can register any address, including one they do not control |
+| **No token revocation** | Signing out clears the token on the device. The token itself stays valid for its full 30 days, so a stolen one cannot be cancelled |
+| **No phone verification** | The gate [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) promises before the public tier. Needs an SMS route and a DLT sender ID |
+| **Google's button is unwired** | The endpoint is built and tested; the web flow needs `google_sign_in_web`'s rendered button and a client ID only you can create |
+
+The static `API_TOKEN` is also worth understanding rather than forgetting: it is a shared secret
+that grants capture access without an account, which is what lets the field kit work. Anyone holding
+it can post. That is acceptable while the only holder is you, and is a thing to remove before the
+surface is public.
+
+---
+
 ## 5. Decisions to confirm
 
 These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
@@ -358,6 +404,8 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 **The next working session (backend track):**
 
+- [ ] **Rate-limit sign-in** before anyone else has an account — currently the cheapest attack
+      against the platform
 - [ ] **Revoke the temporary Dokploy API key** used for this deploy, and mint a scoped one if you
       want automated deploys to continue
 - [ ] **Point a real domain at the API** before anything public. The current `sslip.io` hostname
