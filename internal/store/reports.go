@@ -153,7 +153,9 @@ func (d *DB) SaveReport(ctx context.Context, in NewReport) (id string, created b
 	return "", false, fmt.Errorf("save report: %w", err)
 }
 
-// AddReportMedia attaches an image to a report.
+// AddReportMedia attaches an image to a report. It is idempotent on the
+// content digest: re-uploading the same photograph after a dropped connection
+// re-uses the existing row rather than adding a second one (0007).
 func (d *DB) AddReportMedia(ctx context.Context, in NewMedia) error {
 	sum, err := hex.DecodeString(in.SHA256)
 	if err != nil {
@@ -163,7 +165,8 @@ func (d *DB) AddReportMedia(ctx context.Context, in NewMedia) error {
 		INSERT INTO report_media (id, report_id, role, archive_key, content_type, bytes,
 		                          sha256, width, height, captured_at)
 		VALUES (gen_random_uuid(), $1::uuid, $2, $3, NULLIF($4,''), NULLIF($5,0)::bigint,
-		        $6, NULLIF($7,0), NULLIF($8,0), $9)`,
+		        $6, NULLIF($7,0), NULLIF($8,0), $9)
+		ON CONFLICT (report_id, sha256) DO NOTHING`,
 		in.ReportID, in.Role, in.ArchiveKey, in.ContentType, in.Bytes,
 		sum, in.Width, in.Height, in.CapturedAt)
 	if err != nil {
