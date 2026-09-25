@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"strings"
@@ -250,5 +251,34 @@ func TestCAFileRefusesSomethingThatIsNotAPEM(t *testing.T) {
 	// rather than as an opaque TLS handshake error later.
 	if _, err := (Postgres{CAPem: "not a certificate"}).CAFile(); err == nil {
 		t.Fatal("expected an error for a PEM without a certificate block")
+	}
+}
+
+// A .env file is a poor container for a multi-line value, and every platform
+// parses one slightly differently. Base64 sidesteps the question entirely.
+func TestCAFileAcceptsABase64EncodedPEM(t *testing.T) {
+	pem := "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+	encoded := base64.StdEncoding.EncodeToString([]byte(pem))
+
+	path, err := (Postgres{CAPem: encoded}).CAFile()
+	if err != nil {
+		t.Fatalf("CAFile: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Remove(path) })
+
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(written), "BEGIN CERTIFICATE") {
+		t.Errorf("the decoded PEM must reach disk: %q", written)
+	}
+}
+
+func TestCAFileStillRefusesBase64OfSomethingElse(t *testing.T) {
+	encoded := base64.StdEncoding.EncodeToString([]byte("just some text"))
+
+	if _, err := (Postgres{CAPem: encoded}).CAFile(); err == nil {
+		t.Fatal("base64 that decodes to a non-certificate must still be refused")
 	}
 }

@@ -4,6 +4,7 @@ package config
 
 import (
 	"bufio"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -42,9 +43,16 @@ func (p Postgres) CAFile() (string, error) {
 	if pem == "" {
 		return "", nil
 	}
+	// A .env file is a poor container for a multi-line value and every platform
+	// parses one slightly differently, so the PEM may arrive base64-encoded.
+	if !strings.Contains(pem, "BEGIN CERTIFICATE") {
+		if decoded, err := base64.StdEncoding.DecodeString(strings.Join(strings.Fields(pem), "")); err == nil {
+			pem = strings.TrimSpace(string(decoded))
+		}
+	}
 	// Fail here, with a name, rather than as an opaque handshake error later.
 	if !strings.Contains(pem, "BEGIN CERTIFICATE") {
-		return "", errors.New("POSTGRES_CA_PEM does not contain a certificate block")
+		return "", errors.New("POSTGRES_CA_PEM is neither a PEM certificate nor base64 of one")
 	}
 
 	f, err := os.CreateTemp("", "tracesarkar-ca-*.pem")
