@@ -5,12 +5,14 @@
 //	ingest status             per-endpoint collection health
 //	ingest changes [--since]  recent changes to published works data
 //	ingest watch              archive newly published Government Resolutions
+//	ingest all                snapshot then watch, for a single scheduled trigger
 //
 // Exposure tier comes from TRACESARKAR_TIER and defaults to personal (D044).
 package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -58,6 +60,8 @@ func main() {
 		err = runChanges(ctx, os.Args[2:])
 	case "watch":
 		err = runWatch(ctx, os.Args[2:])
+	case "all":
+		err = runAll(ctx, os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -80,6 +84,7 @@ func usage() {
   ingest status              per-endpoint collection health
   ingest changes [--since d] recent changes (default 7 days)
   ingest watch [--limit n]   archive newly published Government Resolutions
+  ingest all                 snapshot, then watch — one nightly invocation
 
 Configuration comes from .env or the environment:
   R2_BUCKET_URL, R2_BUCKET_NAME, R2_ACCESS_KEY, R2_SECRET_ACCESS_KEY,
@@ -386,6 +391,31 @@ func runWatch(ctx context.Context, args []string) error {
 		}
 	}
 	return runErr
+}
+
+// runAll is what the nightly trigger calls: both collectors in one invocation,
+// so the schedule needs no argument overrides and the invoking identity needs
+// nothing beyond permission to start the job.
+//
+// The watch runs even when the snapshot failed: they read different sources,
+// and one being unreachable is no reason to skip the other.
+func runAll(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("all", flag.ExitOnError)
+	registerPath := fs.String("register", "data/sources.yaml", "path to the source register")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	// Each subcommand takes its own flags, so pass only what both understand.
+	shared := []string{"--register", *registerPath}
+
+	var errs []error
+	if err := runSnapshot(ctx, shared); err != nil {
+		errs = append(errs, fmt.Errorf("snapshot: %w", err))
+	}
+	if err := runWatch(ctx, shared); err != nil {
+		errs = append(errs, fmt.Errorf("watch: %w", err))
+	}
+	return errors.Join(errs...)
 }
 
 func runStatus(ctx context.Context) error {
