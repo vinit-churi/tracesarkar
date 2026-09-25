@@ -89,7 +89,7 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 	roles := r.MultipartForm.Value["role"]
 
 	reportID, created, err := s.reports.SaveReport(r.Context(), NewReport{
-		AccountID:   s.account,
+		AccountID:   s.reporter(r),
 		Lat:         meta.Location.Lat,
 		Lon:         meta.Location.Lon,
 		AccuracyM:   meta.Location.AccuracyM,
@@ -163,7 +163,7 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 			Conditions:      meta.Label.Conditions,
 			WardGroundTruth: meta.Label.WardGroundTruth,
 			Notes:           meta.Label.Notes,
-			LabelledBy:      s.account,
+			LabelledBy:      s.reporter(r),
 		}); err != nil {
 			// The capture is already safe; a label that failed to save is worth
 			// logging, not worth rejecting the report over.
@@ -183,6 +183,18 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 		"estimated_ready_ms": 4000,
 		"poll":               "/v1/reports/" + reportID,
 	})
+}
+
+// reporter is the account a capture belongs to. A signed-in person is
+// attributed to themselves; the field kit presents the server's own token,
+// which carries no identity, so the server's account is the only honest
+// answer. Getting this wrong would file every citizen's report under one
+// account, and no report could be traced back to who took the photograph.
+func (s *Server) reporter(r *http.Request) string {
+	if claims, ok := claimsFrom(r.Context()); ok && claims.AccountID != "" {
+		return claims.AccountID
+	}
+	return s.account
 }
 
 // mediaKey addresses a photograph by report and content hash, so the same image

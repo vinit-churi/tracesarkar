@@ -10,6 +10,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/vinit-churi/tracesarkar/internal/auth"
 )
 
 // fakeReports stands in for the database; the store's own behaviour is covered
@@ -315,5 +318,72 @@ func TestCapturedAtMustBeParseable(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("got %d, want 400", rec.Code)
+	}
+}
+
+// A capture must belong to whoever sent it. The field kit posts with the
+// server's own token and is attributed to the server's account; a signed-in
+// person posts with a session token and must be attributed to themselves, or
+// "my reports" can never exist and no report can be traced to a reporter.
+func TestPostReportAttributesTheCaptureToTheSignedInAccount(t *testing.T) {
+	reports := &fakeReports{}
+	issuer, err := auth.NewIssuer("a-test-signing-secret-32-bytes!!!", time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv, err := New(Options{
+		Reports: reports, Media: &fakeBlobs{}, Token: "test-token",
+		Account: "field-kit-account", Issuer: issuer,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	token, err := issuer.Issue("person-42", "someone@example.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := captureRequest(t, validMeta, map[string][]byte{"close": []byte("jpeg")})
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(reports.saved) != 1 {
+		t.Fatalf("expected one report, got %d", len(reports.saved))
+	}
+	if got := reports.saved[0].AccountID; got != "person-42" {
+		t.Errorf("attributed to %q, want the signed-in account %q", got, "person-42")
+	}
+}
+
+func TestPostReportFromTheFieldKitStaysWithTheServerAccount(t *testing.T) {
+	reports := &fakeReports{}
+	issuer, err := auth.NewIssuer("a-test-signing-secret-32-bytes!!!", time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv, err := New(Options{
+		Reports: reports, Media: &fakeBlobs{}, Token: "test-token",
+		Account: "field-kit-account", Issuer: issuer,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The static token carries no identity, so the server's own account is the
+	// only honest answer.
+	req := captureRequest(t, validMeta, map[string][]byte{"close": []byte("jpeg")})
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	if got := reports.saved[0].AccountID; got != "field-kit-account" {
+		t.Errorf("attributed to %q, want %q", got, "field-kit-account")
 	}
 }
