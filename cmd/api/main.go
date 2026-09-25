@@ -19,11 +19,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/api"
 	"github.com/vinit-churi/tracesarkar/internal/archive"
+	"github.com/vinit-churi/tracesarkar/internal/auth"
 	"github.com/vinit-churi/tracesarkar/internal/config"
 	"github.com/vinit-churi/tracesarkar/internal/store"
 )
@@ -63,8 +65,11 @@ func usage() {
 
 Configuration comes from .env or the environment:
   R2_*, POSTGRESQL_CONNECTION, POSTGRES_CA_PATH, TRACESARKAR_TIER,
-  API_TOKEN     the bearer token the field kit sends
-  API_ACCOUNT   the handle captures are attributed to (default: field-kit)
+  API_TOKEN       the bearer token the field kit sends
+  API_ACCOUNT     the handle captures are attributed to (default: field-kit)
+  AUTH_SECRET     signing secret for session tokens (32+ bytes, required)
+  GOOGLE_CLIENT_ID  enables Google sign-in when set
+  ALLOWED_ORIGINS   comma-separated browser origins for the web client
 `)
 }
 
@@ -112,12 +117,42 @@ func serve(ctx context.Context, args []string) error {
 		return err
 	}
 
+	// Sessions. The secret is required: without it the server would either run
+	// unauthenticated or invent a secret that changes on every restart, signing
+	// people out silently.
+	secret := os.Getenv("AUTH_SECRET")
+	if secret == "" {
+		return errors.New("AUTH_SECRET is not set; generate one with: openssl rand -base64 48")
+	}
+	issuer, err := auth.NewIssuer(secret, 30*24*time.Hour)
+	if err != nil {
+		return err
+	}
+
+	// Google sign-in is optional: without a client id the endpoint refuses
+	// cleanly and email/password still works.
+	var google *auth.GoogleVerifier
+	if clientID := os.Getenv("GOOGLE_CLIENT_ID"); clientID != "" {
+		google = auth.NewGoogleVerifier(clientID, auth.NewGoogleKeys(nil).Key)
+		slog.Info("google sign-in enabled")
+	} else {
+		google = auth.NewGoogleVerifier("", nil)
+		slog.Info("google sign-in disabled", "reason", "GOOGLE_CLIENT_ID is not set")
+	}
+
+	origins := splitList(envOr("ALLOWED_ORIGINS",
+		"http://localhost:8080,http://localhost:5000,http://127.0.0.1:5000"))
+
 	srv, err := api.New(api.Options{
-		Reports: db,
-		Media:   blobs,
-		Token:   token,
-		Account: accountID,
-		Log:     slog.Default(),
+		Reports:        db,
+		Media:          blobs,
+		Accounts:       db,
+		Issuer:         issuer,
+		Google:         google,
+		AllowedOrigins: origins,
+		Token:          token,
+		Account:        accountID,
+		Log:            slog.Default(),
 	})
 	if err != nil {
 		return err
@@ -140,7 +175,8 @@ func serve(ctx context.Context, args []string) error {
 		_ = httpServer.Shutdown(shutdownCtx)
 	}()
 
-	slog.Info("listening", "addr", *addr, "tier", cfg.Tier, "account", handle)
+	slog.Info("listening", "addr", *addr, "tier", cfg.Tier, "account", handle,
+		"origins", origins, "google", google.Unconfigured() == "")
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
@@ -153,6 +189,17 @@ func envFile() string {
 		return v
 	}
 	return ".env"
+}
+
+// splitList turns a comma-separated setting into a slice.
+func splitList(v string) []string {
+	var out []string
+	for _, part := range strings.Split(v, ",") {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func envOr(key, fallback string) string {

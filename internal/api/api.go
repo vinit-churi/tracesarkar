@@ -14,8 +14,10 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/vinit-churi/tracesarkar/internal/auth"
 	"github.com/vinit-churi/tracesarkar/internal/store"
 )
 
@@ -43,6 +45,14 @@ type Media interface {
 type Options struct {
 	Reports Reports
 	Media   Media
+	// Accounts, Issuer and Google are optional: without them the server still
+	// serves captures against the static token, which is what Phase 0 needs.
+	Accounts Accounts
+	Issuer   *auth.Issuer
+	Google   *auth.GoogleVerifier
+	// AllowedOrigins are the browser origins permitted to call this API. The
+	// Flutter web client runs on a different origin, so without this it cannot.
+	AllowedOrigins []string
 	// Token authenticates every route but /healthz while the tier is personal.
 	Token string
 	// Account owns captures at the personal tier; v0.1 replaces this with the
@@ -54,12 +64,26 @@ type Options struct {
 
 // Server is the HTTP surface.
 type Server struct {
-	reports Reports
-	media   Media
-	token   string
-	account string
-	maxSize int64
-	log     *slog.Logger
+	reports  Reports
+	media    Media
+	accounts Accounts
+	issuer   *auth.Issuer
+	google   *auth.GoogleVerifier
+	origins  []string
+	token    string
+	account  string
+	maxSize  int64
+	log      *slog.Logger
+}
+
+// contextKey is unexported so nothing outside this package can collide with it.
+type contextKey struct{ name string }
+
+var claimsKey = contextKey{"claims"}
+
+func claimsFrom(ctx context.Context) (auth.Claims, bool) {
+	claims, ok := ctx.Value(claimsKey).(auth.Claims)
+	return claims, ok
 }
 
 // DefaultMaxUploadBytes is generous enough for several phone photographs and
@@ -86,12 +110,16 @@ func New(opts Options) (*Server, error) {
 		log = slog.Default()
 	}
 	return &Server{
-		reports: opts.Reports,
-		media:   opts.Media,
-		token:   opts.Token,
-		account: opts.Account,
-		maxSize: size,
-		log:     log,
+		reports:  opts.Reports,
+		media:    opts.Media,
+		accounts: opts.Accounts,
+		issuer:   opts.Issuer,
+		google:   opts.Google,
+		origins:  opts.AllowedOrigins,
+		token:    opts.Token,
+		account:  opts.Account,
+		maxSize:  size,
+		log:      log,
 	}, nil
 }
 
@@ -99,6 +127,12 @@ func New(opts Options) (*Server, error) {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)
+
+	mux.HandleFunc("POST /v1/auth/register", s.handleRegister)
+	mux.HandleFunc("POST /v1/auth/login", s.handleLogin)
+	mux.HandleFunc("POST /v1/auth/google", s.handleGoogle)
+	mux.Handle("GET /v1/auth/me", s.authenticated(http.HandlerFunc(s.handleMe)))
+
 	mux.Handle("POST /v1/reports", s.authenticated(http.HandlerFunc(s.handlePostReport)))
 
 	// The field kit is a static page; the token it holds is what authenticates
@@ -108,7 +142,33 @@ func (s *Server) Handler() http.Handler {
 	} else {
 		s.log.Warn("field kit unavailable", "error", err.Error())
 	}
-	return mux
+	return s.withCORS(mux)
+}
+
+// withCORS answers browser preflights and echoes an allowed origin. A browser
+// client on another origin — the Flutter web build — cannot call the API
+// without this, and an unlisted origin is simply not answered.
+func (s *Server) withCORS(next http.Handler) http.Handler {
+	allowed := map[string]bool{}
+	for _, o := range s.origins {
+		allowed[strings.TrimSuffix(strings.TrimSpace(o), "/")] = true
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := strings.TrimSuffix(r.Header.Get("Origin"), "/")
+		if origin != "" && (allowed[origin] || allowed["*"]) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Max-Age", "600")
+		}
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -122,12 +182,25 @@ func (s *Server) authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const prefix = "Bearer "
 		header := r.Header.Get("Authorization")
-		if len(header) <= len(prefix) || header[:len(prefix)] != prefix ||
-			!subtleCompare(header[len(prefix):], s.token) {
+		if len(header) <= len(prefix) || header[:len(prefix)] != prefix {
 			writeError(w, http.StatusUnauthorized, "a bearer token is required")
 			return
 		}
-		next.ServeHTTP(w, r)
+		presented := header[len(prefix):]
+
+		// Two kinds of caller: the field kit with the server's own token, and a
+		// signed-in person with a session token.
+		if s.token != "" && subtleCompare(presented, s.token) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if s.issuer != nil {
+			if claims, err := s.issuer.Verify(presented); err == nil {
+				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
+				return
+			}
+		}
+		writeError(w, http.StatusUnauthorized, "that token is not valid")
 	})
 }
 
