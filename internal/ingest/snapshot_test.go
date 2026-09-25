@@ -354,3 +354,67 @@ func TestSnapshotMarksDocumentParsedOnSuccess(t *testing.T) {
 		t.Errorf("a successful run must mark the document parsed: %v", st.parsed)
 	}
 }
+
+// The storm-water API's path carries the desilting season. On 1 January the
+// next season's path does not exist yet, so the collector must fall back to the
+// season that is still published rather than fail every night until March.
+func TestSnapshotFallsBackToAnAlternateURL(t *testing.T) {
+	var asked []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.Path)
+		if strings.Contains(r.URL.Path, "2027") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"Data":{"TotalQuantity":"1"}}`))
+	}))
+	defer srv.Close()
+
+	arch, st := newFakeArchive(), newFakeStore()
+	r := newTestRunner(srv.Client(), arch, st)
+	job := Job{SourceID: "bmc_swd_api", Endpoints: []Endpoint{{
+		Name:      "progresscard",
+		URL:       srv.URL + "/swdwebapi2027/progresscard",
+		Alternate: []string{srv.URL + "/swdwebapi2026/progresscard"},
+		Parse:     works.ParseSWDProgressCard,
+		Ext:       ".json",
+	}}}
+
+	summary, err := r.Run(context.Background(), job)
+	if err != nil {
+		t.Fatalf("the published season should have been used: %v", err)
+	}
+	if summary.Changed != 1 {
+		t.Errorf("expected the fallback to collect: %+v", summary)
+	}
+	if len(asked) != 2 || !strings.Contains(asked[0], "2027") || !strings.Contains(asked[1], "2026") {
+		t.Errorf("expected the current season to be tried first: %v", asked)
+	}
+}
+
+func TestSnapshotPrefersThePrimaryURLWhenItWorks(t *testing.T) {
+	var asked []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.Path)
+		w.Write([]byte(`{"Data":{"TotalQuantity":"1"}}`))
+	}))
+	defer srv.Close()
+
+	arch, st := newFakeArchive(), newFakeStore()
+	r := newTestRunner(srv.Client(), arch, st)
+	job := Job{SourceID: "bmc_swd_api", Endpoints: []Endpoint{{
+		Name:      "progresscard",
+		URL:       srv.URL + "/current",
+		Alternate: []string{srv.URL + "/previous"},
+		Parse:     works.ParseSWDProgressCard,
+		Ext:       ".json",
+	}}}
+
+	if _, err := r.Run(context.Background(), job); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if len(asked) != 1 {
+		t.Errorf("the alternate should not be tried when the primary works: %v", asked)
+	}
+}

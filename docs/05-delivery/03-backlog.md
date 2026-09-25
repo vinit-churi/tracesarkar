@@ -50,8 +50,14 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
 - [x] `[E]` Every run is recorded in `collector_runs` — including runs that fail before any fetch,
       and runs that never return. `ingest status` prints the recent ones, so a night that failed on
       a machine which has since powered itself off is still diagnosable
-- [ ] `[E]` Alert on a night that does not run at all. The run log makes this detectable; nothing
-      watches it yet
+- [x] `[E]` Alert on a failed run, and on a night that does not run at all — two Cloud Monitoring
+      policies by email (D054)
+- [ ] `[E]` **The roads geometry URL contains a date BMC chose** (`startedafter01oct2025roadlayer`).
+      When they publish a later phase we may keep fetching a stale layer while the run looks
+      healthy. Detect it: watch for the layer's record count diverging from the dashboard's, or
+      probe for a `startedafter01oct<year>` successor
+- [ ] `[E]` Point `NOTIFY_WEBHOOK_URL` at a real channel so change summaries reach a person, not
+      just the run log
 - [ ] `[L]` Narrow the credentials CI holds: an R2 token scoped to the `tracesarkar` bucket only,
       and a PostgreSQL user limited to our tables instead of `avnadmin`. The repository is public,
       so the blast radius of a leak should be small

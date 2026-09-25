@@ -54,8 +54,8 @@ roads API and portal refuse foreign cloud runners, so collection is split by rea
 
 | Component | Choice | Note |
 |---|---|---|
-| Compute, India-only sources | An `e2-micro` in `asia-south1`, started at 02:30 IST by a Compute Engine instance schedule; the startup script collects and powers the machine off | ~₹45/month, alive about three minutes a night. [Deployment kit](../../deploy/gcp/README.md) |
-| Compute, sources reachable anywhere | GitHub Actions, daily at 08:30 IST | The drain API and the GR watcher. Free, and redundant with the VM |
+| Compute, all sources | A Cloud Run job in `asia-south1`, triggered by Cloud Scheduler at 02:30 and 14:30 IST ([ADR 0016](../04-adr/0016-collection-as-a-cloud-run-job.md)) | Free. No VM, no disk. [Deployment](../../deploy/cloudrun/README.md) |
+| Compute, sources reachable anywhere | GitHub Actions, daily at 08:30 IST | The drain API and the GR watcher. Free, and redundant with the job |
 | Database | PostgreSQL 16 + PostGIS in a container on the VPS | Nightly `pg_dump` to R2 under `backups/`, 30-day lifecycle |
 | Archive | Cloudflare R2, S3-compatible — **the production archive bucket from the first run**, because snapshot history cannot be re-collected | A bucket lock with indefinite retention makes `archive/` write-once. `media/` is **not** locked: report photographs must stay erasable under the data-principal rights in [security and privacy](../03-architecture/11-security-and-privacy.md). Credentials are scoped per prefix. `backups/` is not locked |
 | Secrets | Dokploy secret store | Never in the repository or an image layer |
@@ -265,6 +265,7 @@ cp .env.example .env          # then fill in R2 and Postgres credentials
 make migrate                  # apply the schema
 make snapshot                 # snapshot every schedulable source
 make watch                    # archive newly published Government Resolutions
+make all-collect              # both, as the scheduled job runs them
 make status                   # per-endpoint collection health
 make changes                  # what changed in the published data
 make test                     # offline tests
@@ -273,8 +274,8 @@ make test-live                # tests that touch the real bucket and database
 
 Daily collection runs in two places, because BMC only answers some of it from abroad:
 
-- **The Indian VM** (`deploy/gcp/`) collects everything, including the roads API. Set up with
-  `./deploy/gcp/setup.sh`; credentials come from Secret Manager.
+- **A Cloud Run job in `asia-south1`** (`deploy/cloudrun/`) collects everything, including the roads
+  API, twice a day. Credentials come from Secret Manager.
 - **GitHub Actions** (`.github/workflows/snapshot.yml`) collects the drain API and watches for new
   Government Resolutions. It needs these repository secrets: `R2_BUCKET_URL`, `R2_BUCKET_NAME`,
   `R2_ACCESS_KEY`, `R2_SECRET_ACCESS_KEY`, `POSTGRESQL_CONNECTION`, `POSTGRES_CA` (the certificate
@@ -291,6 +292,8 @@ Daily collection runs in two places, because BMC only answers some of it from ab
 | A natural-key collision stops the run | `buildRecords`, which refuses to merge two records silently |
 | Sources the register forbids are never scheduled | `sources.MayRun`, checked by the snapshotter and the watcher alike |
 | A failed night is diagnosable after the machine is gone | `collector_runs`, written before the work starts and updated when it ends |
+| A run that fails, or never happens at all, reaches a human | Two Cloud Monitoring alerts by email: a failed execution, and no success for 23h30m |
+| A source whose URL changes with the season keeps collecting | `Endpoint.Alternate`, tried when the primary is absent |
 | A source unreachable from a runner is collected elsewhere, not dropped | The `network` field in the register, and the split above |
 
 ---

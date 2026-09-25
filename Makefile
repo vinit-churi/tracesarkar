@@ -61,6 +61,10 @@ snapshot: ## Snapshot every schedulable source (Phase 0 P1)
 watch: ## Archive newly published Government Resolutions (Phase 0 P2)
 	go run ./cmd/ingest watch
 
+.PHONY: all-collect
+all-collect: ## Snapshot and watch, exactly as the scheduled job does
+	go run ./cmd/ingest all
+
 .PHONY: status
 status: ## Per-endpoint collection health
 	go run ./cmd/ingest status

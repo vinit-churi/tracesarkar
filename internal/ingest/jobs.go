@@ -38,13 +38,20 @@ func endpointsFor(sourceID string, now time.Time) []Endpoint {
 	case "bmc_swd_api":
 		// The path carries the desilting season. From January the runner also
 		// probes the next season, so a new season is captured on its first day.
-		base := fmt.Sprintf("https://swd.mcgm.gov.in/swdwebapi%d/", seasonYear(now))
+		const path = "report.svc/report/getprogresscard"
+		season := seasonYear(now)
+		current := fmt.Sprintf("https://swd.mcgm.gov.in/swdwebapi%d/", season)
+		previous := fmt.Sprintf("https://swd.mcgm.gov.in/swdwebapi%d/", season-1)
 		return []Endpoint{
 			{
-				Name:  "progresscard",
-				URL:   base + "report.svc/report/getprogresscard",
-				Parse: works.ParseSWDProgressCard,
-				Ext:   ".json",
+				Name: "progresscard",
+				URL:  current + path,
+				// In January the new season's path does not exist yet, and the
+				// previous one is still being served. Without this the collector
+				// would fail every night from 1 January until BMC publishes.
+				Alternate: []string{previous + path},
+				Parse:     works.ParseSWDProgressCard,
+				Ext:       ".json",
 			},
 		}
 	default:

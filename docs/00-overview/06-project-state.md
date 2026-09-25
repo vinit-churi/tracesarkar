@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated: 24 September 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 25 September 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
 
 ---
@@ -28,12 +28,13 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
 | Current phase | **Phase 0, in progress** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
-| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and a nightly collector VM in `asia-south1` — all live |
+| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and a Cloud Run job in `asia-south1` that collects twice daily — all live |
 | Branch | `main` |
 
-**The 30-day snapshot clock starts with the first scheduled run, 02:30 IST on 25 September 2026.**
-Collection is verified end to end from both runners: the Mumbai VM covers everything including the
-roads API, and GitHub Actions covers the drain API and Government Resolutions from anywhere.
+**The 30-day snapshot clock is running.** Collection happens twice a day at 02:30 and 14:30 IST as
+a Cloud Run job in Mumbai, with GitHub Actions covering the globally-reachable sources as
+redundancy. Two email alerts watch it: one for a failed run, one for no successful run in 23h30m.
+Collection now costs nothing; what remains is the database and the bucket.
 
 ---
 
@@ -134,6 +135,29 @@ nightly would save that, but instance schedules cannot create machines, so it wo
 instance template plus a scheduler plus a function — three parts for ₹42. Cloud Run has no disk at
 all and is now more plausible than when it was rejected, since BMC accepts Google's Mumbai
 addresses; the open question is only whether a job's egress presents as Mumbai.
+
+---
+
+## 4B. What happened on 25 September 2026
+
+The VM worked, and then made itself redundant. Because it proved BMC accepts Indian *datacenter*
+addresses, a Cloud Run job became worth testing — and a job in `asia-south1` reaches every BMC
+endpoint too. That is cheaper (no disk, so nothing standing) and simpler (no machine, no startup
+script, no serial console) at the same time, which is rare.
+
+So collection moved: a Cloud Run job running `ingest all`, triggered twice a day by Cloud Scheduler.
+The VM, its disk and its schedule are deleted. [ADR 0016](../04-adr/0016-collection-as-a-cloud-run-job.md)
+records it and supersedes ADR 0015's mechanism, while keeping its finding.
+
+**Alerting now exists**, which it did not before: an email when an execution fails, and an email
+when nothing has succeeded for 23h30m. The second is why collection runs twice a day — Cloud
+Monitoring cannot watch for a missed run on a daily schedule without crying wolf every day.
+
+**Two drift risks found while reviewing BMC's stability.** The storm-water URL carries the desilting
+season, so on 1 January it would have pointed at a path that does not exist yet; the collector now
+falls back to the season still being published. The roads geometry URL contains a date BMC chose
+(`...startedafter01oct2025roadlayer`), so when they cut a new phase we may keep fetching a stale
+layer while everything *looks* healthy. That one has no automatic guard yet — it is in the backlog.
 
 ---
 

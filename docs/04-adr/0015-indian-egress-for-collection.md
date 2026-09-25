@@ -1,6 +1,14 @@
 # ADR 0015 — Collection runs from an Indian IP, on a scheduled start/stop VM
 
-**Status:** Accepted, and verified in production on 2026-09-24 · **Date:** 2026-09-24
+**Status:** Superseded in mechanism by [ADR 0016](0016-collection-as-a-cloud-run-job.md) on
+2026-09-25; its finding stands · **Date:** 2026-09-24
+
+> **What survives:** BMC filters by geography, and collection must run from an Indian address. That
+> was established here and verified from a Mumbai VM.
+>
+> **What changed:** the VM answered the open question — Indian *datacenter* addresses are accepted —
+> which made a Cloud Run job worth testing. It reaches BMC too, with no disk and no machine, so
+> collection moved there and the VM was deleted.
 
 ## Context
 
@@ -61,7 +69,7 @@ Cost is roughly ₹45 per month, dominated by the boot disk rather than by compu
 ## Consequences
 
 - A GCP project, billing account and `gcloud` are now operational dependencies. The deployment kit
-  lives in [`deploy/gcp/`](../../deploy/gcp/README.md).
+  for this VM lived in `deploy/gcp/`; it was removed with ADR 0016 and remains in git history.
 - The collector binary is built by CI and published as a release asset, so the VM downloads a
   known artefact at boot instead of compiling on a micro instance.
 - **The first boot was also an experiment, and it passed.** On 24 September 2026 a VM at

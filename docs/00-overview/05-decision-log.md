@@ -113,3 +113,14 @@ plan:
 | D048 | **Collection that touches an India-restricted source runs from a VM in an Indian region**, started and stopped on a schedule (02:30 IST, on-demand `e2-micro` in `asia-south1`, ~₹45/month). GitHub Actions keeps the sources reachable from anywhere | `roads.mcgm.gov.in` and `portal.mcgm.gov.in` refuse foreign cloud runners; `swd.mcgm.gov.in` and the GR mirror do not. Found by running the collector in CI, not by reading documentation | Accepted → [ADR 0015](../04-adr/0015-indian-egress-for-collection.md) |
 | D049 | **On-demand, not spot, for the collector VM** | At two minutes a day the disk dominates the bill, so spot saves about ₹2 a month while adding the one failure this phase exists to prevent: a night that cannot start for want of capacity. A missed night cannot be recovered, because the API publishes current state, not history | Accepted → [ADR 0015](../04-adr/0015-indian-egress-for-collection.md) |
 | D050 | **Check reachability from where the code will run, before scheduling any new source** | A source that answers a laptop in Mumbai may refuse a datacenter anywhere. This cost us a failed scheduled run to learn | Accepted → source register |
+
+---
+
+## 2026-09-25 — Collection moves to Cloud Run
+
+| # | Decision | Rationale | Status |
+|---|---|---|---|
+| D051 | **Collection runs as a Cloud Run job in `asia-south1`, triggered by Cloud Scheduler.** The VM, its disk and its instance schedule are deleted | A job in that region reaches BMC, verified by running one. No disk, no machine to patch, no serial console to lose, and it costs nothing: about 1.5% of the free vCPU allowance and 2 of 3 free scheduler jobs. Cheaper and simpler at once | Accepted → [ADR 0016](../04-adr/0016-collection-as-a-cloud-run-job.md) |
+| D052 | **Collect twice a day, 02:30 and 14:30 IST, not once** | Cloud Monitoring's absence conditions cap at 23h30m, so a daily schedule cannot be watched for a missed run without a false alarm every day. Two runs make the dead-man alert meaningful, and catch BMC's daytime edits | Accepted → ADR 0016 |
+| D053 | **One command (`ingest all`) rather than per-schedule argument overrides** | Overrides need `run.jobs.runWithOverrides`, which `roles/run.invoker` does not grant. Widening the trigger's permissions in order to collect resolutions is the wrong trade | Accepted → ADR 0016 |
+| D054 | **Alert by email on a failed execution, and on no success for 23h30m** | Until now a failure reached a log nobody reads, and a night that never ran was invisible. A missed night cannot be recovered | Accepted → ADR 0016 |

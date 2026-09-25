@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/archive"
@@ -69,10 +70,14 @@ type Store interface {
 
 // Endpoint is one URL within a source, with the parser for its shape.
 type Endpoint struct {
-	Name  string
-	URL   string
-	Parse works.Parser
-	Ext   string
+	Name string
+	URL  string
+	// Alternate URLs are tried, in order, when the primary is not found. The
+	// storm-water API needs this: its path carries the desilting season, and on
+	// 1 January the new season is not published yet.
+	Alternate []string
+	Parse     works.Parser
+	Ext       string
 }
 
 // Job is everything needed to snapshot one source.
@@ -136,9 +141,34 @@ func (r *Runner) Run(ctx context.Context, job Job) (Summary, error) {
 	return summary, errors.Join(errs...)
 }
 
+// fetchWithFallback tries the endpoint's URL, then its alternates if the
+// primary is simply not there. Any other failure is returned as is: a 500 or a
+// timeout says nothing about which URL is correct.
+func (r *Runner) fetchWithFallback(ctx context.Context, ep Endpoint) (Result, string, error) {
+	res, err := r.Fetcher.Fetch(ctx, ep.URL)
+	if err == nil {
+		return res, ep.URL, nil
+	}
+
+	var httpErr *HTTPError
+	if !asHTTPError(err, &httpErr) || httpErr.StatusCode != http.StatusNotFound {
+		return Result{}, ep.URL, err
+	}
+
+	for _, alt := range ep.Alternate {
+		altRes, altErr := r.Fetcher.Fetch(ctx, alt)
+		if altErr == nil {
+			r.log().Info("primary URL is absent; using an alternate",
+				"endpoint", ep.Name, "primary", ep.URL, "used", alt)
+			return altRes, alt, nil
+		}
+	}
+	return Result{}, ep.URL, err
+}
+
 func (r *Runner) runEndpoint(ctx context.Context, job Job, ep Endpoint) (changes []works.Change, unchanged bool, err error) {
 	requestedAt := r.now()
-	res, fetchErr := r.Fetcher.Fetch(ctx, ep.URL)
+	res, usedURL, fetchErr := r.fetchWithFallback(ctx, ep)
 
 	if fetchErr != nil {
 		record := FetchRecord{
@@ -200,7 +230,7 @@ func (r *Runner) runEndpoint(ctx context.Context, job Job, ep Endpoint) (changes
 	docID, err := r.Store.SaveRawDocument(ctx, RawDocument{
 		SourceID:    job.SourceID,
 		Endpoint:    ep.Name,
-		URL:         ep.URL,
+		URL:         usedURL,
 		ArchiveKey:  key,
 		SHA256:      res.SHA256,
 		ContentType: res.ContentType,
