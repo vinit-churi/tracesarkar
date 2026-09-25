@@ -24,9 +24,9 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 | | |
 |---|---|
-| Code | **Collectors running; the backend has started.** Go module, ten packages, ~120 tests |
+| Code | **Collectors running; backend and client both work.** Go module, ten packages, ~130 tests, plus a Flutter client with 17 |
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
-| Current phase | **Phase 0 collecting, v0.1 backend started** — three parallel tracks ([D055](05-decision-log.md)) |
+| Current phase | **Phase 0 collecting; v0.1 has a signed-in client that captures** — three parallel tracks ([D055](05-decision-log.md)) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
 | Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and a Cloud Run job in `asia-south1` that collects twice daily — all live |
 | Branch | `main` |
@@ -186,6 +186,73 @@ counting toward the evaluation set.
 
 ---
 
+## 4D. What happened overnight, 25 September 2026: something to show
+
+A working client, because the thing that was missing was not another document — it was a screen a
+person can sign in to and send a photograph from.
+
+**Auth, test-first, all of it verified against the live database:**
+
+- Email and password (bcrypt, minimum 10 characters, no composition rules) and Google sign-in
+  (ID token verified against Google's JWKS — a token whose `alg` is not `RS256`, whose `aud` is not
+  our client, or whose `iss` is not Google is refused)
+- Sessions as signed tokens; the same endpoint accepts either a session or the field kit's static
+  token, so the field kit kept working unchanged
+- Sign-in answers **identically** for an unknown address and a wrong password. Telling them apart
+  hands an attacker the list of who is registered here
+
+This contradicted [ADR 0011](../04-adr/0011-phone-only-identity.md), which rejects email outright.
+Rather than let it drift, [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md)
+records the amendment and its limit: **email and Google are fine while nothing is published; phone
+verification still gates the public tier.** Phase 1 does not exit without that check in the
+publication path.
+
+**The client — [`app/`](../../app/README.md), one Flutter codebase for Android and the web
+([D059](05-decision-log.md)):**
+
+- Sign in or create an account; the session survives a restart, and signing out actually removes the
+  token rather than only navigating away
+- A capture screen that takes the position first — with the same accuracy bands the field kit uses,
+  because a capture from either surface must mean the same thing — then the photograph, then sends
+- Colours, type and spacing come from [the screen spec](../02-product/11-screen-spec.md) §2, so it
+  is party-neutral by construction rather than by later correction
+
+**Verified end to end against the real Aiven database and the real R2 bucket**, not against mocks:
+register → 201 · login → 200 · wrong password → 401 with an identical message · `/v1/auth/me` →
+the account · a 631-byte JPEG posted with 6.2 m accuracy → stored at 6.2 m, at
+(19.2094, 72.8348), content-addressed in R2 · the same capture retried → the *same* report id and
+`created: false`.
+
+**That retry is what found the night's real bug.** The report was idempotent; the media row was
+not, so a retried upload left two rows pointing at the same object — enough to inflate media counts
+and double-count a photograph in an evaluation export. A failing test first, then migration
+`0007_media_idempotency.sql` makes the digest the identity ([D060](05-decision-log.md)).
+
+**Two tests encode hard rules rather than mechanics:** one asserts the capture screen never offers
+to file anything, and one asserts signing out removes the token. Those are the assertions that fail
+loudly when someone later "improves" the UI.
+
+### To demonstrate it
+
+```sh
+set -a && . ./.env && set +a
+go run ./cmd/api serve --addr :8080          # terminal one
+cd app && flutter run -d chrome --dart-define=API_BASE=http://localhost:8080
+```
+
+Create an account, allow location, take a photograph, send. The report id that comes back is a row
+in PostGIS and an object in R2.
+
+### What is deliberately not there
+
+Google's *button* is not wired, though the endpoint is built and tested — the web flow needs
+`google_sign_in_web`'s rendered button, and that was not worth risking on the night before a demo.
+There is no history beyond the current session (`GET /v1/reports/{id}` does not exist), no offline
+queue in Flutter (the field kit has one), and no redaction, so no public derivative is written at
+all.
+
+---
+
 ## 5. Decisions to confirm
 
 These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
@@ -243,6 +310,11 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 **The next working session (backend track):**
 
+- [ ] **Wire Google's button** — create a Web OAuth client ID in the GCP console, set
+      `GOOGLE_CLIENT_ID` on the backend, and add `google_sign_in_web`'s rendered button. Only you
+      can make the client ID
+- [ ] **Phone verification before anything publishes** — the gate [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md)
+      promises. Phase 1 does not exit without it
 - [ ] Classification: Claude vision with a structured schema, prompt in a versioned file, run over
       whatever the field kit has collected
 - [ ] Jurisdiction: load the R/S ward boundary, resolve a point to ward and department, with the

@@ -1,6 +1,8 @@
 # ADR 0011 — Phone-number identity only; no Aadhaar, no KYC
 
-**Status:** Accepted · **Date:** 2026-08-10
+**Status:** Accepted · **Date:** 2026-08-10 · **Amended by:** [ADR 0017](0017-email-and-google-identity-before-public-tier.md) — email and Google
+sign-in are permitted before the public tier; phone verification remains the gate on
+publication
 
 ## Context
 

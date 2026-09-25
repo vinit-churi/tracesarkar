@@ -59,8 +59,10 @@ The gap in MMR governance is not data. It is **synthesis and consequence**.
 
 ## Repository map
 
-Phase 0 code has landed: the collectors that keep a daily record of the works data BMC publishes.
-Everything else is still documentation and design, and lands per the roadmap.
+Phase 0 code has landed: the collectors that keep a twice-daily record of the works data BMC
+publishes. The first v0.1 slice has landed too — an API that stores a capture before it replies, and
+a Flutter client that signs in and sends one. Everything else is still documentation and design, and
+lands per the roadmap.
 
 | Path | What's in it |
 |---|---|
@@ -71,7 +73,8 @@ Everything else is still documentation and design, and lands per the roadmap.
 | [`docs/04-adr/`](docs/04-adr/) | Architecture Decision Records — why Go, why Postgres+PostGIS, why H3, why this AI stack |
 | [`docs/05-delivery/`](docs/05-delivery/) | Roadmap, MVP definition, backlog, metrics, risk register, go-to-market |
 | [`docs/06-operations/`](docs/06-operations/) | Runbook, moderation policy, legal review checklist, cost model |
-| [`cmd/`](cmd/), [`internal/`](internal/) | Go binaries and packages: the ingest command, archive, store, source register, parsers, runner |
+| [`cmd/`](cmd/), [`internal/`](internal/) | Go binaries and packages: the ingest command, the API, archive, store, source register, parsers, runner |
+| [`app/`](app/README.md) | The Flutter client — Android and web from one codebase: sign in, capture, send |
 | [`docs/templates/`](docs/templates/) | RTI application, NGT original application, Lokayukta complaint, consumer complaint templates |
 
 **Start here:** [`docs/00-overview/01-vision.md`](docs/00-overview/01-vision.md) →
