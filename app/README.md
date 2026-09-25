@@ -85,6 +85,20 @@ The build then never asks the device. The screen labels the position "Fixture po
 says it is worthless as evidence, because a position that was typed in must never be mistaken for
 one that was measured. Leave the flag out and the app uses the device, as it does in the field.
 
+## Building for Android
+
+```sh
+flutter build apk --release \
+  --dart-define=API_BASE=https://tracesarkar-primarybackend-ls228s-313702-35-188-103-96.sslip.io
+```
+
+Output is `build/app/outputs/flutter-apk/app-release.apk` (~51 MB). It is signed with the debug
+key, which is fine for sideloading onto your own phone and not fine for distribution — a release
+keystore is a separate task.
+
+Running on a phone needs USB debugging on, and `flutter devices` should list it before
+`flutter run -d <device>`. An empty list usually means developer options are off.
+
 ## What is not here yet
 
 - **Google sign-in.** The backend endpoint `POST /v1/auth/google` is implemented and tested, and
