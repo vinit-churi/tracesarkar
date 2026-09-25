@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../api.dart';
+import '../fixture_position.dart';
 import '../theme.dart';
 
 /// A capture that has reached the server, kept for this session so the person
@@ -13,6 +14,41 @@ class _Sent {
   _Sent(this.reportId, this.at);
   final String reportId;
   final DateTime at;
+}
+
+/// Where a capture was taken, and how that was established. A measured fix and
+/// a build-time fixture are both positions, but they are not the same claim, so
+/// the difference is carried here rather than inferred later.
+class _Fix {
+  _Fix({
+    required this.latitude,
+    required this.longitude,
+    required this.accuracyMetres,
+    required this.at,
+    required this.isFixture,
+  });
+
+  factory _Fix.measured(Position p) => _Fix(
+        latitude: p.latitude,
+        longitude: p.longitude,
+        accuracyMetres: (p.accuracy * 10).roundToDouble() / 10,
+        at: p.timestamp,
+        isFixture: false,
+      );
+
+  factory _Fix.fixture(FixturePosition f) => _Fix(
+        latitude: f.latitude,
+        longitude: f.longitude,
+        accuracyMetres: f.accuracyMetres,
+        at: DateTime.now().toUtc(),
+        isFixture: true,
+      );
+
+  final double latitude;
+  final double longitude;
+  final double accuracyMetres;
+  final DateTime at;
+  final bool isFixture;
 }
 
 class CaptureScreen extends StatefulWidget {
@@ -37,7 +73,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   Uint8List? _photo;
   String _filename = 'capture.jpg';
-  Position? _position;
+  _Fix? _position;
   String? _locationError;
   bool _locating = false;
   bool _sending = false;
@@ -63,6 +99,18 @@ class _CaptureScreenState extends State<CaptureScreen> {
       _locating = true;
       _locationError = null;
     });
+
+    // A build that supplies a fixture does not ask the device at all: the
+    // point is to work where the device cannot.
+    final fixture = FixturePosition.configured;
+    if (fixture != null) {
+      setState(() {
+        _position = _Fix.fixture(fixture);
+        _locating = false;
+      });
+      return;
+    }
+
     try {
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -80,7 +128,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
         ),
       );
       if (!mounted) return;
-      setState(() => _position = position);
+      setState(() => _position = _Fix.measured(position));
     } catch (e) {
       if (mounted) setState(() => _locationError = e.toString());
     } finally {
@@ -124,9 +172,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
           filename: _filename,
           latitude: position.latitude,
           longitude: position.longitude,
-          accuracyMetres:
-              (position.accuracy * 10).roundToDouble() / 10,
-          capturedAt: position.timestamp,
+          accuracyMetres: position.accuracyMetres,
+          capturedAt: position.at,
           notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         ),
         widget.session.token,
@@ -249,7 +296,7 @@ class _LocationCard extends StatelessWidget {
     required this.onRetry,
   });
 
-  final Position? position;
+  final _Fix? position;
   final bool locating;
   final String? error;
   final VoidCallback onRetry;
@@ -266,14 +313,16 @@ class _LocationCard extends StatelessWidget {
     } else if (position == null) {
       body = Text('No position yet.', style: text.bodyLarge);
     } else {
-      final accuracy = position!.accuracy;
+      final accuracy = position!.accuracyMetres;
       // The same bands the field kit uses, so a capture from either surface
       // means the same thing.
-      final (tint, ink, label) = accuracy <= 15
-          ? (Tokens.confirmWash, Tokens.confirm, 'Good fix')
-          : accuracy <= 50
-              ? (Tokens.cautionWash, Tokens.caution, 'Rough fix')
-              : (Tokens.alertWash, Tokens.alert, 'Poor fix');
+      final (tint, ink, label) = position!.isFixture
+          ? (Tokens.cautionWash, Tokens.caution, 'Fixture position')
+          : accuracy <= 15
+              ? (Tokens.confirmWash, Tokens.confirm, 'Good fix')
+              : accuracy <= 50
+                  ? (Tokens.cautionWash, Tokens.caution, 'Rough fix')
+                  : (Tokens.alertWash, Tokens.alert, 'Poor fix');
 
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,7 +336,10 @@ class _LocationCard extends StatelessWidget {
                   color: tint,
                   borderRadius: BorderRadius.circular(Tokens.chipRadius),
                 ),
-                child: Text('$label · ±${accuracy.toStringAsFixed(0)} m',
+                child: Text(
+                    position!.isFixture
+                        ? label
+                        : '$label · ±${accuracy.toStringAsFixed(0)} m',
                     style: text.labelLarge?.copyWith(color: ink)),
               ),
             ],
@@ -301,8 +353,13 @@ class _LocationCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Accuracy decides whether this can be matched to a ward and a '
-            'contract. Exact coordinates stay private to your account.',
+            position!.isFixture
+                ? 'This position was supplied by the build, not measured by '
+                    'this device. It is fine for a demonstration and worthless '
+                    'as evidence.'
+                : 'Accuracy decides whether this can be matched to a ward and '
+                    'a contract. Exact coordinates stay private to your '
+                    'account.',
             style: text.bodySmall,
           ),
         ],

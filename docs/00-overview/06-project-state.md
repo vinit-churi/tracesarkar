@@ -237,11 +237,18 @@ loudly when someone later "improves" the UI.
 ```sh
 set -a && . ./.env && set +a
 go run ./cmd/api serve --addr :8080          # terminal one
-cd app && flutter run -d chrome --dart-define=API_BASE=http://localhost:8080
+cd app && flutter run -d chrome \
+  --dart-define=API_BASE=http://localhost:8080 \
+  --dart-define=DEMO_POSITION=19.2094,72.8348
 ```
 
-Create an account, allow location, take a photograph, send. The report id that comes back is a row
-in PostGIS and an object in R2.
+Create an account, take a photograph, send. The report id that comes back is a row in PostGIS and an
+object in R2.
+
+`DEMO_POSITION` exists because a laptop often cannot get a GPS fix, and with no position there is
+nothing to send. The screen labels it "Fixture position" and says it is worthless as evidence; drop
+the flag and the app uses the device. Full walkthrough, failure modes and the questions to expect:
+**[demo script](../05-delivery/08-demo-script.md)**.
 
 ### What is deliberately not there
 

@@ -67,6 +67,18 @@ build command to run on Cloudflare's side if you upload the built output.
 Geolocation requires a secure context. `https://` and `http://localhost` work; a plain-HTTP LAN
 address does not, and the position will simply never arrive.
 
+### A position for machines that cannot get one
+
+A laptop in a meeting room often cannot get a fix, and with no position there is nothing to send:
+
+```sh
+flutter run -d chrome --dart-define=DEMO_POSITION=19.2094,72.8348
+```
+
+The build then never asks the device. The screen labels the position "Fixture position" in amber and
+says it is worthless as evidence, because a position that was typed in must never be mistaken for
+one that was measured. Leave the flag out and the app uses the device, as it does in the field.
+
 ## What is not here yet
 
 - **Google sign-in.** The backend endpoint `POST /v1/auth/google` is implemented and tested, and
