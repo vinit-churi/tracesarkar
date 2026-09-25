@@ -124,3 +124,13 @@ plan:
 | D052 | **Collect twice a day, 02:30 and 14:30 IST, not once** | Cloud Monitoring's absence conditions cap at 23h30m, so a daily schedule cannot be watched for a missed run without a false alarm every day. Two runs make the dead-man alert meaningful, and catch BMC's daytime edits | Accepted → ADR 0016 |
 | D053 | **One command (`ingest all`) rather than per-schedule argument overrides** | Overrides need `run.jobs.runWithOverrides`, which `roles/run.invoker` does not grant. Widening the trigger's permissions in order to collect resolutions is the wrong trade | Accepted → ADR 0016 |
 | D054 | **Alert by email on a failed execution, and on no success for 23h30m** | Until now a failure reached a log nobody reads, and a night that never ran was invisible. A missed night cannot be recovered | Accepted → ADR 0016 |
+
+---
+
+## 2026-09-25 — Parallel tracks, and the first backend slice
+
+| # | Decision | Rationale | Status |
+|---|---|---|---|
+| D055 | **The roadmap runs as three parallel tracks — collection, backend, fieldwork — not as a serial sequence** | Collection now runs itself, and nothing about the backend waits on it or on fieldwork. The original ordering was written before the collector existed. A phase ends when the slowest track lands, and that is usually fieldwork, not code | Accepted → [roadmap](../05-delivery/01-roadmap.md) |
+| D056 | **The capture endpoint stores the photograph before it replies** | A 202 promises the capture is safe. Returning before the image is in object storage would make that a lie, and hard rule 7 forbids losing a capture | Accepted → `internal/api` |
+| D057 | **The field kit queues captures on the device and uploads when it can** | A walk through a ward passes through dead spots. Losing a photograph because of signal is the same failure as losing a citizen's report | Accepted → `internal/api/fieldkit` |

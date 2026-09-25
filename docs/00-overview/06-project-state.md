@@ -24,9 +24,9 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 | | |
 |---|---|
-| Code | **Phase 0 collectors are built and running.** Go module, eight packages, ~100 tests |
+| Code | **Collectors running; the backend has started.** Go module, ten packages, ~120 tests |
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
-| Current phase | **Phase 0, in progress** — [Phase 0 spec](../05-delivery/07-phase-0-instruments.md) |
+| Current phase | **Phase 0 collecting, v0.1 backend started** — three parallel tracks ([D055](05-decision-log.md)) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
 | Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and a Cloud Run job in `asia-south1` that collects twice daily — all live |
 | Branch | `main` |
@@ -161,6 +161,31 @@ layer while everything *looks* healthy. That one has no automatic guard yet — 
 
 ---
 
+## 4C. What happened on 25 September 2026, part two: the backend started
+
+Collection needs nobody now, so the backend began in parallel ([D055](05-decision-log.md)). The
+first slice is the one the rest depends on: **a capture is stored before anything is done to it.**
+
+**Built, test-first:**
+
+- `internal/store` — reports, media and labels, on PostGIS. `SaveReport` is idempotent, so a phone
+  retrying an upload gets the original report rather than a duplicate
+- `internal/api` — `POST /v1/reports` exactly as the API design specifies: multipart, a JSON `meta`
+  part, `202 Accepted`, and the photograph in object storage *before* the reply
+- `cmd/api` — the binary, with a health check and bearer-token auth
+- **The field kit** — a page at `/` that photographs, reads live GPS with its accuracy, takes a
+  label and conditions, queues captures on the device, and uploads when there is signal
+
+**Verified end to end** against the real database and bucket: a capture with 6.2 m accuracy stored
+at 6.2 m, its image readable back from R2, its label attached. A live test caught genuine precision
+loss on the way — `NULLIF($n, 0)` made Postgres read the accuracy as an integer, turning 6.2 into 6,
+and accuracy is exactly what decides whether we route confidently or ask a question.
+
+**This unblocks your fieldwork.** Run `make api`, open the page on your phone, and captures start
+counting toward the evaluation set.
+
+---
+
 ## 5. Decisions to confirm
 
 These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
@@ -216,13 +241,16 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 - [ ] Optional: pick an alert channel (any endpoint that accepts a JSON POST) and set
       `NOTIFY_WEBHOOK_URL`, so changes reach you instead of only the logs
 
-**The next working session:**
+**The next working session (backend track):**
 
-- [ ] P2 watchers: new Maharashtra GRs from the Internet Archive mirror, and the Bombay HC
-      judgments parquet
-- [ ] Runner hardening: an advisory lock per ingester, a circuit breaker, and a metrics endpoint
-- [ ] The SWD nallah-level endpoints, which are POST, plus the next-season path probe
-- [ ] Then P3 (capture extension), P4 (field kit), P5 (RTI tracker)
+- [ ] Classification: Claude vision with a structured schema, prompt in a versioned file, run over
+      whatever the field kit has collected
+- [ ] Jurisdiction: load the R/S ward boundary, resolve a point to ward and department, with the
+      confidence gate that decides when to ask the one disambiguating question
+- [ ] Attribution: spatially join a report to the roads-API geometry we already collect nightly
+- [ ] `GET /v1/reports/{id}` so the field kit can show what happened to a capture
+- [ ] P3 capture extension, P5 RTI tracker
+- [ ] Runner hardening: advisory lock per ingester, circuit breaker, metrics
 
 Full task list: [backlog](../05-delivery/03-backlog.md).
 
@@ -271,12 +299,19 @@ make status                 # what has been collected so far
 Everyday commands:
 
 ```sh
-make snapshot   # collect BMC's works data
-make watch      # archive new Government Resolutions
-make status     # what has been collected, per endpoint
-make changes    # what changed in the published data
+make api        # serve the API and the field kit on :8080 (needs API_TOKEN set)
+make status     # what has been collected, per endpoint, and recent runs
+make changes    # what changed in BMC's published data
+make snapshot   # collect now, rather than waiting for the schedule
+make watch      # archive new Government Resolutions now
 make test       # offline tests
+make test-live  # tests that touch the real bucket and database
 ```
+
+**Using the field kit on your phone.** It needs HTTPS or localhost for the camera and GPS, so on a
+phone use a tunnel (`cloudflared tunnel --url http://localhost:8080`, or any equivalent), open the
+URL, paste the `API_TOKEN` once, and capture. Photographs queue on the device and upload when there
+is signal, so a walk through a dead spot loses nothing.
 
 Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §7."*
 

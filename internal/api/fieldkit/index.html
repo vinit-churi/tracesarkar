@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TraceSarkar field kit</title>
+<style>
+  :root {
+    --ink: #141518; --ink70: #4A4D55; --ink45: #7C8089;
+    --paper: #FBFAF8; --surface: #FFFFFF; --hair: #E3E1DC;
+    --accent: #6B2C4F; --alert: #A33A1F; --caution: #8A6410; --confirm: #1F6A4D;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 0 16px 96px; -webkit-font-smoothing: antialiased;
+  }
+  header { padding: 20px 0 12px; display: flex; justify-content: space-between; align-items: baseline; }
+  h1 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+  .muted { color: var(--ink45); font-size: 13px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--hair); border-radius: 12px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  label { display: block; font-size: 13px; color: var(--ink70); margin: 10px 0 4px; }
+  input, select, textarea {
+    width: 100%; padding: 10px; font-size: 16px; border: 1px solid var(--hair);
+    border-radius: 8px; background: var(--surface); color: var(--ink);
+  }
+  button {
+    width: 100%; min-height: 52px; border-radius: 10px; border: 0; font-size: 16px;
+    font-weight: 600; background: var(--ink); color: #fff; margin-top: 12px;
+  }
+  button.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--hair); }
+  button:disabled { opacity: 0.45; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chip {
+    padding: 8px 12px; border: 1px solid var(--hair); border-radius: 999px;
+    font-size: 14px; background: var(--surface); cursor: pointer; user-select: none;
+  }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .gps { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .gps.good { color: var(--confirm); } .gps.fair { color: var(--caution); } .gps.bad { color: var(--alert); }
+  .queue { font-size: 13px; color: var(--ink70); }
+  .thumb { width: 100%; border-radius: 8px; margin-top: 10px; display: none; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface);
+         border-top: 1px solid var(--hair); padding: 10px 16px; display: flex;
+         gap: 12px; align-items: center; justify-content: space-between; font-size: 13px; }
+  .count { font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Field kit</h1>
+  <span class="muted" id="tier">personal tier</span>
+</header>
+
+<div class="card" id="setup" hidden>
+  <label for="token">API token</label>
+  <input id="token" type="password" placeholder="the API_TOKEN the server was started with" autocomplete="off">
+  <label for="ward">Ward you are surveying</label>
+  <input id="ward" type="text" value="R/S" placeholder="R/S">
+  <button id="save-setup">Save</button>
+  <p class="muted">Stored on this device only.</p>
+</div>
+
+<div class="card">
+  <div class="row" style="align-items:baseline">
+    <span>GPS</span>
+    <span class="gps bad" id="gps" style="text-align:right">acquiring…</span>
+  </div>
+  <p class="muted" id="gps-note">Accuracy decides whether a report can be routed confidently.</p>
+</div>
+
+<div class="card">
+  <label for="photo">Photograph</label>
+  <input id="photo" type="file" accept="image/*" capture="environment">
+  <img class="thumb" id="thumb" alt="">
+
+  <label>Frame</label>
+  <div class="chips" id="frames">
+    <span class="chip on" data-frame="close">close</span>
+    <span class="chip" data-frame="wide">wide</span>
+    <span class="chip" data-frame="noticeboard">noticeboard</span>
+  </div>
+
+  <label for="label">What is it</label>
+  <select id="label">
+    <optgroup label="road_defect">
+      <option>pothole</option><option>crack</option><option>subsidence</option>
+      <option>missing_manhole_cover</option><option>open_manhole</option>
+      <option>damaged_speed_breaker</option><option>utility_dig_damage</option>
+      <option>faded_markings</option>
+    </optgroup>
+    <optgroup label="other categories">
+      <option>garbage</option><option>debris</option><option>waterlogging</option>
+      <option>blocked_drain</option><option>streetlight_out</option><option>broken_footpath</option>
+    </optgroup>
+    <optgroup label="negatives">
+      <option>not_civic</option>
+    </optgroup>
+  </select>
+
+  <label>Conditions</label>
+  <div class="chips" id="conditions">
+    <span class="chip on" data-cond="day">day</span>
+    <span class="chip" data-cond="night">night</span>
+    <span class="chip" data-cond="rain">rain</span>
+    <span class="chip" data-cond="motion_blur">blur</span>
+  </div>
+
+  <label for="notes">Note (optional)</label>
+  <input id="notes" type="text" placeholder="anything the photo does not show">
+
+  <button id="capture" disabled>Save capture</button>
+  <button id="flush" class="secondary">Upload queued</button>
+</div>
+
+<div class="bar">
+  <div>
+    <div class="count" id="uploaded">0</div>
+    <div class="queue">uploaded</div>
+  </div>
+  <div>
+    <div class="count" id="queued">0</div>
+    <div class="queue">waiting</div>
+  </div>
+  <div style="flex:2; text-align:right" class="queue" id="status">ready</div>
+</div>
+
+<script>
+// The field kit collects evaluation data: photographs with a human label, a
+// live GPS fix, and the conditions they were taken in. Captures are queued on
+// the device first, so a walk through a ward with no signal loses nothing.
+const DB_NAME = 'tracesarkar-fieldkit', STORE = 'queue';
+const els = id => document.getElementById(id);
+let position = null, photoFile = null;
+
+// --- settings -------------------------------------------------------------
+const settings = {
+  get token() { return localStorage.getItem('ts_token') || ''; },
+  get ward()  { return localStorage.getItem('ts_ward') || 'R/S'; },
+  save(token, ward) {
+    localStorage.setItem('ts_token', token);
+    localStorage.setItem('ts_ward', ward);
+  }
+};
+if (!settings.token) els('setup').hidden = false;
+els('ward').value = settings.ward;
+els('save-setup').onclick = () => {
+  settings.save(els('token').value.trim(), els('ward').value.trim() || 'R/S');
+  els('setup').hidden = true;
+  setStatus('saved');
+};
+
+// --- location -------------------------------------------------------------
+// The live reading, not the photo's EXIF: browsers strip EXIF on upload, and
+// only the live fix carries an accuracy radius.
+navigator.geolocation.watchPosition(
+  p => {
+    position = p;
+    const acc = p.coords.accuracy;
+    const el = els('gps');
+    el.textContent = '±' + acc.toFixed(0) + ' m';
+    el.className = 'gps ' + (acc <= 15 ? 'good' : acc <= 50 ? 'fair' : 'bad');
+    els('gps-note').textContent = acc > 50
+      ? 'Weak fix. Step into the open before capturing.'
+      : 'Good enough to route confidently.';
+    refreshCaptureButton();
+  },
+  err => { els('gps').textContent = 'unavailable'; els('gps-note').textContent = err.message; },
+  { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+);
+
+// --- chips ----------------------------------------------------------------
+function wireChips(containerId, single) {
+  els(containerId).addEventListener('click', e => {
+    if (!e.target.classList.contains('chip')) return;
+    if (single) [...e.currentTarget.children].forEach(c => c.classList.remove('on'));
+    e.target.classList.toggle('on');
+  });
+}
+wireChips('frames', true);
+wireChips('conditions', false);
+const selected = (containerId, attr) =>
+  [...els(containerId).querySelectorAll('.chip.on')].map(c => c.dataset[attr]);
+
+// --- photo ----------------------------------------------------------------
+els('photo').onchange = e => {
+  photoFile = e.target.files[0] || null;
+  const thumb = els('thumb');
+  if (photoFile) {
+    thumb.src = URL.createObjectURL(photoFile);
+    thumb.style.display = 'block';
+  } else {
+    thumb.style.display = 'none';
+  }
+  refreshCaptureButton();
+};
+function refreshCaptureButton() {
+  els('capture').disabled = !(photoFile && position);
+}
+
+// --- queue ----------------------------------------------------------------
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { autoIncrement: true });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function enqueue(item) {
+  const db = await openDB();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).add(item);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+  await refreshCounts();
+}
+async function allQueued() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const out = [];
+    const tx = db.transaction(STORE, 'readonly');
+    const cursor = tx.objectStore(STORE).openCursor();
+    cursor.onsuccess = e => {
+      const c = e.target.result;
+      if (!c) return resolve(out);
+      out.push({ key: c.key, value: c.value });
+      c.continue();
+    };
+    cursor.onerror = () => reject(cursor.error);
+  });
+}
+async function dequeue(key) {
+  const db = await openDB();
+  await new Promise(resolve => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = resolve;
+  });
+  await refreshCounts();
+}
+async function refreshCounts() {
+  els('queued').textContent = (await allQueued()).length;
+  els('uploaded').textContent = localStorage.getItem('ts_uploaded') || '0';
+}
+
+// --- capture --------------------------------------------------------------
+els('capture').onclick = async () => {
+  if (!photoFile || !position) return;
+  const item = {
+    blob: photoFile,
+    filename: photoFile.name || 'capture.jpg',
+    type: photoFile.type || 'image/jpeg',
+    meta: {
+      location: {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        accuracy_m: Math.round(position.coords.accuracy * 10) / 10,
+        heading_deg: position.coords.heading
+      },
+      captured_at: new Date().toISOString(),
+      label: {
+        frame_type: (selected('frames', 'frame')[0] || 'close'),
+        label: els('label').value,
+        conditions: selected('conditions', 'cond'),
+        ward_ground_truth: settings.ward,
+        notes: els('notes').value.trim()
+      }
+    },
+    idempotency: crypto.randomUUID()
+  };
+  await enqueue(item);
+  els('photo').value = ''; els('thumb').style.display = 'none';
+  els('notes').value = ''; photoFile = null; refreshCaptureButton();
+  setStatus('queued — uploading');
+  flush();
+};
+
+// --- upload ---------------------------------------------------------------
+let flushing = false;
+async function flush() {
+  if (flushing) return;
+  if (!settings.token) { setStatus('set the API token first'); els('setup').hidden = false; return; }
+  flushing = true;
+  try {
+    for (const { key, value } of await allQueued()) {
+      const form = new FormData();
+      form.append('meta', JSON.stringify(value.meta));
+      form.append('media', new File([value.blob], value.filename, { type: value.type }));
+      form.append('role', value.meta.label.frame_type);
+
+      const res = await fetch('/v1/reports', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + settings.token,
+                   'Idempotency-Key': value.idempotency },
+        body: form
+      });
+      if (res.status === 401) { setStatus('token rejected'); els('setup').hidden = false; break; }
+      if (!res.ok) { setStatus('server said ' + res.status + '; will retry'); break; }
+
+      await dequeue(key);
+      localStorage.setItem('ts_uploaded',
+        String(1 + Number(localStorage.getItem('ts_uploaded') || '0')));
+      await refreshCounts();
+      setStatus('uploaded');
+    }
+  } catch (e) {
+    setStatus('offline — kept on device');
+  } finally {
+    flushing = false;
+  }
+}
+els('flush').onclick = flush;
+window.addEventListener('online', flush);
+function setStatus(text) { els('status').textContent = text; }
+
+refreshCounts();
+</script>
+</body>
+</html>

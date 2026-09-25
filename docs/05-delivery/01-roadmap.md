@@ -19,12 +19,31 @@ is where the hard rules in [`CLAUDE.md`](../../CLAUDE.md) are checked.
 
 ---
 
+## How the phases actually run
+
+**Re-baselined 25 September 2026 ([D055](../00-overview/05-decision-log.md)).** The original plan
+was serial — research, then build, then launch — written before the collector existed. It does not
+need to be. Three tracks run at the same time:
+
+| Track | Owner | Status |
+|---|---|---|
+| **Collection** | Nobody. It runs twice a day by itself | Running since 25 Sep 2026 |
+| **Backend** | Engineering. Nothing about it waits on collection or fieldwork | Started 25 Sep 2026 |
+| **Fieldwork** | The maintainer: photographs, ward points, contract documents, the RTI | Whenever available |
+
+A phase is finished when all three tracks have delivered what it needs, not when the calendar says
+so. The dates below are therefore estimates of **when the slowest track lands**, and the slowest
+track is usually fieldwork — not code.
+
+One item has a clock somebody else controls: an RTI's reply window is 30 days from filing. Filing
+early costs nothing and takes it off the critical path.
+
 ## At a glance
 
 | Phase | Label | Tier | Target | Proves |
 |---|---|---|---|---|
 | 0 | Instruments | personal | Nov 2026 | The data can be collected and kept |
-| 1 | v0.1 | public, R/S ward | Feb 2027 | People report |
+| 1 | v0.1 | public, R/S ward | Feb 2027, and movable | People report |
 | 2 | v0.2 | public | **Apr 2027**, before the monsoon | The money can be joined, and drains follow roads |
 | 3 | v0.3 | public + flagged | Jun 2027 | Consequence is generated |
 | 4 | v0.4 | public | late 2027 | Escalation compounds |
@@ -51,6 +70,9 @@ Full specification: [Phase 0](07-phase-0-instruments.md).
 | P5 RTI tracker | Your own filings, with clocks from `legal_constants` |
 | P8 alerts | One channel for all of the above |
 | Documentation drift | The gaps the September review found, as backlog tasks |
+
+Why each of these exists, and what breaks without it, is in
+[Phase 0 §10A](07-phase-0-instruments.md#10a-why-these-criteria-and-what-each-one-buys).
 
 **Exit criteria — all must hold:**
 

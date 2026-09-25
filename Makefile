@@ -49,6 +49,10 @@ build: ## Build the binaries into bin/
 	go build -o bin/ ./cmd/...
 	@echo "built: $$(ls bin/)"
 
+.PHONY: api
+api: ## Serve the API and the field kit (needs API_TOKEN)
+	go run ./cmd/api serve
+
 .PHONY: migrate
 migrate: ## Apply database migrations
 	go run ./cmd/ingest migrate

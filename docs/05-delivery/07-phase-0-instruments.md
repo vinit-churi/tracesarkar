@@ -245,6 +245,25 @@ A Phase 0 component is done when:
 
 ---
 
+## 10A. Why these criteria, and what each one buys
+
+The exit criteria are not paperwork. Each one exists because something breaks without it.
+
+| Criterion | What breaks without it |
+|---|---|
+| **30 days of snapshots** | Nothing, immediately — and that is the point. The archive is the only record of what BMC published on a given day, and it cannot be backfilled. Thirty unbroken days is the proof that the record can actually be kept |
+| **500 labelled photographs** | The classifier cannot be measured. You can ship one that looks right on the handful of images you tried, and discover in the monsoon that it misses open manholes. Hazard recall matters most: a missed open manhole is someone falling into it. "90% accurate" is a claim that requires a set to claim it against |
+| **200 golden ward points** | Routing cannot be measured. Boundaries are genuinely hard — the 2025 delimitation moved about a quarter of BMC's ward lines, an arterial road inside city limits may be PWD's, a flyover deck and the road beneath it belong to different bodies. A complaint sent to the wrong authority is the failure a citizen does not forgive |
+| **20 contract documents** | Attribution stops at concrete roads. BMC publishes the join for its CC-road programme, so those are free; for asphalt roads, drains and footpaths there is no published geometry, and without real tender documents the platform cannot say who built a road or whether it is under warranty. Twenty is the sample that proves the join and measures the automated matcher later |
+| **One RTI filed** | Two things. The Maharashtra fee is disputed (₹10 long-standing, ₹30 circulating with no gazette found), and generating drafts with the wrong fee wastes every citizen's application. And the road-ownership inventory it asks for exists nowhere public — it is the biggest single correctness dependency for routing |
+
+**None of these block building.** They block *claiming it works*, and they gate letting strangers
+in. Collection runs itself; the backend can be built in parallel; the fieldwork can happen whenever.
+The only item with a clock that someone else controls is the RTI's 30-day reply window, which is why
+filing it early is worth more than it looks.
+
+---
+
 ## 11. Exit criteria
 
 All four must hold before Phase 1 begins:
@@ -263,6 +282,7 @@ All four must hold before Phase 1 begins:
 ```sh
 cp .env.example .env          # then fill in R2 and Postgres credentials
 make migrate                  # apply the schema
+make api                      # serve the API and the field kit (needs API_TOKEN)
 make snapshot                 # snapshot every schedulable source
 make watch                    # archive newly published Government Resolutions
 make all-collect              # both, as the scheduled job runs them
