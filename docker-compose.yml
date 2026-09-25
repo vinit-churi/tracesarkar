@@ -1,0 +1,66 @@
+# The API, as Dokploy deploys it.
+#
+# Every value here comes from the environment. Dokploy writes the service's
+# environment into a .env file beside this one before it builds, so the
+# ${...} references resolve there. Nothing secret is in this file, and nothing
+# secret may be added to it — it is committed to a public repository.
+#
+# The database and the bucket are managed elsewhere (Aiven, Cloudflare R2), so
+# there is nothing stateful here: this stack is disposable and can be recreated
+# from the repository at any time.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+
+    environment:
+      # Object storage — the archive and report media.
+      R2_BUCKET_URL: ${R2_BUCKET_URL}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME}
+      R2_ACCESS_KEY: ${R2_ACCESS_KEY}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+
+      # Database. The CA travels inline because a platform whose only secret
+      # channel is environment variables cannot mount a file; the process
+      # materialises it at startup and connects with sslmode=verify-full.
+      POSTGRESQL_CONNECTION: ${POSTGRESQL_CONNECTION}
+      POSTGRES_CA_PEM: ${POSTGRES_CA_PEM}
+
+      # Identity and access.
+      AUTH_SECRET: ${AUTH_SECRET}
+      API_TOKEN: ${API_TOKEN}
+      API_ACCOUNT: ${API_ACCOUNT:-field-kit}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+
+      # Exposure tier (D044). Nothing reaches a public surface at `personal`.
+      TRACESARKAR_TIER: ${TRACESARKAR_TIER:-personal}
+
+      API_ADDR: ":8080"
+
+    expose:
+      - "8080"
+
+    healthcheck:
+      # distroless has no shell and no curl, so the binary checks itself.
+      test: ["CMD", "/app/api", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

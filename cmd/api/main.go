@@ -45,6 +45,9 @@ func main() {
 	switch command {
 	case "serve":
 		err = serve(ctx, os.Args[min(2, len(os.Args)):])
+	case "health":
+		// Used by the container's HEALTHCHECK; the runtime image has no curl.
+		err = healthCheck(ctx, envOr("HEALTH_URL", "http://127.0.0.1:8080"))
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -62,6 +65,7 @@ func usage() {
 	fmt.Fprint(os.Stderr, `tracesarkar api — the HTTP surface
 
   api serve [--addr :8080]
+  api health                 ask a running server whether it is well
 
 Configuration comes from .env or the environment:
   R2_*, POSTGRESQL_CONNECTION, POSTGRES_CA_PATH, TRACESARKAR_TIER,
@@ -89,7 +93,11 @@ func serve(ctx context.Context, args []string) error {
 		return errors.New("API_TOKEN is not set; refusing to serve an unauthenticated capture endpoint")
 	}
 
-	pool, err := store.Connect(ctx, cfg.Postgres.URL, cfg.Postgres.CAPath)
+	caPath, err := cfg.Postgres.CAFile()
+	if err != nil {
+		return err
+	}
+	pool, err := store.Connect(ctx, cfg.Postgres.URL, caPath)
 	if err != nil {
 		return err
 	}

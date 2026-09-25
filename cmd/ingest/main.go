@@ -104,7 +104,11 @@ func load(ctx context.Context) (config.Config, *store.DB, func(), error) {
 	if err != nil {
 		return config.Config{}, nil, func() {}, err
 	}
-	pool, err := store.Connect(ctx, cfg.Postgres.URL, cfg.Postgres.CAPath)
+	caPath, err := cfg.Postgres.CAFile()
+	if err != nil {
+		return config.Config{}, nil, func() {}, err
+	}
+	pool, err := store.Connect(ctx, cfg.Postgres.URL, caPath)
 	if err != nil {
 		return config.Config{}, nil, func() {}, err
 	}
@@ -152,7 +156,11 @@ func runMigrate(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	pool, err := store.Connect(ctx, cfg.Postgres.URL, cfg.Postgres.CAPath)
+	caPath, err := cfg.Postgres.CAFile()
+	if err != nil {
+		return err
+	}
+	pool, err := store.Connect(ctx, cfg.Postgres.URL, caPath)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -172,5 +173,82 @@ func TestLoadLeavesAbsoluteCAPathAlone(t *testing.T) {
 	}
 	if cfg.Postgres.CAPath != "/etc/ssl/ca.pem" {
 		t.Errorf("got %q", cfg.Postgres.CAPath)
+	}
+}
+
+// A platform whose only secret channel is environment variables cannot mount a
+// CA file. The PEM travels inline instead, and the process materialises it.
+func TestCAFileMaterialisesAnInlinePEM(t *testing.T) {
+	t.Setenv("R2_BUCKET_URL", "https://acc.r2.cloudflarestorage.com/bucket")
+	t.Setenv("R2_ACCESS_KEY", "key")
+	t.Setenv("R2_SECRET_ACCESS_KEY", "secret")
+	t.Setenv("POSTGRESQL_CONNECTION", "postgres://u:p@host:5432/db")
+	t.Setenv("POSTGRES_CA_PEM", "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n")
+
+	cfg, err := Load(filepath.Join(t.TempDir(), "absent.env"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	path, err := cfg.Postgres.CAFile()
+	if err != nil {
+		t.Fatalf("CAFile: %v", err)
+	}
+	if path == "" {
+		t.Fatal("an inline PEM must yield a path the driver can open")
+	}
+	t.Cleanup(func() { _ = os.Remove(path) })
+
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read materialised CA: %v", err)
+	}
+	if !strings.Contains(string(written), "BEGIN CERTIFICATE") {
+		t.Errorf("the PEM must survive intact: %q", written)
+	}
+
+	// The CA is not secret, but the file is ours; nothing else on a shared host
+	// has a reason to write to it.
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("permissions: got %o, want 600", perm)
+	}
+}
+
+func TestCAFilePrefersAnExplicitPathOverAnInlinePEM(t *testing.T) {
+	dir := t.TempDir()
+	explicit := filepath.Join(dir, "ca.pem")
+	if err := os.WriteFile(explicit, []byte("on disk"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	p := Postgres{CAPath: explicit, CAPem: "inline"}
+	path, err := p.CAFile()
+	if err != nil {
+		t.Fatalf("CAFile: %v", err)
+	}
+	if path != explicit {
+		t.Errorf("a mounted file wins: got %q, want %q", path, explicit)
+	}
+}
+
+func TestCAFileIsEmptyWhenNeitherIsConfigured(t *testing.T) {
+	path, err := Postgres{}.CAFile()
+	if err != nil {
+		t.Fatalf("CAFile: %v", err)
+	}
+	if path != "" {
+		t.Errorf("no CA configured must stay no CA, got %q", path)
+	}
+}
+
+func TestCAFileRefusesSomethingThatIsNotAPEM(t *testing.T) {
+	// A truncated or mangled secret should fail here, with a clear message,
+	// rather than as an opaque TLS handshake error later.
+	if _, err := (Postgres{CAPem: "not a certificate"}).CAFile(); err == nil {
+		t.Fatal("expected an error for a PEM without a certificate block")
 	}
 }

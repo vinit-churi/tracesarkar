@@ -1,0 +1,19 @@
+# Secrets must never enter a build context, even if no Dockerfile copies them.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Not needed to build a Go binary.
+.git/
+.github/
+app/
+docs/
+deploy/
+bin/
+dist/
+data/archive/
+data/raw/
+*.md

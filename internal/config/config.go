@@ -25,6 +25,40 @@ type R2 struct {
 type Postgres struct {
 	URL    string
 	CAPath string // optional CA bundle for servers with a private root
+	// CAPem is the same bundle inline. Some platforms — Dokploy, Heroku-style
+	// hosts — have no way to mount a file, only environment variables, so the
+	// certificate has to travel as one. CAFile turns it back into a path.
+	CAPem string
+}
+
+// CAFile returns a path the Postgres driver can open, materialising an inline
+// PEM into a temporary file if that is all we were given. An explicit path
+// wins: a mounted file is the more deliberate configuration of the two.
+func (p Postgres) CAFile() (string, error) {
+	if strings.TrimSpace(p.CAPath) != "" {
+		return p.CAPath, nil
+	}
+	pem := strings.TrimSpace(p.CAPem)
+	if pem == "" {
+		return "", nil
+	}
+	// Fail here, with a name, rather than as an opaque handshake error later.
+	if !strings.Contains(pem, "BEGIN CERTIFICATE") {
+		return "", errors.New("POSTGRES_CA_PEM does not contain a certificate block")
+	}
+
+	f, err := os.CreateTemp("", "tracesarkar-ca-*.pem")
+	if err != nil {
+		return "", fmt.Errorf("materialise postgres CA: %w", err)
+	}
+	defer f.Close()
+	if err := f.Chmod(0o600); err != nil {
+		return "", fmt.Errorf("materialise postgres CA: %w", err)
+	}
+	if _, err := f.WriteString(pem + "\n"); err != nil {
+		return "", fmt.Errorf("materialise postgres CA: %w", err)
+	}
+	return f.Name(), nil
 }
 
 // Config is everything a Phase 0 binary needs to run.
@@ -51,7 +85,8 @@ func Load(envFile string) (Config, error) {
 	}
 	for _, key := range []string{
 		"R2_BUCKET_URL", "R2_BUCKET_NAME", "R2_ACCESS_KEY", "R2_SECRET_ACCESS_KEY",
-		"POSTGRESQL_CONNECTION", "POSTGRES_CA_PATH", "NOTIFY_WEBHOOK_URL", "TRACESARKAR_TIER",
+		"POSTGRESQL_CONNECTION", "POSTGRES_CA_PATH", "POSTGRES_CA_PEM",
+		"NOTIFY_WEBHOOK_URL", "TRACESARKAR_TIER",
 	} {
 		if v, ok := os.LookupEnv(key); ok && v != "" {
 			values[key] = v
@@ -120,6 +155,7 @@ func loadFrom(values map[string]string) (Config, error) {
 		Postgres: Postgres{
 			URL:    pgURL,
 			CAPath: strings.TrimSpace(values["POSTGRES_CA_PATH"]),
+			CAPem:  strings.TrimSpace(values["POSTGRES_CA_PEM"]),
 		},
 		NotifyWebhook: strings.TrimSpace(values["NOTIFY_WEBHOOK_URL"]),
 		Tier:          tier,
