@@ -58,8 +58,14 @@ actually removes the token rather than merely navigating away.
 ## Building for the web
 
 ```sh
-flutter build web --release --dart-define=API_BASE=https://<your-api-host>
+flutter build web --release \
+  --dart-define=API_BASE=https://tracesarkar-primarybackend-ls228s-313702-35-188-103-96.sslip.io
 ```
+
+That host is the deployed API ([ADR 0018](../docs/04-adr/0018-api-on-dokploy.md)). Whatever origin
+you serve the client from must appear in the backend's `ALLOWED_ORIGINS`, which is set in Dokploy
+under the service's Environment tab — a Cloudflare Pages origin has to be added there before the
+browser will let the client call the API.
 
 Output is `build/web`. For Cloudflare Pages, that directory is the publish directory; there is no
 build command to run on Cloudflare's side if you upload the built output.

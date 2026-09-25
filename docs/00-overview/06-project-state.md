@@ -28,7 +28,7 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
 | Current phase | **Phase 0 collecting; v0.1 has a signed-in client that captures** — three parallel tracks ([D055](05-decision-log.md)) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
-| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and a Cloud Run job in `asia-south1` that collects twice daily — all live |
+| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, a Cloud Run job in `asia-south1` collecting twice daily, and **the API live on Dokploy over HTTPS** |
 | Branch | `main` |
 
 **The 30-day snapshot clock is running.** Collection happens twice a day at 02:30 and 14:30 IST as
@@ -260,6 +260,47 @@ all.
 
 ---
 
+## 4E. The API is deployed
+
+It is no longer only on a laptop. The HTTP surface runs as a Docker Compose service on the existing
+Dokploy instance, built from this repository, behind Traefik with a Let's Encrypt certificate
+([D061](05-decision-log.md), [ADR 0018](../04-adr/0018-api-on-dokploy.md)).
+
+```
+https://tracesarkar-primarybackend-ls228s-313702-35-188-103-96.sslip.io
+```
+
+Collection stays on Cloud Run, and that separation is deliberate: the collector runs twice a day and
+exits from Mumbai because BMC geo-restricts by geography; the API has to stay up and does not care
+where it runs. Two lifecycles, two deploys.
+
+**Verified against the deployed service, not the laptop:** register → 201 · wrong password → 401
+with the same message an unknown address gets · `/v1/auth/me` → the account · a capture posted with
+6.2 m accuracy → stored at 6.2 m in PostGIS over `verify-full` TLS, image content-addressed in R2 ·
+the same capture retried → same report id, `created: false`, and **one** media row. The container
+reports `(healthy)`, which is `api health` answering Docker — the runtime image is `distroless`, so
+there is no curl and the binary has to check itself.
+
+**Two things the platform forced, both improvements.** The database CA now travels as
+`POSTGRES_CA_PEM` (base64), because Dokploy's only secret channel is environment variables and a
+multi-line PEM crosses two parsers on the way in ([D062](05-decision-log.md)). And the compose file
+is committed with **no secret in it** — every value is a `${...}` reference — because this
+repository is public.
+
+**Production has its own `AUTH_SECRET` and `API_TOKEN`**, generated at deploy rather than copied
+from the laptop, so a session minted locally is not valid in production. Both are in Dokploy under
+the service's Environment tab.
+
+### What this does not yet mean
+
+The hostname is a generated `sslip.io` name, which encodes the server's IP address — fine for a
+private surface, wrong for a civic platform people are asked to trust. It must become a real domain
+before the public tier. Pushing to `main` deploys, which is convenient now and needs a gate once
+anyone other than you depends on the service being up. And the server is shared with unrelated
+projects, so a noisy neighbour is a new way this can degrade.
+
+---
+
 ## 5. Decisions to confirm
 
 These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
@@ -317,6 +358,10 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 **The next working session (backend track):**
 
+- [ ] **Revoke the temporary Dokploy API key** used for this deploy, and mint a scoped one if you
+      want automated deploys to continue
+- [ ] **Point a real domain at the API** before anything public. The current `sslip.io` hostname
+      encodes the server's IP address
 - [ ] **Wire Google's button** — create a Web OAuth client ID in the GCP console, set
       `GOOGLE_CLIENT_ID` on the backend, and add `google_sign_in_web`'s rendered button. Only you
       can make the client ID
