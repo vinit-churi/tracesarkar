@@ -20,13 +20,38 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
+## 1A. The one thing in progress
+
+**System 1 of 8 — contract attribution.** Nothing else is open.
+
+v1 is now eight systems, built strictly one at a time, and a system is not started until the one
+before it meets a bar that can be checked ([D063](05-decision-log.md)). The list, what each one
+means and what "done" is for each:
+**[v0.1 MVP §5](../05-delivery/02-milestone-v0-mvp.md)** — that page is the scope authority.
+
+| # | System | State |
+|---|---|---|
+| **1** | **Attribution** — point to contract, with a confidence band and a plain-language match basis | **Open** |
+| 2 | Jurisdiction — ward, department, confidence gate | Waiting |
+| 3 | Classification — what is in the photograph | Waiting |
+| 4 | Issues — dedup, corroboration, SLA clock, timeline | Waiting |
+| 5 | Accounts — OTP, rate limits, reset, verification, revocation | Partly built |
+| 6 | Public surface — redaction, coarsening, permalink, ward page | Waiting |
+| 7 | Share kit — annotated image and per-language text | Waiting |
+| 8 | Operator console — moderation, collection health, metrics | Waiting |
+
+Attribution is first because it is the hypothesis, and because it is the only one testable today:
+it needs a coordinate and the works data, both of which exist ([D064](05-decision-log.md)).
+
+---
+
 ## 2. Where things stand
 
 | | |
 |---|---|
 | Code | **Collectors running; backend and client both work.** Go module, ten packages, ~130 tests, plus a Flutter client with 17 |
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
-| Current phase | **Phase 0 collecting; v0.1 has a signed-in client that captures** — three parallel tracks ([D055](05-decision-log.md)) |
+| Current phase | **v1, system 1 of 8: contract attribution.** Collection runs itself; capture and accounts are built ([D063](05-decision-log.md)) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
 | Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, a Cloud Run job in `asia-south1` collecting twice daily, and **the API live on Dokploy over HTTPS** |
 | Branch | `main` |

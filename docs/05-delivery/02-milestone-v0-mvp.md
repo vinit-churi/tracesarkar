@@ -32,7 +32,8 @@ Nothing else.
 | English + Marathi | Hindi, Gujarati |
 | Roads-API attribution (K1) + hand-built dataset for other roads | Automated tender ingestion |
 | Share kit + permalink | Filing adapters, RTI, escalation |
-| Phone OTP + rate limits | Full trust score, moderation queue |
+| Email/password + Google, **and** phone OTP before anything publishes ([ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md)) | Full trust score |
+| An operator console: moderation queue, collection health, metrics | Multi-operator roles and permissions |
 
 Every "out" item is v0.2 or later and is listed in the [roadmap](01-roadmap.md).
 
@@ -77,34 +78,49 @@ answers are the ground truth against which geocoding recall and precision are me
 
 ---
 
-## 5. Build order
+## 5. Build order — eight systems, one at a time
 
-| # | Work | Depends on |
-|---|---|---|
-| 1 | Repo scaffold, CI, Docker Compose, migrations — **delivered in Phase 0** | — |
-| 2 | Schema: accounts, reports, issues, media, events, authorities, wards | 1 |
-| 3 | Phone OTP auth, rate limits | 2 |
-| 4 | `POST /v1/reports` with media upload to object storage | 2, 3 |
-| 5 | Worker framework + job queue (the ingest runner exists from Phase 0) | 2 |
-| 6 | Redaction (server-side; on-device deferred to v0.2) | 5 |
-| 7 | Classification call + eval harness over the Phase 0 label set | 5 |
-| 8 | R/S ward boundary loaded and verified; BMC department mapping | 2 |
-| 9 | Jurisdiction resolver, tested on the Phase 0 golden set | 8 |
-| 10 | Dedup + issue creation + corroboration | 2, 9 |
-| 11 | Roads-API geometry loaded from P1's `works`; hand-built dataset loaded | 2 |
-| 12 | Attribution join (spatial, against both), with the coverage-honesty line (K7) | 10, 11 |
-| 12a | Who do I call (U8) | 8 |
-| 13 | SLA clock from `legal_constants` | 10 |
-| 14 | Issue permalink page + OG cards | 10, 12 |
-| 15 | Share kit: annotated image + text (en/mr) | 14 |
-| 16 | PWA capture flow | 4, 15 |
-| 17 | Timeline + append-only events with hash chain | 2 |
-| 18 | Public status page + data freshness | — |
-| 19 | DPDP consent notice + data-rights endpoints | 2 |
-| 20 | Deploy to production | all |
+**Amended 28 September 2026.** The previous twenty-item list was accurate and unusable: it read as
+a queue rather than a sequence of things that are each finished. v1 is now eight systems. **Only one
+is open at a time.** A system is not started until the one before it meets its done bar, and the
+done bar is the thing that can be checked, not a feeling that the code is written.
 
-Items 7, 9, and 12 each need their evaluation artefact built **before** the feature is considered
-done. A classifier without an eval set is a demo.
+Two of these are already partly built and are listed at their real state, not at zero.
+
+| # | System | What it is | Done when |
+|---|---|---|---|
+| **1** | **Attribution** | The point-to-contract join: a reported coordinate against the road geometry in BMC's own works data, with a buffer, a confidence band, and the `MatchBasis` record that explains the join in plain language. The coverage-honesty line (K7) where nothing matches | It runs over the golden points and reports precision and recall against a hand-checked answer for each. A match that is wrong is visible in that number, not hidden behind an average |
+| **2** | **Jurisdiction** | R/S ward boundary loaded and verified, BMC department mapping, and the confidence gate that decides when to ask the single disambiguating question | ≥ 95% on the golden set of known-ward points, and every miss inspected |
+| **3** | **Classification** | Claude vision with a structured output over the road-defect taxonomy, prompt in a versioned file, plus the eval harness | ≥ 90% on the labelled eval set, with the failure cases written down |
+| **4** | **Issues** | Dedup and issue creation, corroboration, the SLA clock from `legal_constants`, and the append-only hash-chained timeline | A second report of the same defect joins the first rather than creating a duplicate, and the 48-hour clock is rendered from config with its citation |
+| **5** | **Accounts** | Finish what exists: phone OTP as the publication gate, rate limiting, password reset, email verification, token revocation | Sign-in cannot be brute-forced, a lost password is recoverable, a stolen session can be cancelled, and nothing publishes from an unverified phone |
+| **6** | **Public surface** | Redaction of faces and plates before any public derivative exists, coordinate coarsening, the issue permalink, the ward page, OG cards | A public page carries no precise coordinate and no unredacted face, on a 150 KB budget at 2G |
+| **7** | **Share kit** | The annotated image and the text, generated per language from the fact set | A share card carries a coarsened location, the contract ID where published, and no accusation |
+| **8** | **Operator console** | Moderation queue, collection and source health, the metrics in [observability](../03-architecture/10-observability.md), and the public status page | A failed collection run, a stale source and a report needing moderation are all visible in one place without reading a log |
+
+### Where each one stands today
+
+| System | State |
+|---|---|
+| 1 Attribution | **Not started — this is the current system.** The works data it joins against is already collected twice a day |
+| 2 Jurisdiction | Not started |
+| 3 Classification | Not started |
+| 4 Issues | Not started. Capture, storage and retry-safety are built and are its foundation |
+| 5 Accounts | **Partly built.** Email/password, Google, sessions and forgery resistance work. Missing: rate limiting, reset, email verification, revocation, phone OTP |
+| 6 Public surface | Not started |
+| 7 Share kit | Not started |
+| 8 Operator console | Not started |
+
+Systems 1, 2 and 3 each need their evaluation artefact built **before** the system is called done.
+A classifier without an eval set is a demo, and so is a spatial join without a precision number.
+
+### Why attribution goes first
+
+It is the hypothesis. If a citizen does not behave differently when told a contract covers the
+stretch and is still under warranty, the roadmap needs replanning — and that is cheaper to discover
+now than after three more systems are built on the assumption. It is also the one system that can
+be tested **today**: it needs a coordinate and the works data, both of which exist, and not the
+classifier or the resolver.
 
 ---
 
