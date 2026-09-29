@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tracesarkar-app",
+  "compatibility_date": "2026-09-29",
+
+  // A static-assets Worker: no Worker code at all, just the Flutter build
+  // output. Pages is the older way to do this; Workers is where Cloudflare
+  // puts new static-hosting features now.
+  "assets": {
+    "directory": "./build/web",
+    // Flutter web is a single-page app: every route has to fall back to
+    // index.html or a deep link 404s.
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

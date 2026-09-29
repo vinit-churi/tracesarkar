@@ -1,0 +1,12 @@
+{
+  "name": "tracesarkar-web",
+  "private": true,
+  "description": "Deploys the Flutter web build to Cloudflare Workers static assets.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.43.0"
+  }
+}

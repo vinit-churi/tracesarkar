@@ -67,8 +67,27 @@ you serve the client from must appear in the backend's `ALLOWED_ORIGINS`, which 
 under the service's Environment tab — a Cloudflare Pages origin has to be added there before the
 browser will let the client call the API.
 
-Output is `build/web`. For Cloudflare Pages, that directory is the publish directory; there is no
-build command to run on Cloudflare's side if you upload the built output.
+Output is `build/web`.
+
+### Deploying it
+
+Cloudflare **Workers static assets**, not Pages — Pages is the older path and new static-hosting
+work lands on Workers. Config is `wrangler.jsonc`; there is no Worker code, only the build output,
+with SPA fallback so a deep link does not 404.
+
+```sh
+npx wrangler login      # once, opens a browser
+npm run deploy
+```
+
+Then add the resulting origin to the API's `ALLOWED_ORIGINS`, or the browser blocks every call.
+
+**Weight, measured:** a first visit pulls ~750 KB of gzipped app code plus one CanvasKit renderer
+at 1.5–2.8 MB gzipped. Acceptable for a capture app that a person opens repeatedly and that caches
+after the first load. **Not** acceptable for the public issue permalink or ward page, which have a
+150 KB budget at 2G — those stay server-rendered Go, exactly as
+[the screen spec](../docs/02-product/11-screen-spec.md) specifies. Flutter is the app, not the
+public web surface.
 
 Geolocation requires a secure context. `https://` and `http://localhost` work; a plain-HTTP LAN
 address does not, and the position will simply never arrive.
