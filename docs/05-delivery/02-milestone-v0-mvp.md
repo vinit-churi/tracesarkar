@@ -5,14 +5,19 @@
 > **Amended 18 September 2026.** v0.1 is now Phase 1 of the [roadmap](01-roadmap.md) and follows
 > [Phase 0](07-phase-0-instruments.md), which delivers the scaffold, the archive, the evaluation
 > sets and the hand-built contract documents. Attribution for concretised roads now uses BMC's own
-> roads API (K1): R/S ward has 118 CC-road works in it, 109 of them completed ✅. The hand-built
-> dataset covers the remaining roads.
+> roads API (K1). **Amended 29 September 2026:** the ward is **R/C, Borivali**, not R/S. Two
+> reasons, and the second only became checkable once collection was running. The maintainer lives
+> in Borivali, and Phase 0's photographs and ground-truth points have to be gathered on foot — a
+> ward nobody walks through produces no data. And measured against the 4,673 works actually
+> collected, **R/C carries 199 road works, 198 of them with geometry — the most of any ward in
+> Mumbai**, ahead of H/W (161) and well ahead of R/S (118). Borivali is both the reachable ward and
+> the densest one. The hand-built dataset covers roads outside the CC programme.
 
 ---
 
 ## 1. The one-sentence scope
 
-> A resident of Kandivali West photographs a pothole; within six seconds they see which BMC ward and
+> A resident of Borivali photographs a pothole; within six seconds they see which BMC ward and
 > department owns it, which contract covers that stretch and whether it is still under warranty, and
 > a ready-to-send share card — and the platform tracks the 48-hour clock the Bombay High Court
 > imposed.
@@ -25,7 +30,7 @@ Nothing else.
 
 | In | Out |
 |---|---|
-| BMC R/S ward (Kandivali West) | Every other ward, every other corporation |
+| BMC R/C ward (Borivali) | Every other ward, every other corporation |
 | `road_defect` category | Waste, drainage, environment, transit, structural |
 | BMC as the only authority | MMRDA, PWD, MSRDC, Railways |
 | Web PWA | Native apps |
@@ -62,9 +67,9 @@ API, so this dataset covers the rest. It is assembled in Phase 0 through the man
 extension (P3), because Mahatenders may not be crawled
 ([D027](../00-overview/05-decision-log.md)).
 
-For R/S ward, one financial year, road works outside the CC programme:
+For R/C ward, one financial year, road works outside the CC programme:
 
-1. Pull every BMC road contract for R/S from Mahatenders and the BMC portal **by hand**
+1. Pull every BMC road contract for R/C from Mahatenders and the BMC portal **by hand**
 2. Archive each source page and PDF with a hash
 3. Extract by hand: contract ID, contractor, value, award date, completion date, DLP terms
    (with verbatim quote and page number)
@@ -90,7 +95,7 @@ Two of these are already partly built and are listed at their real state, not at
 | # | System | What it is | Done when |
 |---|---|---|---|
 | **1** | **Attribution** | The point-to-contract join: a reported coordinate against the road geometry in BMC's own works data, with a buffer, a confidence band, and the `MatchBasis` record that explains the join in plain language. The coverage-honesty line (K7) where nothing matches | It runs over the golden points and reports precision and recall against a hand-checked answer for each. A match that is wrong is visible in that number, not hidden behind an average |
-| **2** | **Jurisdiction** | R/S ward boundary loaded and verified, BMC department mapping, and the confidence gate that decides when to ask the single disambiguating question | ≥ 95% on the golden set of known-ward points, and every miss inspected |
+| **2** | **Jurisdiction** | R/C ward boundary loaded and verified, BMC department mapping, and the confidence gate that decides when to ask the single disambiguating question | ≥ 95% on the golden set of known-ward points, and every miss inspected |
 | **3** | **Classification** | Claude vision with a structured output over the road-defect taxonomy, prompt in a versioned file, plus the eval harness | ≥ 90% on the labelled eval set, with the failure cases written down |
 | **4** | **Issues** | Dedup and issue creation, corroboration, the SLA clock from `legal_constants`, and the append-only hash-chained timeline | A second report of the same defect joins the first rather than creating a duplicate, and the 48-hour clock is rendered from config with its citation |
 | **5** | **Accounts** | Finish what exists: phone OTP as the publication gate, rate limiting, password reset, email verification, token revocation | Sign-in cannot be brute-forced, a lost password is recoverable, a stolen session can be cancelled, and nothing publishes from an unverified phone |

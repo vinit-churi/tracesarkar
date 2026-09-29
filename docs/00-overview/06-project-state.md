@@ -12,7 +12,7 @@ which public contract covers it, and whether it is still under warranty. It then
 step: a complaint, an RTI, an appeal, a compensation claim. The resident files it themselves;
 the platform never does.
 
-It starts in one ward (BMC R/S, Kandivali West) with one kind of problem (road defects). The bet
+It starts in one ward (BMC R/C, Borivali) with one kind of problem (road defects). The bet
 behind it is that **showing the contract changes what people do**. Every phase is gated on evidence
 that the bet is holding. If it isn't, the plan says to stop and re-plan around escalation instead.
 
@@ -478,7 +478,7 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
       promises. Phase 1 does not exit without it
 - [ ] Classification: Claude vision with a structured schema, prompt in a versioned file, run over
       whatever the field kit has collected
-- [ ] Jurisdiction: load the R/S ward boundary, resolve a point to ward and department, with the
+- [ ] Jurisdiction: load the R/C ward boundary, resolve a point to ward and department, with the
       confidence gate that decides when to ask the one disambiguating question
 - [ ] Attribution: spatially join a report to the roads-API geometry we already collect nightly
 - [ ] `GET /v1/reports/{id}` so the field kit can show what happened to a capture

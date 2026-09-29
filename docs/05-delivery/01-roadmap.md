@@ -43,7 +43,7 @@ early costs nothing and takes it off the critical path.
 | Phase | Label | Tier | Target | Proves |
 |---|---|---|---|---|
 | 0 | Instruments | personal | Nov 2026 | The data can be collected and kept |
-| 1 | v0.1 | public, R/S ward | Feb 2027, and movable | People report |
+| 1 | v0.1 | public, R/C ward | Feb 2027, and movable | People report |
 | 2 | v0.2 | public | **Apr 2027**, before the monsoon | The money can be joined, and drains follow roads |
 | 3 | v0.3 | public + flagged | Jun 2027 | Consequence is generated |
 | 4 | v0.4 | public | late 2027 | Escalation compounds |
@@ -77,23 +77,23 @@ Why each of these exists, and what breaks without it, is in
 **Exit criteria — all must hold:**
 
 - 30 consecutive days of P1 snapshots with no missed run
-- 500 labelled road-defect photographs and 200 golden jurisdiction points for R/S ward
-- At least 20 R/S contract documents captured through P3
+- 500 labelled road-defect photographs and 200 golden jurisdiction points for R/C ward
+- At least 20 R/C contract documents captured through P3
 - One RTI filed and tracked through P5, which settles the fee question (Q2)
 
 ---
 
 ## Phase 1 · v0.1 — One ward, one category, one authority · public · Feb 2027
 
-**Scope:** Kandivali West (BMC R/S ward) · `road_defect` only · BMC only. Full detail in the
+**Scope:** Borivali (BMC R/C ward) · `road_defect` only · BMC only. Full detail in the
 [v0.1 MVP](02-milestone-v0-mvp.md).
 
 | Deliverable | Detail |
 |---|---|
 | Photo capture with geotag | The PWA from P4, opened to the public |
 | Classification | Claude vision, structured output, road-defect taxonomy |
-| Jurisdiction | R/S ward boundary + BMC department mapping + confidence gate |
-| Contract attribution | **Spatial join to BMC's roads API** for the 118 CC-road works in R/S (K1). Other roads get the coverage-honesty line (K7), backed by the hand-built dataset from P3 where it exists |
+| Jurisdiction | R/C ward boundary + BMC department mapping + confidence gate |
+| Contract attribution | **Spatial join to BMC's roads API** for the 199 road works in R/C, 198 of them with geometry (K1). Other roads get the coverage-honesty line (K7), backed by the hand-built dataset from P3 where it exists |
 | Who do I call (U8) | Ward, department, engineer designation, helplines |
 | SLA clock | 48 h, from the Bombay HC direction, in `legal_constants` |
 | Share kit | Annotated image + text (en/mr) + permalink |
@@ -130,7 +130,7 @@ attribution vs without, the thesis is wrong and the roadmap needs re-planning.
 | Marathi + Hindi UI | Full |
 
 **Gate (explicit, scheduled):** for roads **outside** the CC programme, if work-site geocoding
-cannot reach **≥ 50% recall at ≥ 95% precision** on R/S ward, stop and re-plan around escalation
+cannot reach **≥ 50% recall at ≥ 95% precision** on R/C ward, stop and re-plan around escalation
 (D-series) rather than attribution. For CC roads the question is already answered by the roads
 API. This decision point has a date, an owner, and a written outcome.
 
