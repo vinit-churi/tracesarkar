@@ -288,7 +288,15 @@ sources:
     # guessed and match nothing this API returns; kept in case the shape changes
     # back. contractorName is deliberately NOT blocked: a company holding a
     # public contract is exactly what this platform exists to publish.
-    blocklist: qmaRepName, qmaRepMobile, contractorRepName, contractorRepMobile
+    blocklist: qmaRepName, qmaRepMobile, contractorRepName, contractorRepMobile,
+      COUNCILLOR, JR_ENGG
+    # COUNCILLOR and JR_ENGG are on geo/getelectrolwardlayer, the prabhag
+    # layer. Probed 29 Sep 2026: they contain the personal NAMES of individuals
+    # ("Shri. <name>"), are populated on only 7 of 227 prabhags, and the layer's
+    # FINAL_DATE is 23092016 — a decade stale and pre-dating the 2025
+    # delimitation entirely. Useless as a mapping and personal data either way.
+    # Blocked here before an ingester exists, which is the lesson from the
+    # qmaRepMobile field above.
     network: india_only        # refuses foreign cloud runners; see ADR 0015
     notes: >
       2,237 CC-road works and 2,405 geometries keyed by work code. dlpPeriod is null

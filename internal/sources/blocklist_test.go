@@ -34,3 +34,25 @@ func TestRoadsAPIBlocklistNamesTheFieldsThatCarryPersonalData(t *testing.T) {
 		}
 	}
 }
+
+// BMC's prabhag layer carries the personal names of junior engineers and
+// councillors, on a layer dated 2016. Probed 29 September 2026: populated on
+// 7 of 227 prabhags, so it is useless as a mapping and personal data anyway.
+// Blocked before an ingester exists, rather than after 2,387 rows were stored.
+func TestProhibitedPersonFieldsOnTheProbedLayersAreBlocked(t *testing.T) {
+	reg, err := sources.Load("../../data/sources.yaml")
+	if err != nil {
+		t.Fatalf("load register: %v", err)
+	}
+	src, ok := reg.Get("bmc_roads_api")
+	if !ok {
+		t.Fatal("bmc_roads_api is not in the register")
+	}
+	joined := strings.ToLower(strings.Join(src.Blocklist, ","))
+
+	for _, field := range []string{"councillor", "jr_engg"} {
+		if !strings.Contains(joined, field) {
+			t.Errorf("blocklist does not strip %q: %v", field, src.Blocklist)
+		}
+	}
+}
