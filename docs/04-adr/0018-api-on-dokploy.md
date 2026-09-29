@@ -1,7 +1,11 @@
 # ADR 0018 — The API runs on Dokploy; collection stays on Cloud Run
 
-**Status:** Accepted · **Date:** 2026-09-25 · **Related:**
+**Status:** Superseded by [ADR 0019](0019-api-on-cloud-run.md) (29 Sep 2026) · **Date:** 2026-09-25 · **Related:**
 [ADR 0015](0015-indian-egress-for-collection.md), [ADR 0016](0016-collection-as-a-cloud-run-job.md)
+
+> **Superseded 29 September 2026.** The shared host became unreachable — 100% packet loss, the
+> control panel down with it — and could not be restarted from inside this project. The risk this
+> ADR named in its own consequences is the one that occurred. The API moved to Cloud Run.
 
 ## Context
 

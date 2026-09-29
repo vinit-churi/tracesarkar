@@ -59,7 +59,7 @@ actually removes the token rather than merely navigating away.
 
 ```sh
 flutter build web --release \
-  --dart-define=API_BASE=https://tracesarkar-primarybackend-ls228s-313702-35-188-103-96.sslip.io
+  --dart-define=API_BASE=https://tracesarkar-api-mlkwom573a-el.a.run.app
 ```
 
 That host is the deployed API ([ADR 0018](../docs/04-adr/0018-api-on-dokploy.md)). Whatever origin
@@ -89,7 +89,7 @@ one that was measured. Leave the flag out and the app uses the device, as it doe
 
 ```sh
 flutter build apk --release \
-  --dart-define=API_BASE=https://tracesarkar-primarybackend-ls228s-313702-35-188-103-96.sslip.io
+  --dart-define=API_BASE=https://tracesarkar-api-mlkwom573a-el.a.run.app
 ```
 
 Output is `build/app/outputs/flutter-apk/app-release.apk` (~51 MB). It is signed with the debug

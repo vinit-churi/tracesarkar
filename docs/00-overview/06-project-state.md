@@ -45,6 +45,42 @@ it needs a coordinate and the works data, both of which exist ([D064](05-decisio
 
 ---
 
+## 1B. Where the backend lives now — 29 September 2026
+
+The shared Dokploy host went unreachable: 100% packet loss, port 443 filtered, its control panel
+down too. Not our container — the whole machine, and not one this project can restart. That is the
+exact risk [ADR 0018](../04-adr/0018-api-on-dokploy.md) wrote into its own consequences four days
+earlier.
+
+**The API now runs on Cloud Run in `asia-south1`, beside the collector**
+([ADR 0019](../04-adr/0019-api-on-cloud-run.md), [D066](05-decision-log.md)):
+
+```
+https://tracesarkar-api-mlkwom573a-el.a.run.app
+```
+
+No machine to patch, no certificate to renew, no neighbour. Secrets come from Secret Manager reusing
+the collector's service account. `--min-instances 0`, so idle costs nothing.
+
+**Verified on the new home:** health 200 · register 201 · wrong password 401 · `/v1/auth/me` 200 ·
+`alg:none` forgery 401 · payload rewritten to another account 401 · signature tampered 401 · a
+capture stored in PostGIS with its image in R2.
+
+Two things worth knowing, both found by checking rather than assuming:
+
+- **Google's frontend answers `/healthz` itself.** On Cloud Run that request never reaches the
+  container — Google's own 404, and no entry in the request log, while every other route logged
+  normally. Health is now also served at `/v1/health` ([D067](05-decision-log.md)).
+- **A "tampered signature" that verified turned out to be fine.** Changing the *last* character of
+  a JWT signature can leave the decoded bytes identical: 43 base64url characters carry 258 bits and
+  an HMAC-SHA256 signature is 256, so the final character has two unused bits. Changing a character
+  in the middle is correctly refused. Not a hole — but worth writing down so nobody re-raises it.
+
+Deploys are now explicit rather than push-to-main: `gcloud builds submit` then `gcloud run deploy`.
+The commands are in [ADR 0019](../04-adr/0019-api-on-cloud-run.md).
+
+---
+
 ## 2. Where things stand
 
 | | |
@@ -53,7 +89,7 @@ it needs a coordinate and the works data, both of which exist ([D064](05-decisio
 | Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
 | Current phase | **v1, system 1 of 8: contract attribution.** Collection runs itself; capture and accounts are built ([D063](05-decision-log.md)) |
 | Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
-| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, a Cloud Run job in `asia-south1` collecting twice daily, and **the API live on Dokploy over HTTPS** |
+| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and two Cloud Run workloads in `asia-south1` — the collector twice daily, and **the API** |
 | Branch | `main` |
 
 **The 30-day snapshot clock is running.** Collection happens twice a day at 02:30 and 14:30 IST as
@@ -292,7 +328,7 @@ Dokploy instance, built from this repository, behind Traefik with a Let's Encryp
 ([D061](05-decision-log.md), [ADR 0018](../04-adr/0018-api-on-dokploy.md)).
 
 ```
-https://tracesarkar-primarybackend-ls228s-313702-35-188-103-96.sslip.io
+https://tracesarkar-api-mlkwom573a-el.a.run.app
 ```
 
 Collection stays on Cloud Run, and that separation is deliberate: the collector runs twice a day and
