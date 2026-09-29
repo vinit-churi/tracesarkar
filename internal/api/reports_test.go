@@ -387,3 +387,25 @@ func TestPostReportFromTheFieldKitStaysWithTheServerAccount(t *testing.T) {
 		t.Errorf("attributed to %q, want %q", got, "field-kit-account")
 	}
 }
+
+// Google's frontend answers /healthz itself and the request never reaches a
+// Cloud Run container — verified against the deployed service, where /healthz
+// returned Google's own 404 page and produced no request log, while every
+// other route logged normally. The health check therefore also answers on a
+// path inside our own namespace, which nothing upstream reserves.
+func TestHealthAlsoAnswersOnAPathNoProxyReserves(t *testing.T) {
+	srv := newTestServer(t, &fakeReports{}, &fakeBlobs{})
+
+	for _, path := range []string{"/healthz", "/v1/health"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		srv.Handler().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: got %d, want 200", path, rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "ok") {
+			t.Errorf("%s: body should report status: %s", path, rec.Body.String())
+		}
+	}
+}

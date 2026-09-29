@@ -127,6 +127,11 @@ func New(opts Options) (*Server, error) {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.handleHealth)
+	// Google's frontend answers /healthz itself: on Cloud Run the request never
+	// reaches the container and returns Google's own 404, with no entry in the
+	// request log. Anything watching the service from outside has to use a path
+	// inside our namespace, which nothing upstream reserves.
+	mux.HandleFunc("GET /v1/health", s.handleHealth)
 
 	mux.HandleFunc("POST /v1/auth/register", s.handleRegister)
 	mux.HandleFunc("POST /v1/auth/login", s.handleLogin)

@@ -1,7 +1,27 @@
+# Keep the build context to what actually compiles the binaries: go.mod,
+# go.sum, cmd/ and internal/. Everything else is either a secret, a build
+# artefact, or documentation.
+
 .git/
+.gitignore
+
+# Secrets — never in a build context, even though no Dockerfile copies them.
 .env
+.env.*
+!.env.example
 *.pem
-bin/
+*.key
+secrets/
+
+# The Flutter client: ~900 MB of build output, and no Go binary needs it.
+app/
+
+# Not needed to build.
 docs/
 .github/
 deploy/
+bin/
+dist/
+*.md
+data/archive/
+data/raw/
