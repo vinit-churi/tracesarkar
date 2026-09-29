@@ -125,3 +125,29 @@ func TestSegmentKeepsTheDatesThatBoundAWarranty(t *testing.T) {
 		t.Errorf("end date: %s", seg.EndDate)
 	}
 }
+
+func TestSegmentReadsTheContractorAndTrimsTheCodeBMCAppends(t *testing.T) {
+	raw := `{"workCode":"W-415","wardName":"R/C",
+	         "contractorName":"M/s Dineshchandra Ramchandra Agrawal Infracon Pvt. Ltd. W-415.",
+	         "geometrytype":{"type":"MultiLineString","coordinates":[[[72.844,19.234],[72.845,19.233]]]}}`
+	seg, err := SegmentFrom(recordFrom(t, raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The package code is not part of the company's name, and it will be shown
+	// to people as the party responsible.
+	want := "M/s Dineshchandra Ramchandra Agrawal Infracon Pvt. Ltd"
+	if seg.ContractorName != want {
+		t.Errorf("contractor: got %q, want %q", seg.ContractorName, want)
+	}
+}
+
+func TestSegmentWithNoContractorLeavesItEmptyRatherThanGuessing(t *testing.T) {
+	seg, err := SegmentFrom(recordFrom(t, borivaliWork))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seg.ContractorName != "" {
+		t.Errorf("an absent contractor must stay absent, got %q", seg.ContractorName)
+	}
+}

@@ -13,17 +13,24 @@ import (
 )
 
 // segmentSink adapts the store to the loader's interface.
-type segmentSink struct{ db *store.DB }
+type segmentSink struct {
+	db          *store.DB
+	provenance  map[string]store.WorkRecord
+}
 
 func (s segmentSink) SaveSegment(ctx context.Context, seg roads.Segment) error {
+	src := s.provenance[seg.WorkID]
 	return s.db.SaveRoadSegment(ctx, store.NewRoadSegment{
-		WorkID:       seg.WorkID,
-		WorkCode:     seg.WorkCode,
-		Ward:         seg.Ward,
-		LocationName: seg.LocationName,
-		GeoJSON:      seg.GeoJSON(),
-		StartDate:    seg.StartDate,
-		EndDate:      seg.EndDate,
+		WorkID:         seg.WorkID,
+		WorkCode:       seg.WorkCode,
+		Ward:           seg.Ward,
+		LocationName:   seg.LocationName,
+		GeoJSON:        seg.GeoJSON(),
+		StartDate:      seg.StartDate,
+		EndDate:        seg.EndDate,
+		ContractorName: seg.ContractorName,
+		SourceID:       src.SourceID,
+		RetrievedAt:    src.RetrievedAt,
 	})
 }
 
@@ -50,12 +57,14 @@ func runRoads(ctx context.Context, args []string) error {
 		return err
 	}
 	records := make([]roads.WorkRecord, 0, len(stored))
+	provenance := make(map[string]store.WorkRecord, len(stored))
 	for _, w := range stored {
 		records = append(records, roads.WorkRecord{WorkID: w.ID, Record: w.Current})
+		provenance[w.ID] = w
 	}
 	slog.Info("projecting road geometry", "works", len(records), "ward", *ward)
 
-	result, err := roads.Load(ctx, records, segmentSink{db}, *ward)
+	result, err := roads.Load(ctx, records, segmentSink{db: db, provenance: provenance}, *ward)
 	if err != nil {
 		return err
 	}

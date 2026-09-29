@@ -29,6 +29,9 @@ type Segment struct {
 	WorkCode     string
 	Ward         string
 	LocationName string
+	// ContractorName is the company holding the package this road is in.
+	// Displayed only with its source and retrieval time (hard rule 2).
+	ContractorName string
 	Lines        [][]Point
 	StartDate    *time.Time
 	EndDate      *time.Time
@@ -52,7 +55,8 @@ func SegmentFrom(record map[string]any) (Segment, error) {
 	seg := Segment{
 		WorkCode:     text(record["workCode"]),
 		Ward:         ward(record),
-		LocationName: text(record["locationName"]),
+		LocationName:   text(record["locationName"]),
+		ContractorName: contractor(record),
 		StartDate:    date(record["startDate"]),
 		EndDate:      date(record["endDate"]),
 	}
@@ -137,6 +141,18 @@ func ward(record map[string]any) string {
 		return text(v["wardName"])
 	}
 	return ""
+}
+
+// contractor reads the company name, trimming the work code BMC appends to it
+// ("M/s Some Infracon Pvt. Ltd. W-415.") so the name is a name.
+func contractor(record map[string]any) string {
+	name := text(record["contractorName"])
+	code := text(record["workCode"])
+	if code != "" {
+		name = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(
+			strings.TrimSuffix(name, ".")), code))
+	}
+	return strings.TrimSpace(strings.TrimSuffix(name, "."))
 }
 
 func text(v any) string {
