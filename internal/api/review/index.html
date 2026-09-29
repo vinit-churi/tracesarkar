@@ -169,6 +169,12 @@ function render(item) {
   } else { $('hint').textContent = ''; }
 
   initMap();
+  // A view must exist before any layer is added. L.circle.getBounds() projects
+  // through the map, so on a map with no view it throws — which left the map
+  // unpositioned, the tiles unrequested, and the panel grey with no error
+  // anywhere a person would look.
+  map.setView([item.lat, item.lon], 18);
+
   [pin, halo, road].forEach(l => { if (l) map.removeLayer(l); });
   pin = L.circleMarker([item.lat, item.lon], {radius: 6, color: '#6B2C4F',
         fillColor: '#6B2C4F', fillOpacity: 1}).addTo(map);
@@ -176,11 +182,15 @@ function render(item) {
         weight: 1, fillOpacity: .06}).addTo(map);
 
   if (item.road_geojson) {
-    road = L.geoJSON(JSON.parse(item.road_geojson),
-      {style: {color: '#A33A1F', weight: 5, opacity: .85}}).addTo(map);
-    map.fitBounds(road.getBounds().extend(halo.getBounds()), {padding: [30, 30]});
-  } else {
-    map.setView([item.lat, item.lon], 18);
+    try {
+      road = L.geoJSON(JSON.parse(item.road_geojson),
+        {style: {color: '#A33A1F', weight: 5, opacity: .85}}).addTo(map);
+      map.fitBounds(road.getBounds().extend(halo.getBounds()), {padding: [30, 30]});
+    } catch (e) {
+      // Framing is a convenience. Losing it must not cost the reviewer the
+      // map, the point, or the ability to judge the answer.
+      console.warn('could not frame the road', e);
+    }
   }
 }
 
