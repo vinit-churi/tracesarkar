@@ -1,80 +1,105 @@
 # RTI 1 — the pothole circulars and BMC's own repair timeline
 
-**Status:** ready to file · **Drafted:** 29 September 2026 · **Filed:** _(record the date and
-registration number here after filing)_
+**Status:** ready to file · **Drafted:** 29 September 2026 · **Route corrected:** 29 September 2026
+**Filed:** _(record the date and registration number here after filing)_
 
 ---
 
-## Why this one
+## Correction: BMC is not on the state RTI portal
 
-The department mapping did **not** need an RTI — BMC publishes it in its own Section 4(1)(b)
-handbooks, and R/C's road-defect owners are now recorded with sources.
+An earlier draft of this file said to file at `rtionline.maharashtra.gov.in`. **That is wrong.**
 
-What is genuinely missing is **BMC's own pothole repair timeline**. The platform currently shows a
-48-hour clock from the Bombay High Court's October 2025 direction. That is a court order on the
-corporation, not the corporation's internal operating rule, and the two may differ.
+That portal serves a fixed list of authorities and names them on its front page. Checked
+29 September 2026: it carries **26 municipal bodies** — Thane, Navi Mumbai, Kalyan-Dombivli,
+Vasai-Virar, Panvel, Mira-Bhayandar, Pune, Nagpur and others — and **Brihanmumbai Municipal
+Corporation is not among them.** The two "Greater Mumbai" entries on that page are the Deputy
+Director of Town Planning and the State Information Commission, neither of which is BMC.
 
-R/Central's own maintenance handbook has a rules table with a row headed "Pothole" citing three
-circulars **by number**:
-
-| Circular | Date |
-|---|---|
-| MGC/F/1074 | 06.07.2013 |
-| CA/FDT/59 | 16.03.2013 |
-| CA/FRD/7 | 17.05.2013 |
-
-**None of the three is published.** They are named in a proactive-disclosure document and withheld
-in substance, which is exactly what an RTI is for.
-
-The same handbook index lists a held record, "Daily Report of Potholes and Bad Patches" — a
-document whose existence BMC has already admitted in writing.
+BMC runs its own RTI system instead, and it is filed with directly.
 
 ---
 
-## Where to file
+## How to file
 
-**Online:** `https://rtionline.maharashtra.gov.in` — Maharashtra's RTI portal. BMC is a public
-authority under the Maharashtra state government, so this is the right portal, **not** the central
-`rtionline.gov.in`.
+### The reliable route: on paper, to the PIO
 
-Filing on paper is also valid: a plain application with the fee by court-fee stamp or demand draft,
-delivered to the PIO's office.
+BMC's own online RTI page (`portal.mcgm.gov.in` → RTI → **RTI Application**) exists but currently
+returns *"The iView has timed out"*, as most of that portal does. Worth one attempt in a browser;
+do not depend on it.
+
+Filing on paper is always valid under Section 6(1) and is what this draft assumes.
+
+**Address it to:**
+
+```
+The Public Information Officer
+Assistant Engineer (Roads) R/Central
+Office of the Dy. Ch. Eng. Roads (Western Suburbs)
+5th Floor, P/S Ward Office Building
+S. V. Road, Goregaon (West)
+Mumbai 400062
+```
+
+**Fee:** a **₹10 court-fee stamp** affixed to the application is the standard method for a
+Maharashtra public authority. Our own research has the amount contested — ₹10 is long-standing, a
+₹30 figure circulates with no gazette notification found (open question Q2). **Take a photograph of
+the stamped application before submitting**; that photograph settles Q2 either way.
+
+**Submit** in person at the office above, or by **registered post with acknowledgement due**. Keep
+the AD card or the counter receipt: the 30-day clock under Section 7(1) runs from the date of
+receipt, and the receipt is what proves it.
 
 ---
 
-## Exact form values
+## If a form limits you to 150 words
 
-Fill the portal form with these. Fields marked **[yours]** only you can supply.
-
-| Form field | Value |
-|---|---|
-| Public Authority — Department | **Brihanmumbai Municipal Corporation (MCGM)** |
-| Public Authority — Office | **Chief Engineer (Roads & Traffic)** |
-| PIO designation (if asked) | **Assistant Engineer (Roads) R/Central** |
-| PIO address | Office of Dy. Ch. Eng. Roads (W.S.), 5th Floor, P/S Ward Office Building, S. V. Road, Goregaon (West), Mumbai 400062 |
-| Applicant name | **[yours]** |
-| Address / pincode | **[yours]** — Borivali West, 400091/400092 |
-| Mobile / email | **[yours]** — the portal sends the registration number by SMS and email |
-| Citizenship | **Indian** |
-| Education (if asked) | **[yours]** — optional, not a ground for rejection |
-| Are you Below Poverty Line? | **No** unless you hold a BPL certificate. If yes, tick it, upload the certificate, and **no fee is payable** under Section 7(5) |
-| Fee | **Whatever the portal states at payment.** Do not pre-commit — our own research has this contested: ₹10 is long-standing, a ₹30 figure circulates with no gazette notification found (open question Q2). Pay what the portal asks and **screenshot the amount and the receipt** — that screenshot settles Q2 |
-| Mode of payment | Online, through the portal |
-| Information required in | **Electronic (email / soft copy)** — cheaper, faster, and immediately usable |
-| Period | **From 01.01.2013 to the date of this application** |
-
-### Subject line
+Some RTI forms cap the "information sought" field. This version fits in about 145 words. Attach the
+long version below as an annexure and reference it.
 
 ```
-Circulars governing pothole repair and the prescribed timeline for attending
-potholes in R/Central ward
+Under Section 6(1) of the Right to Information Act, 2005, please provide:
+
+1. Copies of Circular MGC/F/1074 dated 06.07.2013, Circular CA/FDT/59 dated
+   16.03.2013, and Circular CA/FRD/7 dated 17.05.2013, cited under the heading
+   "Pothole" in the Section 4(1)(b)(v) rules table of the RTI manual of the
+   Maintenance Department, R/Central Ward.
+
+2. A copy of any circular or office order issued after 17.05.2013 and in force
+   today which prescribes the time within which a reported pothole is to be
+   attended to.
+
+3. A blank copy of the pro forma "Daily Report of Potholes and Bad Patches",
+   listed as a record held in the RTI manual of the Chief Engineer
+   (Roads and Traffic).
+
+4. The criteria by which a road in R/Central ward is classified as a major road
+   or a minor road for maintenance purposes.
+
+Please supply the information in electronic form to the email address given.
 ```
 
-### Text of the application — paste this into the "Information sought" box
+---
+
+## The full application
+
+For the paper route, where no word limit applies.
 
 ```
-I am a citizen of India and seek the following information under Section 6(1)
-of the Right to Information Act, 2005.
+To,
+The Public Information Officer
+Assistant Engineer (Roads) R/Central
+Office of the Dy. Ch. Eng. Roads (Western Suburbs)
+5th Floor, P/S Ward Office Building, S. V. Road
+Goregaon (West), Mumbai 400062
+
+Subject: Application under Section 6(1) of the Right to Information Act, 2005 —
+         circulars governing pothole repair and the prescribed timeline for
+         attending potholes in R/Central ward
+
+Sir / Madam,
+
+I am a citizen of India and seek the following information under the Right to
+Information Act, 2005.
 
 1. A copy of Circular no. MGC/F/1074 dated 06.07.2013.
 
@@ -82,9 +107,9 @@ of the Right to Information Act, 2005.
 
 3. A copy of Circular no. CA/FRD/7 dated 17.05.2013.
 
-   (The three circulars above are cited under the heading "Pothole" in the
-   rules table at Section 4(1)(b)(v) of the RTI manual published by the
-   Maintenance Department, R/Central Ward, on the MCGM portal.)
+   (All three are cited under the heading "Pothole" in the rules table at
+   Section 4(1)(b)(v) of the RTI manual published by the Maintenance
+   Department, R/Central Ward, on the MCGM portal.)
 
 4. A copy of any circular, office order or standing instruction issued after
    17.05.2013 and in force on the date of this application, which prescribes
@@ -94,33 +119,54 @@ of the Right to Information Act, 2005.
    Patches", listed as a record held in the RTI manual of the Chief Engineer
    (Roads and Traffic).
 
-6. The number of pothole complaints received for R/Central ward in the period
-   1 June 2026 to 30 September 2026, and the number recorded as attended.
+6. The number of pothole complaints received for R/Central ward between
+   1 June 2026 and 30 September 2026, and the number recorded as attended.
 
 7. A copy of the criteria by which a road in R/Central ward is classified as a
    major road or a minor road for maintenance purposes.
 
-I request the information in electronic form, sent to the email address given
-in this application.
+I request the information in electronic form, to the email address below.
+A court-fee stamp of the prescribed amount is affixed.
+
+Yours faithfully,
+
+[ your name ]
+[ your address, Borivali West ]
+[ your mobile ]
+[ your email ]
+
+Date:  [ date ]
+Place: Mumbai
 ```
 
 ---
 
-## Why the questions are shaped this way
+## Why it is worded this way
 
-Every one asks for **a named document or a count**, which is the form that survives. Our own
-[RTI template](../templates/rti-application.md) fixes the rules, and they apply here:
+Each question asks for **a named document or a count** — the form that survives. Questions inviting
+opinion, inference or a reason are refused under the Act, and a refusal costs a month.
 
-- **Each answerable from a single document.** Questions requiring opinion, inference or a reason
-  are refused under the Act, and refusals cost a month.
-- **The circulars are asked for by number.** BMC cited them itself; it cannot claim not to identify
-  them.
-- **Question 4 catches supersession.** A 2013 circular may have been replaced. Asking for "any
+- **The circulars are asked for by number.** BMC cited them itself, so it cannot claim not to
+  identify them.
+- **Question 4 catches supersession.** A 2013 circular may have been replaced; asking for "any
   circular in force" closes that.
-- **Question 7 is the one that matters most for the product.** The major/minor split is what
-  decides which of the two departments owns a given pothole, and the platform currently has to
-  state both because it cannot tell them apart.
-- **Seven questions, not ten.** Long omnibus applications invite rejection.
+- **Question 7 matters most for the product.** The major/minor split decides which of the two
+  departments owns a given pothole. The platform currently has to state both, because it cannot
+  tell them apart.
+- **Seven questions.** Long omnibus applications invite rejection.
+
+---
+
+## Why this RTI at all
+
+The department mapping did **not** need one — BMC publishes it in its Section 4(1)(b) handbooks,
+and R/C's road-defect owners are recorded with sources in `authority_departments`.
+
+What is missing is **BMC's own pothole timeline**. The 48 hours the platform shows comes from the
+Bombay High Court's October 2025 direction — a court order *on* the corporation, not the
+corporation's internal operating rule. R/Central's own manual cites three circulars under a
+"Pothole" heading and publishes none of them. If BMC's internal timeline is shorter than 48 hours,
+the shorter one binds.
 
 ---
 
@@ -128,10 +174,10 @@ Every one asks for **a named document or a count**, which is the form that survi
 
 | Outcome | Next step |
 |---|---|
-| Circulars supplied with a timeline | Record it in `legal_constants` with its citation and effective-from date. It may differ from the court's 48 hours; **both** then apply and the shorter binds |
-| Refused or no reply in 30 days | First appeal to the **Executive Engineer (Roads) K/E, R/C & R/N**. Section 7(1): silence past 30 days is deemed refusal |
-| "Information not held" | Useful in itself — record it. It means BMC has no internal pothole timeline, and the High Court's 48 hours stands alone |
-| Fee receipt | Screenshot it regardless. It closes open question Q2 |
+| Circulars supplied with a timeline | Record in `legal_constants` with citation and effective-from date. If it differs from 48 hours, **both** apply and the shorter binds |
+| Refused, or no reply in 30 days | First appeal to the **Executive Engineer (Roads) K/E, R/C & R/N**. Section 7(1): silence past 30 days is deemed refusal, and the first appeal is free |
+| "Information not held" | Useful in itself. It means BMC has no internal pothole timeline and the High Court's 48 hours stands alone — record that |
+| The fee receipt | Photograph it regardless. It closes open question Q2 |
 
-**Record the registration number in this file when you file.** The 30-day clock starts from the
-date of receipt, and the deadline wallet (S35) will need it.
+**Record the registration number here when you file.** The 30-day clock starts on receipt, and the
+deadline wallet (S35) will need it.
