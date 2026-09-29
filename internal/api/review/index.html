@@ -46,6 +46,11 @@
   button:disabled{opacity:.5;cursor:default}
   textarea{width:100%;margin-top:10px;padding:10px;border:1px solid var(--hairline);
            border-radius:10px;font:inherit;font-size:14px;min-height:60px}
+  .why{margin-top:14px;padding:11px 13px;border-radius:10px;font-size:14px;line-height:1.45}
+  .why.disagrees{background:var(--alert-wash);color:var(--alert)}
+  .why.ambiguous{background:var(--caution-wash);color:var(--caution)}
+  .why.distant{background:var(--caution-wash);color:var(--caution)}
+  .why.routine{background:var(--evidence);color:var(--ink-70)}
   .empty{text-align:center;padding:48px 16px;color:var(--ink-45)}
   .err{background:var(--alert-wash);color:var(--alert);padding:10px 12px;
        border-radius:8px;margin-top:12px;font-size:14px}
@@ -76,6 +81,8 @@
 <main id="app" hidden>
   <div id="map"></div>
 
+  <div class="why" id="why"></div>
+
   <div class="card">
     <span class="chip" id="confidence">—</span>
     <div class="road" id="road">—</div>
@@ -86,10 +93,10 @@
   </div>
 
   <p class="note">
-    <b>The question:</b> the pin is where a problem was reported. The red line is
-    the road our code says covers that spot. Are they the same road?<br>
-    The circle is how far the position may be out. Judge from the map — you are
-    not told what the code expected until after you answer.
+    <b>What to judge:</b> does the red line follow a real street on the map, and
+    could a problem at the pin plausibly be on that street rather than on a
+    different one? The circle is how far the position may be out.<br>
+    You are not told what the code expected until after you answer.
   </p>
 
   <textarea id="note" placeholder="Optional — what is actually there?"></textarea>
@@ -154,6 +161,25 @@ function render(item) {
   $('basis').textContent = item.basis;
   $('note').value = '';
   $('err').innerHTML = '';
+
+  const why = {
+    disagrees: ['disagrees',
+      'The code picked a different road from the one this point was generated on. ' +
+      'One of them is wrong — this is the case worth your attention.'],
+    ambiguous: ['ambiguous',
+      'Another road is nearly as close' +
+      (item.rival_location ? ': ' + item.rival_location : '') +
+      (item.rival_distance_m != null ? ', ' + item.rival_distance_m.toFixed(1) + ' m away' : '') +
+      '. Which one owns this spot is a real question.'],
+    distant: ['distant',
+      'The point is well away from any road geometry we hold. Worth checking ' +
+      'whether the red line is really the nearest street.'],
+    routine: ['routine',
+      'One obvious road, nothing else close. Low information — answer quickly ' +
+      'or skip ahead to the ones above.']
+  }[item.priority] || ['routine', ''];
+  $('why').className = 'why ' + why[0];
+  $('why').textContent = why[1];
 
   const bits = [];
   if (item.distance_m != null) bits.push(item.distance_m.toFixed(1) + ' m from the point');

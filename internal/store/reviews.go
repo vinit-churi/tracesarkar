@@ -44,6 +44,14 @@ type ReviewItem struct {
 	// RoadGeoJSON is the matched road, so the reviewer sees the shape the join
 	// actually chose rather than a pin and a name.
 	RoadGeoJSON string `json:"road_geojson"`
+	// Priority says why this item is worth looking at. A queue sorted by it
+	// puts the informative cases first, so an hour of attention is not spent
+	// confirming answers the machine could already check itself.
+	Priority string `json:"priority"`
+	// RivalLocation is the next road that is nearly as close, when there is
+	// one. It is the actual question in an ambiguous case.
+	RivalLocation string   `json:"rival_location,omitempty"`
+	RivalDistance *float64 `json:"rival_distance_m,omitempty"`
 }
 
 // SaveReviewItem queues one answer.
@@ -68,19 +76,57 @@ func (d *DB) PendingReviewItems(ctx context.Context, limit int) ([]ReviewItem, e
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
+	// The second-nearest road that would give a *different* answer. When it is
+	// close, that is the whole question; when there is none, the item is
+	// routine and the machine already knows the answer.
 	rows, err := d.pool.Query(ctx, `
-		SELECT r.id::text, r.kind, r.lat, r.lon, r.accuracy_m::float8, r.confidence,
-		       COALESCE(r.matched_work_code,''), COALESCE(r.matched_contractor,''),
-		       COALESCE(r.matched_location,''), r.distance_m, r.basis,
-		       CASE WHEN r.kind = 'probe' AND r.expected_work_id IS NOT NULL
-		            THEN (r.matched_work_id IS NOT DISTINCT FROM r.expected_work_id)
+		WITH item AS (
+		  SELECT r.*, ST_SetSRID(ST_MakePoint(r.lon, r.lat), 4326)::geography AS g
+		    FROM attribution_reviews r WHERE r.verdict IS NULL
+		), rival AS (
+		  SELECT i.id,
+		         s.location_name AS rival_name,
+		         ST_Distance(s.geom, i.g) AS rival_distance
+		    FROM item i
+		    JOIN LATERAL (
+		      SELECT s2.location_name, s2.geom
+		        FROM road_segments s2
+		       WHERE s2.work_id IS DISTINCT FROM i.matched_work_id
+		         AND (s2.work_code, COALESCE(s2.contractor_name,'')) IS DISTINCT FROM
+		             (i.matched_work_code, COALESCE(i.matched_contractor,''))
+		         AND ST_DWithin(s2.geom, i.g, 60)
+		       ORDER BY ST_Distance(s2.geom, i.g)
+		       LIMIT 1
+		    ) s ON true
+		)
+		SELECT i.id::text, i.kind, i.lat, i.lon, i.accuracy_m::float8, i.confidence,
+		       COALESCE(i.matched_work_code,''), COALESCE(i.matched_contractor,''),
+		       COALESCE(i.matched_location,''), i.distance_m, i.basis,
+		       CASE WHEN i.kind = 'probe' AND i.expected_work_id IS NOT NULL
+		            THEN (i.matched_work_id IS NOT DISTINCT FROM i.expected_work_id)
 		       END AS agrees,
-		       COALESCE(ST_AsGeoJSON(s.geom::geometry), '') AS road
-		  FROM attribution_reviews r
-		  LEFT JOIN road_segments s ON s.work_id = r.matched_work_id
-		 WHERE r.verdict IS NULL
-		 ORDER BY r.created_at
-		 LIMIT $1`, limit)
+		       COALESCE(ST_AsGeoJSON(s.geom::geometry), '') AS road,
+		       CASE
+		         WHEN i.kind = 'probe' AND i.expected_work_id IS NOT NULL
+		              AND i.matched_work_id IS DISTINCT FROM i.expected_work_id THEN $2
+		         WHEN v.rival_distance IS NOT NULL
+		              AND v.rival_distance - COALESCE(i.distance_m, 0) < i.accuracy_m THEN $3
+		         WHEN i.matched_work_id IS NULL OR i.distance_m > 15 THEN $4
+		         ELSE $5
+		       END AS priority,
+		       COALESCE(v.rival_name, ''), v.rival_distance
+		  FROM item i
+		  LEFT JOIN road_segments s ON s.work_id = i.matched_work_id
+		  LEFT JOIN rival v ON v.id = i.id
+		 ORDER BY CASE
+		     WHEN i.kind = 'probe' AND i.expected_work_id IS NOT NULL
+		          AND i.matched_work_id IS DISTINCT FROM i.expected_work_id THEN 0
+		     WHEN v.rival_distance IS NOT NULL
+		          AND v.rival_distance - COALESCE(i.distance_m, 0) < i.accuracy_m THEN 1
+		     WHEN i.matched_work_id IS NULL OR i.distance_m > 15 THEN 2
+		     ELSE 3
+		   END, i.created_at
+		 LIMIT $1`, limit, PriorityDisagrees, PriorityAmbiguous, PriorityDistant, PriorityRoutine)
 	if err != nil {
 		return nil, fmt.Errorf("pending review items: %w", err)
 	}
@@ -92,7 +138,8 @@ func (d *DB) PendingReviewItems(ctx context.Context, limit int) ([]ReviewItem, e
 		if err := rows.Scan(&it.ID, &it.Kind, &it.Lat, &it.Lon, &it.AccuracyM,
 			&it.Confidence, &it.MatchedWorkCode, &it.MatchedContractor,
 			&it.MatchedLocation, &it.DistanceM, &it.Basis,
-			&it.AgreesWithExpectation, &it.RoadGeoJSON); err != nil {
+			&it.AgreesWithExpectation, &it.RoadGeoJSON,
+			&it.Priority, &it.RivalLocation, &it.RivalDistance); err != nil {
 			return nil, fmt.Errorf("scan review item: %w", err)
 		}
 		out = append(out, it)
@@ -201,3 +248,12 @@ func (d *DB) ExpectationAgreement(ctx context.Context, id string) (*bool, error)
 	}
 	return agreed, nil
 }
+
+// ReviewPriority explains why an item is worth a person's attention.
+// Surfaced so the page can say what it is asking and why this one.
+const (
+	PriorityDisagrees = "disagrees" // the join chose a different road from the probe's own
+	PriorityAmbiguous = "ambiguous" // a second road is nearly as close
+	PriorityDistant   = "distant"   // the point is far from anything, or matched nothing
+	PriorityRoutine   = "routine"   // one obvious road; little to learn
+)
