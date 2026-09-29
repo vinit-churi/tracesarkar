@@ -80,7 +80,20 @@ npx wrangler login      # once, opens a browser
 npm run deploy
 ```
 
-Then add the resulting origin to the API's `ALLOWED_ORIGINS`, or the browser blocks every call.
+Live at **https://tracesarkar-app.infoyantra.workers.dev**.
+
+The account is pinned in `wrangler.jsonc`, because that login can see three and an unpinned deploy
+would land in whichever one wrangler picked. An account id is not a secret; it grants nothing
+without a token.
+
+The deployed origin has to be in the API's `ALLOWED_ORIGINS` or the browser blocks every call
+before it leaves the page. Note that `gcloud run services update` splits `--update-env-vars` on
+commas, so a list needs a custom delimiter that does not appear in the value:
+
+```sh
+gcloud run services update tracesarkar-api --region asia-south1 \
+  --update-env-vars "^@^ALLOWED_ORIGINS=https://first,https://second"
+```
 
 **Weight, measured:** a first visit pulls ~750 KB of gzipped app code plus one CanvasKit renderer
 at 1.5–2.8 MB gzipped. Acceptable for a capture app that a person opens repeatedly and that caches

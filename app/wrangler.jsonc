@@ -3,6 +3,11 @@
   "name": "tracesarkar-app",
   "compatibility_date": "2026-09-29",
 
+  // Pinned: this login can see three accounts, and an unpinned deploy would
+  // either prompt or land in whichever one wrangler picked. Not a secret — an
+  // account id grants nothing without a token.
+  "account_id": "dba7a9b5ed108516b714250de2a0dd0f",
+
   // A static-assets Worker: no Worker code at all, just the Flutter build
   // output. Pages is the older way to do this; Workers is where Cloudflare
   // puts new static-hosting features now.

@@ -56,7 +56,8 @@ earlier.
 ([ADR 0019](../04-adr/0019-api-on-cloud-run.md), [D066](05-decision-log.md)):
 
 ```
-https://tracesarkar-api-mlkwom573a-el.a.run.app
+API   https://tracesarkar-api-mlkwom573a-el.a.run.app     (Cloud Run, asia-south1)
+App   https://tracesarkar-app.infoyantra.workers.dev      (Cloudflare Workers)
 ```
 
 No machine to patch, no certificate to renew, no neighbour. Secrets come from Secret Manager reusing
