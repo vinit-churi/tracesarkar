@@ -104,7 +104,22 @@ road — not a **correct** one. Only a photograph, taken at a place a person can
 identify, settles that. That is the remaining gap in system 1's done bar, and
 it is the first thing real captures will close.
 
-### Coverage, which is not measured at all
+### Coverage, now measured
+
+**About half of Borivali's road network lies along a stretch BMC has published contract geometry
+for** — 43% within 5 m, 57% within 25 m, measured against OpenStreetMap
+([D073](05-decision-log.md), [full method](../01-research/10-contract-coverage-borivali.md)).
+Coverage is best where it matters most: secondary 77%, tertiary 69%, primary 68%.
+
+The raw length ratio of 19.4% is **not** the coverage figure and should not be quoted — OSM splits
+one street into many ways, BMC publishes one centreline per work.
+
+Two consequences. The coverage-honesty line is the **common case**, so "we don't have contract data
+for this stretch yet" has to read as a normal answer rather than an apology. And jurisdiction is
+the floor the product stands on — it works for every report, where attribution works for about
+half.
+
+### The old note, kept for the record
 
 Borivali has 198 road works with geometry: 181 distinct street names, 54.2 km
 of carriageway, under 2 contract packages. What fraction of the ward's street
