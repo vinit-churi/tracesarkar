@@ -62,6 +62,8 @@ func main() {
 		err = runWatch(ctx, os.Args[2:])
 	case "roads":
 		err = runRoads(ctx, os.Args[min(2, len(os.Args)):])
+	case "review":
+		err = runReview(ctx, os.Args[min(2, len(os.Args)):])
 	case "all":
 		err = runAll(ctx, os.Args[2:])
 	case "-h", "--help", "help":
@@ -87,6 +89,7 @@ func usage() {
   ingest changes [--since d] recent changes (default 7 days)
   ingest watch [--limit n]   archive newly published Government Resolutions
   ingest roads [--ward R/C]  project collected works into road geometry
+  ingest review [--count n]  queue attribution answers for a human verdict
   ingest all                 snapshot, then watch — one nightly invocation
 
 Configuration comes from .env or the environment:

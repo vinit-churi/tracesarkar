@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attribution review</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --alert:#A33A1F; --alert-wash:#FBEDE8;
+    --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+         gap:16px;padding:14px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+  h1{font-size:17px;margin:0;font-weight:600}
+  .tally{font-size:13px;color:var(--ink-45);font-variant-numeric:tabular-nums}
+  .tally b{color:var(--ink)}
+  main{max-width:760px;margin:0 auto;padding:16px}
+  #map{height:300px;border:1px solid var(--hairline);border-radius:12px}
+  .chip{display:inline-block;padding:3px 9px;border-radius:8px;font-size:12px;font-weight:600}
+  .high{background:var(--confirm-wash);color:var(--confirm)}
+  .check_this{background:var(--caution-wash);color:var(--caution)}
+  .none{background:#F0EFEC;color:var(--ink-45)}
+  .card{background:var(--surface);border:1px solid var(--hairline);
+        border-radius:12px;padding:14px;margin-top:14px}
+  .road{font-size:18px;font-weight:600;margin:8px 0 2px}
+  .contractor{font-size:14px;color:var(--ink-70)}
+  .basis{background:var(--evidence);border-left:3px solid var(--accent);
+         border-radius:0 8px 8px 0;padding:10px 12px;margin-top:12px;font-size:14px}
+  .meta{font-size:12px;color:var(--ink-45);margin-top:6px}
+  .hint{font-size:12px;margin-top:8px}
+  .agree{color:var(--confirm)} .disagree{color:var(--alert)}
+  .verdicts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  button{font:inherit;font-size:15px;min-height:48px;padding:0 16px;
+         border-radius:10px;border:1px solid var(--hairline);
+         background:var(--surface);color:var(--ink);cursor:pointer;flex:1;min-width:120px}
+  button.correct{background:var(--confirm);border-color:var(--confirm);color:#fff}
+  button.wrong{background:var(--alert);border-color:var(--alert);color:#fff}
+  button:disabled{opacity:.5;cursor:default}
+  textarea{width:100%;margin-top:10px;padding:10px;border:1px solid var(--hairline);
+           border-radius:10px;font:inherit;font-size:14px;min-height:60px}
+  .empty{text-align:center;padding:48px 16px;color:var(--ink-45)}
+  .err{background:var(--alert-wash);color:var(--alert);padding:10px 12px;
+       border-radius:8px;margin-top:12px;font-size:14px}
+  .signin{max-width:380px;margin:60px auto;padding:0 16px}
+  input{width:100%;padding:12px;border:1px solid var(--hairline);
+        border-radius:10px;font:inherit;margin-top:8px}
+  .note{font-size:12px;color:var(--ink-45);margin-top:10px;line-height:1.45}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Attribution review</h1>
+  <div class="tally" id="tally">…</div>
+</header>
+
+<div class="signin" id="signin" hidden>
+  <p>Sign in with the account that will own these verdicts.</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username">
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+  <button style="margin-top:12px" id="signinBtn">Sign in</button>
+  <div id="signinErr"></div>
+  <p class="note">A verdict is recorded against whoever cast it. The field kit's
+     shared token cannot be used here — a precision figure nobody stands behind
+     is not evidence.</p>
+</div>
+
+<main id="app" hidden>
+  <div id="map"></div>
+
+  <div class="card">
+    <span class="chip" id="confidence">—</span>
+    <div class="road" id="road">—</div>
+    <div class="contractor" id="contractor"></div>
+    <div class="meta" id="meta"></div>
+    <div class="basis" id="basis"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <p class="note">
+    Does the highlighted road look like the road the point is on? The pin is the
+    reported position; the circle is how far it may be out; the line is the road
+    the join chose.
+  </p>
+
+  <textarea id="note" placeholder="Optional — what is actually there?"></textarea>
+
+  <div class="verdicts">
+    <button class="correct" data-verdict="correct">Right road</button>
+    <button class="wrong" data-verdict="wrong">Wrong road</button>
+    <button data-verdict="unsure">Can't tell</button>
+  </div>
+  <div id="err"></div>
+</main>
+
+<div class="empty" id="empty" hidden>
+  <p>Nothing left to review.</p>
+  <p class="tally" id="finalTally"></p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const API = location.origin;
+let token = localStorage.getItem('ts.review.token') || '';
+let queue = [], current = null, map, pin, halo, road;
+
+const $ = id => document.getElementById(id);
+
+function showSignIn(message) {
+  $('app').hidden = true; $('empty').hidden = true; $('signin').hidden = false;
+  if (message) $('signinErr').innerHTML = '<div class="err">' + message + '</div>';
+}
+
+$('signinBtn').onclick = async () => {
+  $('signinErr').innerHTML = '';
+  try {
+    const res = await fetch(API + '/v1/auth/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: $('email').value.trim(), password: $('password').value})
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not sign in.');
+    token = body.token;
+    localStorage.setItem('ts.review.token', token);
+    $('signin').hidden = true;
+    load();
+  } catch (e) { showSignIn(e.message); }
+};
+
+function initMap() {
+  if (map) return;
+  map = L.map('map', {zoomControl: true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+}
+
+function render(item) {
+  current = item;
+  $('confidence').textContent = item.confidence.replace('_', ' ');
+  $('confidence').className = 'chip ' + item.confidence;
+  $('road').textContent = item.matched_location || item.matched_work_code || 'No road matched';
+  $('contractor').textContent = item.matched_contractor || '';
+  $('basis').textContent = item.basis;
+  $('note').value = '';
+  $('err').innerHTML = '';
+
+  const bits = [];
+  if (item.distance_m != null) bits.push(item.distance_m.toFixed(1) + ' m from the point');
+  bits.push('fix ±' + item.accuracy_m + ' m');
+  if (item.matched_work_code) bits.push('package ' + item.matched_work_code);
+  $('meta').textContent = bits.join(' · ');
+
+  if (item.agrees_with_expectation === true) {
+    $('hint').className = 'hint agree';
+    $('hint').textContent = '✓ Same road the probe was generated from.';
+  } else if (item.agrees_with_expectation === false) {
+    $('hint').className = 'hint disagree';
+    $('hint').textContent = '✗ Different road from the one the probe came from — look closely.';
+  } else { $('hint').textContent = ''; }
+
+  initMap();
+  [pin, halo, road].forEach(l => { if (l) map.removeLayer(l); });
+  pin = L.circleMarker([item.lat, item.lon], {radius: 6, color: '#6B2C4F',
+        fillColor: '#6B2C4F', fillOpacity: 1}).addTo(map);
+  halo = L.circle([item.lat, item.lon], {radius: item.accuracy_m, color: '#6B2C4F',
+        weight: 1, fillOpacity: .06}).addTo(map);
+
+  if (item.road_geojson) {
+    road = L.geoJSON(JSON.parse(item.road_geojson),
+      {style: {color: '#A33A1F', weight: 5, opacity: .85}}).addTo(map);
+    map.fitBounds(road.getBounds().extend(halo.getBounds()), {padding: [30, 30]});
+  } else {
+    map.setView([item.lat, item.lon], 18);
+  }
+}
+
+function tally(s, hasPrecision, precision) {
+  const parts = [`<b>${s.correct}</b> right`, `<b>${s.wrong}</b> wrong`,
+                 `<b>${s.unsure}</b> unclear`, `<b>${s.pending}</b> left`];
+  if (hasPrecision) parts.push(`precision <b>${(precision * 100).toFixed(0)}%</b>`);
+  $('tally').innerHTML = parts.join(' · ');
+  $('finalTally').innerHTML = parts.join(' · ');
+}
+
+async function load() {
+  if (!token) return showSignIn();
+  const res = await fetch(API + '/v1/review/attribution',
+    {headers: {Authorization: 'Bearer ' + token}});
+  if (res.status === 401) { token = ''; localStorage.removeItem('ts.review.token');
+    return showSignIn('That session has expired.'); }
+  const body = await res.json();
+  queue = body.items || [];
+  tally(body.summary, body.has_precision, body.precision);
+  if (!queue.length) { $('app').hidden = true; $('empty').hidden = false; return; }
+  $('signin').hidden = true; $('empty').hidden = true; $('app').hidden = false;
+  render(queue.shift());
+  setTimeout(() => map.invalidateSize(), 50);
+}
+
+document.querySelectorAll('[data-verdict]').forEach(btn => {
+  btn.onclick = async () => {
+    if (!current) return;
+    document.querySelectorAll('[data-verdict]').forEach(b => b.disabled = true);
+    try {
+      const res = await fetch(API + '/v1/review/attribution/' + current.id, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + token},
+        body: JSON.stringify({verdict: btn.dataset.verdict, note: $('note').value.trim()})
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error?.message || 'Could not record that.');
+      tally(body.summary, body.has_precision, body.precision);
+      if (queue.length) { render(queue.shift()); setTimeout(() => map.invalidateSize(), 50); }
+      else load();
+    } catch (e) {
+      $('err').innerHTML = '<div class="err">' + e.message + '</div>';
+    } finally {
+      document.querySelectorAll('[data-verdict]').forEach(b => b.disabled = false);
+    }
+  };
+});
+
+load();
+</script>
+</body>
+</html>

@@ -48,6 +48,7 @@ type Options struct {
 	// Accounts, Issuer and Google are optional: without them the server still
 	// serves captures against the static token, which is what Phase 0 needs.
 	Accounts Accounts
+	Reviews  Reviews
 	Issuer   *auth.Issuer
 	Google   *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
@@ -67,6 +68,7 @@ type Server struct {
 	reports  Reports
 	media    Media
 	accounts Accounts
+	reviews  Reviews
 	issuer   *auth.Issuer
 	google   *auth.GoogleVerifier
 	origins  []string
@@ -113,6 +115,7 @@ func New(opts Options) (*Server, error) {
 		reports:  opts.Reports,
 		media:    opts.Media,
 		accounts: opts.Accounts,
+		reviews:  opts.Reviews,
 		issuer:   opts.Issuer,
 		google:   opts.Google,
 		origins:  opts.AllowedOrigins,
@@ -140,10 +143,21 @@ func (s *Server) Handler() http.Handler {
 
 	mux.Handle("POST /v1/reports", s.authenticated(http.HandlerFunc(s.handlePostReport)))
 
+	// The attribution review surface. Personal tier: it exists so a human can
+	// put a precision number on the join before anything it produces is shown
+	// to anyone.
+	mux.Handle("GET /v1/review/attribution", s.authenticated(http.HandlerFunc(s.handleReviewQueue)))
+	mux.Handle("POST /v1/review/attribution/{id}", s.authenticated(http.HandlerFunc(s.handleReviewVerdict)))
+
 	// The field kit is a static page; the token it holds is what authenticates
 	// its uploads, so serving the page itself needs no token.
 	if kit, err := fieldkitHandler(); err == nil {
 		mux.Handle("GET /", kit)
+
+		if reviewPage, err := reviewHandler(); err == nil {
+			mux.Handle("GET /review/", reviewPage)
+			mux.Handle("GET /review", http.RedirectHandler("/review/", http.StatusFound))
+		}
 	} else {
 		s.log.Warn("field kit unavailable", "error", err.Error())
 	}
@@ -239,6 +253,20 @@ func subtleCompare(a, b string) bool {
 
 //go:embed fieldkit
 var fieldkitFS embed.FS
+
+//go:embed review
+var reviewFS embed.FS
+
+// reviewHandler serves the attribution review page. Personal tier: it exists
+// so a human can put a precision number on the join, and it shows no data of
+// its own — everything comes from the authenticated API.
+func reviewHandler() (http.Handler, error) {
+	sub, err := fs.Sub(reviewFS, "review")
+	if err != nil {
+		return nil, fmt.Errorf("review assets: %w", err)
+	}
+	return http.StripPrefix("/review", http.FileServer(http.FS(sub))), nil
+}
 
 // fieldkitHandler serves the capture page. It is the one route that returns
 // HTML, and it carries no data: everything it shows comes from the device.
