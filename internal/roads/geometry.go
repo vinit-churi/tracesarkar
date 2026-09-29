@@ -23,6 +23,9 @@ type Point struct {
 
 // Segment is one road work with the shape of the road it covers.
 type Segment struct {
+	// WorkID is the archive row this was projected from, so a segment can
+	// always be traced back to the document it came from.
+	WorkID       string
 	WorkCode     string
 	Ward         string
 	LocationName string

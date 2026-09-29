@@ -196,3 +196,40 @@ func TestParseRoadsGeometryDropsTheGeoJSONBoilerplate(t *testing.T) {
 		t.Errorf("the sample properties object should not be stored: %v", recs[0].Fields)
 	}
 }
+
+// The roads API returns the quality-monitoring agency's representative and
+// their personal mobile number on every record. Those must never reach the
+// parsed row (CLAUDE.md: strip personal mobile numbers at ingestion).
+func TestRoadsGeometryDropsPersonalContactDetails(t *testing.T) {
+	body := []byte(`{"type":"FeatureCollection","features":[{
+		"type":"Feature",
+		"properties":{
+			"_id":"6862360ba8aca49e5493b348",
+			"workCode":"W-415",
+			"locationName":"Derasar to Dead",
+			"qmaRepName":"Shri. A Person",
+			"qmaRepMobile":"7977891657",
+			"contractorName":"M/s Some Infracon Pvt. Ltd. W-415."
+		},
+		"geometry":{"type":"MultiLineString","coordinates":[[[72.844,19.234],[72.845,19.233]]]}
+	}]}`)
+
+	records, err := ParseRoadsGeometry(body, []string{"qmaRepName", "qmaRepMobile"})
+	if err != nil {
+		t.Fatalf("ParseRoadsGeometry: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one record, got %d", len(records))
+	}
+
+	for _, banned := range []string{"qmaRepName", "qmaRepMobile"} {
+		if _, present := records[0].Fields[banned]; present {
+			t.Errorf("%s survived the blocklist", banned)
+		}
+	}
+	// The contractor is a company acting on a public contract, not a private
+	// individual: it is exactly what the platform exists to publish.
+	if records[0].Fields["contractorName"] == nil {
+		t.Error("contractorName must survive; it is the attribution")
+	}
+}
