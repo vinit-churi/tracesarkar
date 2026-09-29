@@ -31,7 +31,7 @@ means and what "done" is for each:
 
 | # | System | State |
 |---|---|---|
-| **1** | **Attribution** — point to contract, with a confidence band and a plain-language match basis | **Open — waiting on your verdicts** |
+| **1** | **Attribution** — point to contract, with a confidence band and a plain-language match basis | **Precision bar met on probes; open until real captures confirm it** |
 | 2 | Jurisdiction — ward, department, confidence gate | Waiting |
 | 3 | Classification — what is in the photograph | Waiting |
 | 4 | Issues — dedup, corroboration, SLA clock, timeline | Waiting |
@@ -82,7 +82,46 @@ The commands are in [ADR 0019](../04-adr/0019-api-on-cloud-run.md).
 
 ---
 
-## 1C. System 1 — what is built, and the one thing it needs from you
+## 1C. System 1 — the result
+
+**50 of 50 answers judged right by a human.** Zero wrong, zero unsure, nothing
+pending ([D069](05-decision-log.md)).
+
+The honest claim from that is **precision of at least 92.9%**, the 95% Wilson
+lower bound. A clean run of 50 does not establish 100%; it establishes a floor,
+and quoting the floor is the difference between a measurement and a boast.
+
+Four answers named a different database row from the one the probe was
+generated on. All four were the same road, the same name, the same contractor
+and the same distance — BMC duplicate rows, already known about. **No answer
+named a different contractor, at any point in this system's testing.**
+
+### What this does not establish
+
+The reviewer judged from the same map the join used. Neither of them could see
+where the defect actually was. So this shows the join picks a **plausible**
+road — not a **correct** one. Only a photograph, taken at a place a person can
+identify, settles that. That is the remaining gap in system 1's done bar, and
+it is the first thing real captures will close.
+
+### Coverage, which is not measured at all
+
+Borivali has 198 road works with geometry: 181 distinct street names, 54.2 km
+of carriageway, under 2 contract packages. What fraction of the ward's street
+network that represents is **unknown**. These are concretisation-programme
+works only; every other road in Borivali has no contract data, and must render
+the coverage-honesty line rather than a silence.
+
+### What is built
+
+Point → road → contract package → contractor, with a confidence band, the
+reasoning in plain language, and the provenance required before a named party
+can be displayed. A review surface at `/review/` that produces a precision
+figure a person stands behind, ordered so the informative cases come first.
+
+## 1D. How to re-run the review
+
+### Refilling the queue
 
 **Built and deployed.** Borivali's 198 road segments are in PostGIS, projected
 from the works archive. The join answers point → road → contract package →
