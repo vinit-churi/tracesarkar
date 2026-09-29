@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated: 25 September 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 29 September 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
 
 ---
@@ -20,493 +20,113 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 1A. The one thing in progress
+## 2. What we have, as of 29 September 2026
 
-**System 1 of 8 — contract attribution.** Nothing else is open.
+Three things are live and answering. Nothing below is aspirational.
 
-v1 is now eight systems, built strictly one at a time, and a system is not started until the one
-before it meets a bar that can be checked ([D063](05-decision-log.md)). The list, what each one
-means and what "done" is for each:
-**[v0.1 MVP §5](../05-delivery/02-milestone-v0-mvp.md)** — that page is the scope authority.
-
-| # | System | State |
+| | Where | State |
 |---|---|---|
-| **1** | **Attribution** — point to contract, with a confidence band and a plain-language match basis | **Precision bar met on probes; open until real captures confirm it** |
-| 2 | Jurisdiction — ward, department, confidence gate | Waiting |
-| 3 | Classification — what is in the photograph | Waiting |
-| 4 | Issues — dedup, corroboration, SLA clock, timeline | Waiting |
-| 5 | Accounts — OTP, rate limits, reset, verification, revocation | Partly built |
-| 6 | Public surface — redaction, coarsening, permalink, ward page | Waiting |
-| 7 | Share kit — annotated image and per-language text | Waiting |
-| 8 | Operator console — moderation, collection health, metrics | Waiting |
+| **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy |
+| **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
+| **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
+| **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 
-Attribution is first because it is the hypothesis, and because it is the only one testable today:
-it needs a coordinate and the works data, both of which exist ([D064](05-decision-log.md)).
-
----
-
-## 1B. Where the backend lives now — 29 September 2026
-
-The shared Dokploy host went unreachable: 100% packet loss, port 443 filtered, its control panel
-down too. Not our container — the whole machine, and not one this project can restart. That is the
-exact risk [ADR 0018](../04-adr/0018-api-on-dokploy.md) wrote into its own consequences four days
-earlier.
-
-**The API now runs on Cloud Run in `asia-south1`, beside the collector**
-([ADR 0019](../04-adr/0019-api-on-cloud-run.md), [D066](05-decision-log.md)):
-
-```
-API   https://tracesarkar-api-mlkwom573a-el.a.run.app     (Cloud Run, asia-south1)
-App   https://tracesarkar-app.infoyantra.workers.dev      (Cloudflare Workers)
-```
-
-No machine to patch, no certificate to renew, no neighbour. Secrets come from Secret Manager reusing
-the collector's service account. `--min-instances 0`, so idle costs nothing.
-
-**Verified on the new home:** health 200 · register 201 · wrong password 401 · `/v1/auth/me` 200 ·
-`alg:none` forgery 401 · payload rewritten to another account 401 · signature tampered 401 · a
-capture stored in PostGIS with its image in R2.
-
-Two things worth knowing, both found by checking rather than assuming:
-
-- **Google's frontend answers `/healthz` itself.** On Cloud Run that request never reaches the
-  container — Google's own 404, and no entry in the request log, while every other route logged
-  normally. Health is now also served at `/v1/health` ([D067](05-decision-log.md)).
-- **A "tampered signature" that verified turned out to be fine.** Changing the *last* character of
-  a JWT signature can leave the decoded bytes identical: 43 base64url characters carry 258 bits and
-  an HMAC-SHA256 signature is 256, so the final character has two unused bits. Changing a character
-  in the middle is correctly refused. Not a hole — but worth writing down so nobody re-raises it.
-
-Deploys are now explicit rather than push-to-main: `gcloud builds submit` then `gcloud run deploy`.
-The commands are in [ADR 0019](../04-adr/0019-api-on-cloud-run.md).
-
----
-
-## 1C. System 1 — the result
-
-**50 of 50 answers judged right by a human.** Zero wrong, zero unsure, nothing
-pending ([D069](05-decision-log.md)).
-
-The honest claim from that is **precision of at least 92.9%**, the 95% Wilson
-lower bound. A clean run of 50 does not establish 100%; it establishes a floor,
-and quoting the floor is the difference between a measurement and a boast.
-
-Four answers named a different database row from the one the probe was
-generated on. All four were the same road, the same name, the same contractor
-and the same distance — BMC duplicate rows, already known about. **No answer
-named a different contractor, at any point in this system's testing.**
-
-### What this does not establish
-
-The reviewer judged from the same map the join used. Neither of them could see
-where the defect actually was. So this shows the join picks a **plausible**
-road — not a **correct** one. Only a photograph, taken at a place a person can
-identify, settles that. That is the remaining gap in system 1's done bar, and
-it is the first thing real captures will close.
-
-### Coverage, now measured
-
-**About half of Borivali's road network lies along a stretch BMC has published contract geometry
-for** — 43% within 5 m, 57% within 25 m, measured against OpenStreetMap
-([D073](05-decision-log.md), [full method](../01-research/10-contract-coverage-borivali.md)).
-Coverage is best where it matters most: secondary 77%, tertiary 69%, primary 68%.
-
-The raw length ratio of 19.4% is **not** the coverage figure and should not be quoted — OSM splits
-one street into many ways, BMC publishes one centreline per work.
-
-Two consequences. The coverage-honesty line is the **common case**, so "we don't have contract data
-for this stretch yet" has to read as a normal answer rather than an apology. And jurisdiction is
-the floor the product stands on — it works for every report, where attribution works for about
-half.
-
-### The old note, kept for the record
-
-Borivali has 198 road works with geometry: 181 distinct street names, 54.2 km
-of carriageway, under 2 contract packages. What fraction of the ward's street
-network that represents is **unknown**. These are concretisation-programme
-works only; every other road in Borivali has no contract data, and must render
-the coverage-honesty line rather than a silence.
-
-### What is built
-
-Point → road → contract package → contractor, with a confidence band, the
-reasoning in plain language, and the provenance required before a named party
-can be displayed. A review surface at `/review/` that produces a precision
-figure a person stands behind, ordered so the informative cases come first.
-
-## 1D. How to re-run the review
-
-### Refilling the queue
-
-**Built and deployed.** Borivali's 198 road segments are in PostGIS, projected
-from the works archive. The join answers point → road → contract package →
-contractor, with a confidence band and the reasoning in plain language.
-
-Measured over all 198 segments at a 6 m fix: 197 high confidence, 184 matching
-the exact segment and 13 matching a different row carrying the same package and
-contractor. **Zero matched a different contractor.** That is on points taken
-from the geometry itself, so it proves the join does not confuse adjacent
-roads — and nothing about real phone GPS at real defects.
-
-**The review page closes that gap.**
-
-```
-https://tracesarkar-api-mlkwom573a-el.a.run.app/review/
-```
-
-Sign in with your own account. Fifty probes are queued: points three to twelve
-metres off the centreline of real Borivali roads, at a simulated 8 m fix,
-because a real capture is never on the centreline and the interesting failures
-happen at the edges where the next road is closer.
-
-Each one shows the point, a circle for how far it may be out, and the road the
-join chose, on a map. Right road, wrong road, or can't tell. Roughly an hour.
-
-Three rules the code holds:
-
-- **"Can't tell" is not a success.** It is an answer about the evidence, not
-  about the join, and is excluded from precision rather than quietly counted.
-- **Precision counts only what was judged.** Counting pending rows would make
-  the number move with the size of the queue rather than the quality of the join.
-- **The field kit's shared token cannot cast a verdict** — 403, verified in
-  production. It names nobody, and a figure nobody stands behind is not evidence.
-
-Refill or change the queue at any time:
-
-```sh
-ingest review --ward R/C --count 50 --accuracy 8
-```
-
----
-
-## 2. Where things stand
+### In the database
 
 | | |
 |---|---|
-| Code | **Collectors running; backend and client both work.** Go module, ten packages, ~130 tests, plus a Flutter client with 17 |
-| Plan | Phases 0–6 — [roadmap](../05-delivery/01-roadmap.md) |
-| Current phase | **v1, system 1 of 8: contract attribution.** Collection runs itself; capture and accounts are built ([D063](05-decision-log.md)) |
-| Data held | 4,673 work records, 4,673 change rows, 9 archived documents, 5 Government Resolutions |
-| Infrastructure | Cloudflare R2, an Aiven PostgreSQL database, and two Cloud Run workloads in `asia-south1` — the collector twice daily, and **the API** |
-| Branch | `main` |
-
-**The 30-day snapshot clock is running.** Collection happens twice a day at 02:30 and 14:30 IST as
-a Cloud Run job in Mumbai, with GitHub Actions covering the globally-reachable sources as
-redundancy. Two email alerts watch it: one for a failed run, one for no successful run in 23h30m.
-Collection now costs nothing; what remains is the database and the bucket.
-
----
-
-## 3. What happened on 23 September 2026
-
-Phase 0's foundations and its first instrument were built, test-first, and run against the live
-BMC APIs.
-
-**Built:** configuration, the R2 archive client (SigV4 checked against the AWS test vector), the
-migration runner and Phase 0 schema, the source register with its tier policy, the works parsers
-and differ, the polite fetcher, the snapshot runner, the alert channel, and the `ingest` command.
-
-**Running:** `ingest run` collects BMC's roads dashboard, road geometry, ward master and the
-storm-water progress card. `ingest watch` archives newly published Government Resolutions from the
-Internet Archive mirror and flags the ones whose OCR text mentions a watched term — the RTI fee,
-defect liability, potholes, Right to Public Services. Bytes are archived to R2 only when they
-change; every attempt is logged; every change is stored with both values.
-
-Verified end to end: archived objects read back from R2 byte-for-byte, and the Marathi keyword
-match confirmed against the 2019 defect-liability resolution.
-
-**Two bugs the live run found**, both now fixed and covered by tests:
-
-1. A document that was archived but failed to parse counted as "already seen", so the next run
-   would have skipped it and the data would have been lost quietly. Bytes now count as seen only
-   after a snapshot is applied.
-2. The road layer's key was wrong. `(workCode, locationName)` is not unique — 2,405 features share
-   1,919 pairs — `locationID` is null in 1,678 of them, and the nested `location._id` is shared
-   between features and was overwriting each feature's own id. The key-collision check caught it;
-   without that check 486 records would have merged silently.
-
-**Deviation worth knowing:** the database adapter was written before its tests, against the
-project's test-first rule. Its tests were added immediately after and found two real defects (a
-null blocklist column and a missing `endpoint` column). Everything else was written test-first.
-
----
-
-## 4. What happened on 18 September 2026
-
-1. **Checked the Screen Book artifact.** It draws 56 screens covering 113 of 129 catalogued
-   features. Still pending: screens S13 and S24 are not drawn; 21 drawn screens have no entry in the
-   [screen spec](../02-product/11-screen-spec.md). Both are backlog tasks.
-2. **Found the docs out of step with the August data audit.** Only 1 of its 10 follow-ups had
-   landed. The roadmap still planned to crawl Mahatenders, which the project had already ruled out.
-   The ones that matter now are fixed; the rest are backlog tasks.
-3. **Explored new verticals**, with three research passes and first-hand checks. The result is
-   [vertical exploration](../01-research/09-vertical-exploration.md). Headlines:
-   - BMC also publishes an open API for storm-water drain desilting — drains can follow roads.
-   - MahaRERA publishes 52,529 construction projects with coordinates in one download.
-   - Pune publishes more contract-to-location data than BMC does.
-   - A competitor exists: Pothole Reporter, an Android app launched in August 2026.
-   - Several public BMC map layers expose personal data, including patient-level health records.
-4. **Corrected the August audit.** The warranty-period (DLP) rule is a PWD resolution of
-   14 Jan 2019, not 27 Apr 2017. A cited "BMC" page was Bhubaneswar's. Flooding history is public.
-   A 2023 rate schedule exists.
-5. **Caught a live change.** BMC's roads data listed 58 deleted works on 24 August and 60 on
-   18 September. Which two changed is unknowable, because nothing was archiving. That is why Phase 0
-   exists.
-6. **Re-planned** the roadmap into phases and wrote the Phase 0 spec.
-
----
-
-## 4A. What happened on 24 September 2026
-
-The repository secrets went in and the workflow ran for real — and failed in a way worth the
-failure. From a GitHub runner in the US, `roads.mcgm.gov.in` and `portal.mcgm.gov.in` refuse
-connections outright, on every port, while `swd.mcgm.gov.in` and the Internet Archive answer
-normally. All four respond from your home connection in Mumbai.
-
-**BMC geo-restricts most of its estate.** The drain API collected fine from CI and even recorded
-five changed values, so the pipeline is sound; the roads API simply cannot be reached from abroad.
-
-We decided how to handle it ([ADR 0015](../04-adr/0015-indian-egress-for-collection.md)): a small
-VM in `asia-south1` that an instance schedule starts at 02:30 IST, which collects and then powers
-itself off — about ₹45 a month, alive three minutes a night. On-demand rather than spot, because at
-this duty cycle spot saves about ₹2 a month and risks a night that cannot start for want of
-capacity, and a missed night cannot be recovered. GitHub Actions keeps the sources that answer from
-anywhere, as redundancy.
-
-**Answered the same day.** The VM was built and run: from `34.100.176.104` in Mumbai, every BMC
-host answers, `roads.mcgm.gov.in:3000` in 18 ms. BMC filters by geography, not by network type, so
-a datacenter in India is enough.
-
-The collector now runs unattended there: it boots, reads its credentials from Secret Manager,
-downloads the binary and the source register from the `collector-latest` release, collects, and
-powers itself off. Four bugs were found by running it rather than reading it: `/run` is mounted
-`noexec` so the binary could not execute from the tmpfs holding the secrets; the VM has no
-repository checkout so the source register had to ship with the binary; the GR watcher collected
-without consulting the register at all; and a run that failed during setup left no trace anywhere.
-
-Every run is now recorded in `collector_runs` — opened as soon as the database is reachable, so
-setup failures are captured too — and `make status` prints the recent ones. That fix immediately
-caught the fourth bug: the VM's `watch` was failing silently because it was not given the register.
-
-**Billing note:** a stopped VM costs nothing for CPU or memory, and its ephemeral IP is released.
-The only standing charge is the 10 GB boot disk, about ₹42/month. Deleting and recreating the VM
-nightly would save that, but instance schedules cannot create machines, so it would mean an
-instance template plus a scheduler plus a function — three parts for ₹42. Cloud Run has no disk at
-all and is now more plausible than when it was rejected, since BMC accepts Google's Mumbai
-addresses; the open question is only whether a job's egress presents as Mumbai.
-
----
-
-## 4B. What happened on 25 September 2026
-
-The VM worked, and then made itself redundant. Because it proved BMC accepts Indian *datacenter*
-addresses, a Cloud Run job became worth testing — and a job in `asia-south1` reaches every BMC
-endpoint too. That is cheaper (no disk, so nothing standing) and simpler (no machine, no startup
-script, no serial console) at the same time, which is rare.
-
-So collection moved: a Cloud Run job running `ingest all`, triggered twice a day by Cloud Scheduler.
-The VM, its disk and its schedule are deleted. [ADR 0016](../04-adr/0016-collection-as-a-cloud-run-job.md)
-records it and supersedes ADR 0015's mechanism, while keeping its finding.
-
-**Alerting now exists**, which it did not before: an email when an execution fails, and an email
-when nothing has succeeded for 23h30m. The second is why collection runs twice a day — Cloud
-Monitoring cannot watch for a missed run on a daily schedule without crying wolf every day.
-
-**Two drift risks found while reviewing BMC's stability.** The storm-water URL carries the desilting
-season, so on 1 January it would have pointed at a path that does not exist yet; the collector now
-falls back to the season still being published. The roads geometry URL contains a date BMC chose
-(`...startedafter01oct2025roadlayer`), so when they cut a new phase we may keep fetching a stale
-layer while everything *looks* healthy. That one has no automatic guard yet — it is in the backlog.
-
----
-
-## 4C. What happened on 25 September 2026, part two: the backend started
-
-Collection needs nobody now, so the backend began in parallel ([D055](05-decision-log.md)). The
-first slice is the one the rest depends on: **a capture is stored before anything is done to it.**
-
-**Built, test-first:**
-
-- `internal/store` — reports, media and labels, on PostGIS. `SaveReport` is idempotent, so a phone
-  retrying an upload gets the original report rather than a duplicate
-- `internal/api` — `POST /v1/reports` exactly as the API design specifies: multipart, a JSON `meta`
-  part, `202 Accepted`, and the photograph in object storage *before* the reply
-- `cmd/api` — the binary, with a health check and bearer-token auth
-- **The field kit** — a page at `/` that photographs, reads live GPS with its accuracy, takes a
-  label and conditions, queues captures on the device, and uploads when there is signal
-
-**Verified end to end** against the real database and bucket: a capture with 6.2 m accuracy stored
-at 6.2 m, its image readable back from R2, its label attached. A live test caught genuine precision
-loss on the way — `NULLIF($n, 0)` made Postgres read the accuracy as an integer, turning 6.2 into 6,
-and accuracy is exactly what decides whether we route confidently or ask a question.
-
-**This unblocks your fieldwork.** Run `make api`, open the page on your phone, and captures start
-counting toward the evaluation set.
-
----
-
-## 4D. What happened overnight, 25 September 2026: something to show
-
-A working client, because the thing that was missing was not another document — it was a screen a
-person can sign in to and send a photograph from.
-
-**Auth, test-first, all of it verified against the live database:**
-
-- Email and password (bcrypt, minimum 10 characters, no composition rules) and Google sign-in
-  (ID token verified against Google's JWKS — a token whose `alg` is not `RS256`, whose `aud` is not
-  our client, or whose `iss` is not Google is refused)
-- Sessions as signed tokens; the same endpoint accepts either a session or the field kit's static
-  token, so the field kit kept working unchanged
-- Sign-in answers **identically** for an unknown address and a wrong password. Telling them apart
-  hands an attacker the list of who is registered here
-
-This contradicted [ADR 0011](../04-adr/0011-phone-only-identity.md), which rejects email outright.
-Rather than let it drift, [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md)
-records the amendment and its limit: **email and Google are fine while nothing is published; phone
-verification still gates the public tier.** Phase 1 does not exit without that check in the
-publication path.
-
-**The client — [`app/`](../../app/README.md), one Flutter codebase for Android and the web
-([D059](05-decision-log.md)):**
-
-- Sign in or create an account; the session survives a restart, and signing out actually removes the
-  token rather than only navigating away
-- A capture screen that takes the position first — with the same accuracy bands the field kit uses,
-  because a capture from either surface must mean the same thing — then the photograph, then sends
-- Colours, type and spacing come from [the screen spec](../02-product/11-screen-spec.md) §2, so it
-  is party-neutral by construction rather than by later correction
-
-**Verified end to end against the real Aiven database and the real R2 bucket**, not against mocks:
-register → 201 · login → 200 · wrong password → 401 with an identical message · `/v1/auth/me` →
-the account · a 631-byte JPEG posted with 6.2 m accuracy → stored at 6.2 m, at
-(19.2094, 72.8348), content-addressed in R2 · the same capture retried → the *same* report id and
-`created: false`.
-
-**That retry is what found the night's real bug.** The report was idempotent; the media row was
-not, so a retried upload left two rows pointing at the same object — enough to inflate media counts
-and double-count a photograph in an evaluation export. A failing test first, then migration
-`0007_media_idempotency.sql` makes the digest the identity ([D060](05-decision-log.md)).
-
-**Two tests encode hard rules rather than mechanics:** one asserts the capture screen never offers
-to file anything, and one asserts signing out removes the token. Those are the assertions that fail
-loudly when someone later "improves" the UI.
-
-### To demonstrate it
-
-```sh
-set -a && . ./.env && set +a
-go run ./cmd/api serve --addr :8080          # terminal one
-cd app && flutter run -d chrome \
-  --dart-define=API_BASE=http://localhost:8080 \
-  --dart-define=DEMO_POSITION=19.2094,72.8348
-```
-
-Create an account, take a photograph, send. The report id that comes back is a row in PostGIS and an
-object in R2.
-
-`DEMO_POSITION` exists because a laptop often cannot get a GPS fix, and with no position there is
-nothing to send. The screen labels it "Fixture position" and says it is worthless as evidence; drop
-the flag and the app uses the device. Full walkthrough, failure modes and the questions to expect:
-**[demo script](../05-delivery/08-demo-script.md)**.
-
-### What is deliberately not there
-
-Google's *button* is not wired, though the endpoint is built and tested — the web flow needs
-`google_sign_in_web`'s rendered button, and that was not worth risking on the night before a demo.
-There is no history beyond the current session (`GET /v1/reports/{id}` does not exist), no offline
-queue in Flutter (the field kit has one), and no redaction, so no public derivative is written at
-all.
-
----
-
-## 4E. The API is deployed
-
-It is no longer only on a laptop. The HTTP surface runs as a Docker Compose service on the existing
-Dokploy instance, built from this repository, behind Traefik with a Let's Encrypt certificate
-([D061](05-decision-log.md), [ADR 0018](../04-adr/0018-api-on-dokploy.md)).
-
-```
-https://tracesarkar-api-mlkwom573a-el.a.run.app
-```
-
-Collection stays on Cloud Run, and that separation is deliberate: the collector runs twice a day and
-exits from Mumbai because BMC geo-restricts by geography; the API has to stay up and does not care
-where it runs. Two lifecycles, two deploys.
-
-**Verified against the deployed service, not the laptop:** register → 201 · wrong password → 401
-with the same message an unknown address gets · `/v1/auth/me` → the account · a capture posted with
-6.2 m accuracy → stored at 6.2 m in PostGIS over `verify-full` TLS, image content-addressed in R2 ·
-the same capture retried → same report id, `created: false`, and **one** media row. The container
-reports `(healthy)`, which is `api health` answering Docker — the runtime image is `distroless`, so
-there is no curl and the binary has to check itself.
-
-**Two things the platform forced, both improvements.** The database CA now travels as
-`POSTGRES_CA_PEM` (base64), because Dokploy's only secret channel is environment variables and a
-multi-line PEM crosses two parsers on the way in ([D062](05-decision-log.md)). And the compose file
-is committed with **no secret in it** — every value is a `${...}` reference — because this
-repository is public.
-
-**Production has its own `AUTH_SECRET` and `API_TOKEN`**, generated at deploy rather than copied
-from the laptop, so a session minted locally is not valid in production. Both are in Dokploy under
-the service's Environment tab.
-
-### What this does not yet mean
-
-The hostname is a generated `sslip.io` name, which encodes the server's IP address — fine for a
-private surface, wrong for a civic platform people are asked to trust. It must become a real domain
-before the public tier. Pushing to `main` deploys, which is convenient now and needs a gate once
-anyone other than you depends on the service being up. And the server is shared with unrelated
-projects, so a noisy neighbour is a new way this can degrade.
-
----
-
-## 4F. The deployed backend, audited
-
-The question was whether the deployment and the auth actually hold up, so they were tested rather
-than assumed — against the deployed service, not a laptop.
-
-**What holds.** Valid Let's Encrypt certificate to 24 Dec 2026, HTTP/2, and `http://` redirects to
-`https://`. Registration refuses a duplicate address (409), a password under ten characters (400)
-and a malformed address (400). Sign-in with a wrong password and sign-in with an address that was
-never registered return **byte-identical** responses, so the service cannot be used to discover who
-has an account. Every token forgery was refused: a flipped signature character, a payload rewritten
-to point at another account id, and an `alg: none` header. CORS echoes only the configured origin
-and returns nothing for an unknown one. Posting a capture without a token is refused.
-
-**What did not hold — and this one mattered.** Every report was being filed under the server's own
-`field-kit` account, even when a signed-in person posted it with their session token. The
-middleware was already verifying the session and putting the claims in the request context; the
-capture handler ignored them and used the configured account unconditionally. Four reports in the
-database, all attributed to `field-kit`, including ones posted by accounts with an email on them.
-
-It is not cosmetic. **My reports** could never have worked, no report could be traced back to the
-person who took the photograph, and the per-account corroboration and trust scoring the platform
-depends on would all have been computed against one shared account. Fixed test-first, deployed, and
-confirmed in the database: a capture posted with a session token is now attributed to that account,
-while the field kit's static token — which names nobody — still resolves to the server's account.
-
-### What is still missing from auth, stated plainly
-
-None of these are bugs; they are things that were never built, and each one is a reason this is not
-ready for anyone but the operator:
-
-| Gap | Why it matters |
+| Road works archived | 4,683 |
+| Observed changes | 4,762 |
+| Raw documents archived | 274 |
+| Road segments in PostGIS | 2,405 · **779 km** of carriageway |
+| — of those, Borivali | 198 |
+| Ward boundaries | 24 · all of Greater Mumbai |
+| Department mappings | 2 · both sourced |
+| Government resolutions watched | 248 |
+| Captures stored | 6 |
+| Attribution verdicts by a human | 50 |
+
+### The numbers that were measured, not assumed
+
+| Measurement | Result |
 |---|---|
-| **No rate limiting** | Twelve wrong passwords in a row, all answered 401 at full speed. Online password guessing is currently free |
-| **No password reset** | A forgotten password means a new account. There is no recovery path at all |
-| **No email verification** | Anyone can register any address, including one they do not control |
-| **No token revocation** | Signing out clears the token on the device. The token itself stays valid for its full 30 days, so a stolen one cannot be cancelled |
-| **No phone verification** | The gate [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) promises before the public tier. Needs an SMS route and a DLT sender ID |
-| **Google's button is unwired** | The endpoint is built and tested; the web flow needs `google_sign_in_web`'s rendered button and a client ID only you can create |
+| **Attribution precision** | 50 of 50 judged right by a human. Honest floor **≥ 92.9%** (95% Wilson). **Zero** wrong-contractor matches, ever |
+| **Jurisdiction accuracy** | **98.17%** over 2,405 road works. Bar was ≥ 95% |
+| **Contract coverage, Borivali** | **~43–57%** of carriageway. Best where it matters: secondary 77%, tertiary 69% |
+| **Questions the citizen would face** | 0.7% of points |
 
-The static `API_TOKEN` is also worth understanding rather than forgetting: it is a shared secret
-that grants capture access without an account, which is what lets the field kit work. Anyone holding
-it can post. That is acceptable while the only holder is you, and is a thing to remove before the
-surface is public.
+### Tests
+
+14 Go packages passing, 22 Flutter tests. Live tests gated behind `TRACESARKAR_LIVE=1`.
 
 ---
 
-## 5. Decisions to confirm
+## 3. The eight systems
+
+v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). Scope authority is
+**[v0.1 MVP §5](../05-delivery/02-milestone-v0-mvp.md)**.
+
+| # | System | State |
+|---|---|---|
+| **1** | **Attribution** — point → road → contract → contractor | **Bar met on probes.** Open until real captures confirm it |
+| **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17% |
+| 3 | **Classification** — what is in the photograph | **Next** |
+| 4 | Issues — dedup, corroboration, SLA clock, timeline | Waiting |
+| 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
+| 6 | Public surface — redaction, coarsening, permalink, ward page | Waiting |
+| 7 | Share kit — annotated image, per-language text | Waiting |
+| 8 | Operator console — moderation, collection health, metrics | Waiting |
+
+**Systems 1 and 2 share a limit worth stating.** Both were validated against BMC's own data and a
+human reading the same map the code read. Neither has been tested against a photograph taken at a
+place a person can identify. That is what real captures close, and it is the one thing fieldwork is
+genuinely needed for.
+
+---
+
+## 4. What we know about the pothole deadline
+
+Three numbers exist and the platform must say which is which
+([D079](05-decision-log.md), [detail](../01-research/11-pothole-sla-sources.md)):
+
+| Deadline | Binds | Source |
+|---|---|---|
+| **48 hours** | the corporation | Bombay HC, `2025:BHC-OS:18736-DB` para 70(ix) |
+| **24 hours** | the contractor, in DLP | BMC tender ETH_8000040832 §10.11 |
+| ₹5,000/day/pothole | the contractor | same tender §7.4 |
+
+The June 2026 "24 hours from the Commissioner" is **not a document** — a verbal instruction at a
+review meeting. Not a constant.
+
+Three traps, each recorded because each would otherwise be walked into: the court order spells it
+**"forty-eight hours"** in words; road ownership is **seasonal, not width-based**; and BMC's own
+contract accepts **WhatsApp as valid intimation**, which is the same channel the share kit targets.
+
+---
+
+## 5. History, compressed
+
+Older detail lives in git. The turns that changed the plan:
+
+| When | What changed |
+|---|---|
+| 18 Sep | Verticals explored; legal risk became exposure tiers, not a gate ([D044](05-decision-log.md)) |
+| 23–24 Sep | Collection moved to a Cloud Run job in Mumbai — BMC geo-restricts by geography, verified from three vantage points ([ADR 0015](../04-adr/0015-indian-egress-for-collection.md), [0016](../04-adr/0016-collection-as-a-cloud-run-job.md)) |
+| 25 Sep | Capture endpoint, field kit, auth, and the Flutter client. Deployed to a shared Dokploy host |
+| 28 Sep | v1 restated as eight systems, one at a time ([D063](05-decision-log.md)) |
+| 29 Sep | Dokploy host died; API moved to Cloud Run ([ADR 0019](../04-adr/0019-api-on-cloud-run.md)). Ward switched to Borivali on measured data ([D068](05-decision-log.md)). Systems 1 and 2 hit their bars |
+
+Two defects found by checking rather than trusting, both worth remembering:
+
+- **2,387 personal mobile numbers** were in the database. The blocklist named fields BMC's API does
+  not return, so it stripped nothing. Fixed, scrubbed, and a test now asserts the register names
+  fields the source actually returns.
+- **Every capture was filed under one shared account**, even when a signed-in person sent it. The
+  middleware verified the session; the handler ignored it.
+
+---
+
+## 6. Decisions to confirm
 
 These were approved quickly during the session. They are recorded in the [decision log](05-decision-log.md) and the docs now depend on them. **Read the right-hand column; if
 any is wrong, say so and it gets reversed with a new log row.**
@@ -523,7 +143,7 @@ building safety and hoardings behind a flag, then trees), and starting with pers
 
 ---
 
-## 6. The plan
+## 7. The plan
 
 | Phase | What | Target |
 |---|---|---|
@@ -540,54 +160,59 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ---
 
-## 7. Next actions
+## 8. Next actions
 
-**Only you can do these:**
+### Yours, next week
 
-- [x] ~~Add the repository secrets~~ — done 24 Sep 2026; collection runs daily at 02:30 IST
-- [x] ~~Build the Indian collector VM~~ — done 24 Sep 2026 in project `cloud-mcp-501616`,
-      `tracesarkar-collector` in `asia-south1-a`, starting nightly at 02:30 IST
+- [ ] **Buy the guidelines-and-circulars booklet** at Municipal Head Office. BMC's own tenders say
+      it is held at the Dy. Ch. Eng. (Roads)(Planning) offices and may be purchased. No 30-day
+      clock, and it may contain the three pothole circulars outright
+- [ ] **File [RTI 1](../06-operations/rti-01-pothole-sla-circulars.md)** — on paper, ₹10 court-fee
+      stamp, registered post AD or over a counter. BMC is not on the state portal, and its own
+      online form serves 2 of 24 wards ([D075](05-decision-log.md), [D077](05-decision-log.md)).
+      **Photograph the stamped application and the fee** — that settles Q2
+- [ ] **Record the registration number** in the RTI file when you get it. The 30-day clock starts
+      on receipt
+
+### Yours, whenever
+
 - [ ] **Narrow what CI holds:** an R2 token scoped to the `tracesarkar` bucket, and a database user
-      limited to our tables rather than `avnadmin`. The repository is public, so a leak should cost
-      as little as possible. Then rotate both. The same credentials now also sit in GCP Secret
-      Manager
-- [ ] Optional: set `NOTIFY_WEBHOOK_URL` (any endpoint that accepts a JSON POST) so changes reach
-      you instead of only the workflow logs
-- [ ] Read §5 and confirm or reverse each decision
+      limited to our tables rather than `avnadmin`. The repository is public. Then rotate both
+- [ ] **Revoke the temporary Dokploy API key** — that host is dead and the key is in a transcript
+- [ ] Create a **Web OAuth client ID** if you want the Google button wired
+- [ ] Read §6 and confirm or reverse each decision
 - [ ] Decide whether to tell BMC that its health-department map layer exposes patient records
-- [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM. Nothing collected can reach a
-      public surface until those answers land
-- [ ] Decide whether you want to talk to the Pothole Reporter maintainer (Q35)
-- [ ] Optional: pick an alert channel (any endpoint that accepts a JSON POST) and set
-      `NOTIFY_WEBHOOK_URL`, so changes reach you instead of only the logs
+- [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM. Nothing collected reaches a
+      public surface until those land
+- [ ] Optional: set `NOTIFY_WEBHOOK_URL` so change alerts reach you rather than the logs
 
-**The next working session (backend track):**
+### Mine, in order
 
-- [ ] **Rate-limit sign-in** before anyone else has an account — currently the cheapest attack
-      against the platform
-- [ ] **Revoke the temporary Dokploy API key** used for this deploy, and mint a scoped one if you
-      want automated deploys to continue
-- [ ] **Point a real domain at the API** before anything public. The current `sslip.io` hostname
-      encodes the server's IP address
-- [ ] **Wire Google's button** — create a Web OAuth client ID in the GCP console, set
-      `GOOGLE_CLIENT_ID` on the backend, and add `google_sign_in_web`'s rendered button. Only you
-      can make the client ID
-- [ ] **Phone verification before anything publishes** — the gate [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md)
-      promises. Phase 1 does not exit without it
-- [ ] Classification: Claude vision with a structured schema, prompt in a versioned file, run over
-      whatever the field kit has collected
-- [ ] Jurisdiction: load the R/C ward boundary, resolve a point to ward and department, with the
-      confidence gate that decides when to ask the one disambiguating question
-- [ ] Attribution: spatially join a report to the roads-API geometry we already collect nightly
-- [ ] `GET /v1/reports/{id}` so the field kit can show what happened to a capture
-- [ ] P3 capture extension, P5 RTI tracker
+**System 3 — classification** is next, and needs nothing from you to start.
+
+- [ ] Claude vision with a structured output over the road-defect taxonomy, prompt in a versioned
+      file. **Default to Haiku 4.5** and escalate only if the eval set shows it failing — ADR 0006
+      currently defaults the other way and the eval set is what settles it
+- [ ] The eval harness, before the classifier is called done. A classifier without one is a demo
+
+Then, in sequence: issues and the SLA clock, finishing accounts, the public surface, the share kit,
+the operator console.
+
+Carried, not forgotten:
+
+- [ ] **Rate-limit sign-in** — currently the cheapest attack on the platform
+- [ ] **Phone verification before anything publishes** — the gate
+      [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) promises
+- [ ] **A real domain** before the public tier. `run.app` and `workers.dev` are fine for now and
+      wrong for a civic platform asking to be trusted
+- [ ] `GET /v1/reports/{id}` so a capture can show what happened to it
 - [ ] Runner hardening: advisory lock per ingester, circuit breaker, metrics
 
 Full task list: [backlog](../05-delivery/03-backlog.md).
 
 ---
 
-## 8. Open questions that matter now
+## 9. Open questions that matter now
 
 | # | Question | Why now |
 |---|---|---|
@@ -601,7 +226,7 @@ All of them: [open questions](../01-research/07-open-questions.md).
 
 ---
 
-## 9. Where to look
+## 10. Where to look
 
 | For | Read |
 |---|---|
@@ -616,7 +241,7 @@ All of them: [open questions](../01-research/07-open-questions.md).
 
 ---
 
-## 10. Resuming on another device
+## 11. Resuming on another device
 
 ```sh
 git clone git@github.com:vinit-churi/tracesarkar.git   # or: git pull
@@ -627,24 +252,50 @@ make test                   # offline tests
 make status                 # what has been collected so far
 ```
 
-Everyday commands:
+**The two files you must carry across yourself:** `.env` and `ca.pem`. They hold the R2 keys and
+the database password, so they are not in the repository and never will be.
+
+### Everyday commands
 
 ```sh
-make api        # serve the API and the field kit on :8080 (needs API_TOKEN set)
 make status     # what has been collected, per endpoint, and recent runs
 make changes    # what changed in BMC's published data
 make snapshot   # collect now, rather than waiting for the schedule
-make watch      # archive new Government Resolutions now
 make test       # offline tests
 make test-live  # tests that touch the real bucket and database
+
+go run ./cmd/ingest wards                      # reload ward boundaries
+go run ./cmd/ingest roads --ward R/C           # project road geometry into PostGIS
+go run ./cmd/ingest review --count 50          # queue attribution answers to judge
 ```
 
-**Using the field kit on your phone.** It needs HTTPS or localhost for the camera and GPS, so on a
-phone use a tunnel (`cloudflared tunnel --url http://localhost:8080`, or any equivalent), open the
-URL, paste the `API_TOKEN` once, and capture. Photographs queue on the device and upload when there
-is signal, so a walk through a dead spot loses nothing.
+Most of these need the environment exported first, because the API and the tools read secrets from
+the environment rather than the file:
 
-Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §7."*
+```sh
+set -a && . ./.env && set +a
+```
 
-**The two files you must carry across yourself:** `.env` and `ca.pem`. They hold the R2 keys and
-the database password, so they are not in the repository and never will be.
+### Deploying
+
+```sh
+# API -> Cloud Run
+IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/tracesarkar-api:$(git rev-parse --short HEAD)"
+gcloud builds submit --config deploy/cloudrun/api.cloudbuild.yaml --substitutions "_IMAGE=$IMAGE" --region asia-south1
+gcloud run deploy tracesarkar-api --image "$IMAGE" --region asia-south1
+
+# App -> Cloudflare Workers
+cd app
+flutter build web --release --dart-define=API_BASE=https://tracesarkar-api-mlkwom573a-el.a.run.app
+npm run deploy
+```
+
+Deploys are explicit, not push-to-main ([ADR 0019](../04-adr/0019-api-on-cloud-run.md)).
+
+### Capturing on your phone
+
+Open **`https://tracesarkar-app.infoyantra.workers.dev`**, sign in, allow location, photograph. No
+install, no token. The field kit at the API's `/` still works and queues offline, but the app is
+the easier path now.
+
+Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §8."*

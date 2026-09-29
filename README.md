@@ -59,10 +59,17 @@ The gap in MMR governance is not data. It is **synthesis and consequence**.
 
 ## Repository map
 
-Phase 0 code has landed: the collectors that keep a twice-daily record of the works data BMC
-publishes. The first v0.1 slice has landed too — an API that stores a capture before it replies, and
-a Flutter client that signs in and sends one. Everything else is still documentation and design, and
-lands per the roadmap.
+**Live now:** an API on Cloud Run, a Flutter client on Cloudflare Workers, and a collector that
+archives BMC's works data twice a day. Two of v1's eight systems have met their measured bars —
+attribution (point to contract, 50 of 50 judged right by a human, zero wrong-contractor matches)
+and jurisdiction (98.17% over 2,405 road works). Everything else lands per the roadmap.
+
+| | |
+|---|---|
+| App | `https://tracesarkar-app.infoyantra.workers.dev` |
+| API | `https://tracesarkar-api-mlkwom573a-el.a.run.app` |
+
+Start at [project state](docs/00-overview/06-project-state.md) §2 for what exists today.
 
 | Path | What's in it |
 |---|---|
