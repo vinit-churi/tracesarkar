@@ -31,7 +31,7 @@ means and what "done" is for each:
 
 | # | System | State |
 |---|---|---|
-| **1** | **Attribution** — point to contract, with a confidence band and a plain-language match basis | **Open** |
+| **1** | **Attribution** — point to contract, with a confidence band and a plain-language match basis | **Open — waiting on your verdicts** |
 | 2 | Jurisdiction — ward, department, confidence gate | Waiting |
 | 3 | Classification — what is in the photograph | Waiting |
 | 4 | Issues — dedup, corroboration, SLA clock, timeline | Waiting |
@@ -79,6 +79,49 @@ Two things worth knowing, both found by checking rather than assuming:
 
 Deploys are now explicit rather than push-to-main: `gcloud builds submit` then `gcloud run deploy`.
 The commands are in [ADR 0019](../04-adr/0019-api-on-cloud-run.md).
+
+---
+
+## 1C. System 1 — what is built, and the one thing it needs from you
+
+**Built and deployed.** Borivali's 198 road segments are in PostGIS, projected
+from the works archive. The join answers point → road → contract package →
+contractor, with a confidence band and the reasoning in plain language.
+
+Measured over all 198 segments at a 6 m fix: 197 high confidence, 184 matching
+the exact segment and 13 matching a different row carrying the same package and
+contractor. **Zero matched a different contractor.** That is on points taken
+from the geometry itself, so it proves the join does not confuse adjacent
+roads — and nothing about real phone GPS at real defects.
+
+**The review page closes that gap.**
+
+```
+https://tracesarkar-api-mlkwom573a-el.a.run.app/review/
+```
+
+Sign in with your own account. Fifty probes are queued: points three to twelve
+metres off the centreline of real Borivali roads, at a simulated 8 m fix,
+because a real capture is never on the centreline and the interesting failures
+happen at the edges where the next road is closer.
+
+Each one shows the point, a circle for how far it may be out, and the road the
+join chose, on a map. Right road, wrong road, or can't tell. Roughly an hour.
+
+Three rules the code holds:
+
+- **"Can't tell" is not a success.** It is an answer about the evidence, not
+  about the join, and is excluded from precision rather than quietly counted.
+- **Precision counts only what was judged.** Counting pending rows would make
+  the number move with the size of the queue rather than the quality of the join.
+- **The field kit's shared token cannot cast a verdict** — 403, verified in
+  production. It names nobody, and a figure nobody stands behind is not evidence.
+
+Refill or change the queue at any time:
+
+```sh
+ingest review --ward R/C --count 50 --accuracy 8
+```
 
 ---
 
