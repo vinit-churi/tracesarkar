@@ -111,11 +111,18 @@ Sir / Madam,
 I am a citizen of India and seek the following information under the Right to
 Information Act, 2005.
 
-1. A copy of Circular no. MGC/F/1074 dated 06.07.2013.
+1. A copy of the circular, order or approval bearing reference MGC/F/1074
+   dated 06.07.2013, and of any circular issued pursuant to it.
 
-2. A copy of Circular no. CA/FDT/59 dated 16.03.2013.
+2. A copy of the circular, order or approval bearing reference CA/FDT/59
+   dated 16.03.2013, and of any circular issued pursuant to it.
 
-3. A copy of Circular no. CA/FRD/7 dated 17.05.2013.
+3. A copy of the circular, order or approval bearing reference CA/FRD/7
+   dated 17.05.2013, and of any circular issued pursuant to it.
+
+3A. A copy of the circular dated 04.07.2016 concerning potholes, referred to at
+    paragraph 13 of the order of the Hon'ble High Court of Bombay dated
+    13 October 2025 in PIL 71/2013.
 
    (All three are cited under the heading "Pothole" in the rules table at
    Section 4(1)(b)(v) of the RTI manual published by the Maintenance
@@ -156,14 +163,34 @@ Place: Mumbai
 Each question asks for **a named document or a count** — the form that survives. Questions inviting
 opinion, inference or a reason are refused under the Act, and a refusal costs a month.
 
-- **The circulars are asked for by number.** BMC cited them itself, so it cannot claim not to
-  identify them.
+- **The circulars are asked for as "circular, order or approval bearing reference X".** `MGC/F` is
+  a Municipal Commissioner reference series used two ways: sometimes as a circular number in its
+  own right, sometimes as an approval reference quoted in parentheses on a differently-numbered
+  circular. Asking for "Circular no. MGC/F/1074" invites a refusal that no circular bears that
+  number. This wording closes that door.
+- **Question 3A is court-endorsed.** The High Court referred to a BMC pothole circular of
+  4 July 2016 at paragraph 13 of its 13 October 2025 order. A document the court has already
+  relied on is harder to withhold.
 - **Question 4 catches supersession.** A 2013 circular may have been replaced; asking for "any
   circular in force" closes that.
 - **Question 7 matters most for the product.** The major/minor split decides which of the two
   departments owns a given pothole. The platform currently has to state both, because it cannot
   tell them apart.
 - **Seven questions.** Long omnibus applications invite rejection.
+
+---
+
+## Before you post it: two things worth trying first
+
+**1. The booklet may be purchasable.** BMC's own roads tenders state that the guidelines-and-
+circulars booklet is held at the Dy. Ch. Eng. (Roads) (Planning) offices and **may be purchased
+from Municipal Head Office**. Same building, no 30-day clock. Worth asking at the counter before
+filing.
+
+**2. The deadline question is now partly answered without an RTI.** BMC's own published road tender
+(ETH_8000040832, archived 29 Sep 2026) already carries a contractual pothole deadline — see
+[the SLA note](../01-research/11-pothole-sla-sources.md). The RTI would still tell us what BMC's
+*internal* circulars say, but it is no longer the only source of a number.
 
 ---
 
