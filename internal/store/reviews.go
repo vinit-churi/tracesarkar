@@ -40,7 +40,7 @@ type ReviewItem struct {
 	// AgreesWithExpectation is set for probes: whether the join returned the
 	// segment the point was generated from. It is a hint for the reviewer,
 	// never a substitute for their judgement — the expectation can be wrong.
-	AgreesWithExpectation *bool `json:"agrees_with_expectation"`
+	AgreesWithExpectation *bool `json:"agrees_with_expectation,omitempty"`
 	// RoadGeoJSON is the matched road, so the reviewer sees the shape the join
 	// actually chose rather than a pin and a name.
 	RoadGeoJSON string `json:"road_geojson"`
@@ -185,3 +185,19 @@ func (d *DB) GenerateProbes(ctx context.Context, ward string, count int, minOffs
 	return out, rows.Err()
 }
 
+
+// ExpectationAgreement reports whether the join returned the segment a probe
+// was generated from. Null for a real report, which has no expected answer —
+// only a person can say what road is in a photograph.
+func (d *DB) ExpectationAgreement(ctx context.Context, id string) (*bool, error) {
+	var agreed *bool
+	err := d.pool.QueryRow(ctx, `
+		SELECT CASE WHEN kind = 'probe' AND expected_work_id IS NOT NULL
+		            THEN (matched_work_id IS NOT DISTINCT FROM expected_work_id)
+		       END
+		  FROM attribution_reviews WHERE id = $1::uuid`, id).Scan(&agreed)
+	if err != nil {
+		return nil, fmt.Errorf("expectation agreement: %w", err)
+	}
+	return agreed, nil
+}

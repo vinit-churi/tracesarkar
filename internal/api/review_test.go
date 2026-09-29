@@ -18,6 +18,7 @@ type fakeReviews struct {
 	pending  []ReviewItem
 	summary  attribute.Summary
 	verdicts []recordedVerdict
+	agreed   *bool
 	err      error
 }
 
@@ -44,6 +45,10 @@ func (f *fakeReviews) RecordVerdict(_ context.Context, id, verdict, note, review
 	}
 	f.verdicts = append(f.verdicts, recordedVerdict{id, verdict, note, reviewer})
 	return nil
+}
+
+func (f *fakeReviews) ExpectationAgreement(context.Context, string) (*bool, error) {
+	return f.agreed, f.err
 }
 
 func (f *fakeReviews) ReviewSummary(context.Context) (attribute.Summary, error) {
@@ -189,3 +194,62 @@ func TestTheFieldKitTokenCannotCastAVerdict(t *testing.T) {
 		t.Error("an anonymous caller must not record a verdict")
 	}
 }
+
+func TestTheQueueDoesNotTellTheReviewerTheExpectedAnswer(t *testing.T) {
+	// Showing "this is the road the probe came from" before the verdict is
+	// leading the witness: the reviewer agrees with the hint rather than with
+	// the map, and the precision number stops being independent evidence.
+	agrees := true
+	distance := 2.1
+	reviews := &fakeReviews{
+		pending: []ReviewItem{{
+			ID: "item-1", Kind: "probe", Lat: 19.22, Lon: 72.82, AccuracyM: 8,
+			Confidence: "high", MatchedWorkCode: "W-447",
+			MatchedLocation: "RSC-30, Gorai-II", DistanceM: &distance,
+			Basis:                 "The point lies 2.1 m from RSC-30, Gorai-II.",
+			AgreesWithExpectation: &agrees,
+		}},
+	}
+	srv, token := reviewServer(t, reviews)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/review/attribution", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "agrees_with_expectation") {
+		t.Error("the expected answer must not reach the reviewer before they judge")
+	}
+	// Everything they need to judge from the map must still be there.
+	for _, want := range []string{"RSC-30, Gorai-II", "road_geojson", "basis"} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("the queue is missing %q", want)
+		}
+	}
+}
+
+func TestTheVerdictResponseSaysWhetherItAgreedWithTheProbe(t *testing.T) {
+	// Afterwards is fine, and useful: it tells the reviewer immediately when
+	// they and the machine disagree, which is the case worth investigating.
+	reviews := &fakeReviews{agreed: boolPtr(false)}
+	srv, token := reviewServer(t, reviews)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/review/attribution/item-1",
+		strings.NewReader(`{"verdict":"correct"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "agreed_with_expectation") {
+		t.Errorf("the response should report the comparison: %s", rec.Body.String())
+	}
+}
+
+func boolPtr(b bool) *bool { return &b }

@@ -86,9 +86,10 @@
   </div>
 
   <p class="note">
-    Does the highlighted road look like the road the point is on? The pin is the
-    reported position; the circle is how far it may be out; the line is the road
-    the join chose.
+    <b>The question:</b> the pin is where a problem was reported. The red line is
+    the road our code says covers that spot. Are they the same road?<br>
+    The circle is how far the position may be out. Judge from the map — you are
+    not told what the code expected until after you answer.
   </p>
 
   <textarea id="note" placeholder="Optional — what is actually there?"></textarea>
@@ -160,13 +161,10 @@ function render(item) {
   if (item.matched_work_code) bits.push('package ' + item.matched_work_code);
   $('meta').textContent = bits.join(' · ');
 
-  if (item.agrees_with_expectation === true) {
-    $('hint').className = 'hint agree';
-    $('hint').textContent = '✓ Same road the probe was generated from.';
-  } else if (item.agrees_with_expectation === false) {
-    $('hint').className = 'hint disagree';
-    $('hint').textContent = '✗ Different road from the one the probe came from — look closely.';
-  } else { $('hint').textContent = ''; }
+  // Deliberately blank before the verdict: the server does not send the
+  // expected answer, and showing one would lead the witness.
+  $('hint').textContent = '';
+  $('hint').className = 'hint';
 
   initMap();
   // A view must exist before any layer is added. L.circle.getBounds() projects
@@ -230,6 +228,14 @@ document.querySelectorAll('[data-verdict]').forEach(btn => {
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error?.message || 'Could not record that.');
       tally(body.summary, body.has_precision, body.precision);
+
+      // Now it is safe to say what the probe expected. A disagreement between
+      // you and the machine is the case worth looking into.
+      if (body.agreed_with_expectation === false) {
+        $('err').innerHTML = '<div class="err">Noted — the join also picked a ' +
+          'different road from the one this probe was generated on.</div>';
+        await new Promise(r => setTimeout(r, 1400));
+      }
       if (queue.length) { render(queue.shift()); setTimeout(() => map.invalidateSize(), 50); }
       else load();
     } catch (e) {

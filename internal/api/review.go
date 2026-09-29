@@ -18,6 +18,9 @@ type Reviews interface {
 	PendingReviewItems(ctx context.Context, limit int) ([]ReviewItem, error)
 	RecordVerdict(ctx context.Context, id, verdict, note, reviewer string) error
 	ReviewSummary(ctx context.Context) (attribute.Summary, error)
+	// ExpectationAgreement reports whether the join returned the segment a
+	// probe was generated from. Read only after a verdict is cast.
+	ExpectationAgreement(ctx context.Context, id string) (*bool, error)
 }
 
 // handleReviewQueue lists answers waiting for a verdict.
@@ -42,6 +45,13 @@ func (s *Server) handleReviewQueue(w http.ResponseWriter, r *http.Request) {
 
 	if items == nil {
 		items = []ReviewItem{}
+	}
+	// The reviewer must not be told the expected answer before they give
+	// theirs. Showing it leads the witness: they agree with the hint rather
+	// than with the map, and the precision number stops being independent
+	// evidence of anything. It is reported back after the verdict instead.
+	for i := range items {
+		items[i].AgreesWithExpectation = nil
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"items":   items,
@@ -93,15 +103,19 @@ func (s *Server) handleReviewVerdict(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := s.reviews.ReviewSummary(r.Context())
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{"recorded": true})
-		return
+	out := map[string]any{"recorded": true}
+
+	// Now it is safe, and useful: a disagreement between the person and the
+	// probe is exactly the case worth looking into.
+	if agreed, err := s.reviews.ExpectationAgreement(r.Context(), id); err == nil && agreed != nil {
+		out["agreed_with_expectation"] = *agreed
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"recorded":      true,
-		"summary":       summary,
-		"has_precision": summary.HasPrecision(),
-		"precision":     summary.Precision(),
-	})
+
+	summary, err := s.reviews.ReviewSummary(r.Context())
+	if err == nil {
+		out["summary"] = summary
+		out["has_precision"] = summary.HasPrecision()
+		out["precision"] = summary.Precision()
+	}
+	writeJSON(w, http.StatusOK, out)
 }
