@@ -21,11 +21,21 @@ BMC runs its own RTI system instead, and it is filed with directly.
 
 ## How to file
 
-### The reliable route: on paper, to the PIO
+### The online form does not serve Borivali
 
-BMC's own online RTI page (`portal.mcgm.gov.in` → RTI → **RTI Application**) exists but currently
-returns *"The iView has timed out"*, as most of that portal does. Worth one attempt in a browser;
-do not depend on it.
+BMC's RTI Request Form at `portal.mcgm.gov.in` → RTI → **RTI Application** does load in a real
+browser. It is unusable for this RTI for a simpler reason: checked 29 September 2026, its
+mandatory **Ward** dropdown offers exactly two options — **KW Ward** and **MW Ward**. K/West is
+Andheri West and Juhu; M/West is Chembur.
+
+**R/Central is not on it.** BMC's online RTI covers 2 of its 24 wards. It is a pilot, not a
+service.
+
+Do not select K/W as a workaround. That PIO has no jurisdiction over Borivali roads and would have
+to transfer the application under Section 6(3) — five days lost, and a real chance of it being
+dropped in the handoff.
+
+### The route that works: on paper, to the PIO
 
 Filing on paper is always valid under Section 6(1) and is what this draft assumes.
 
