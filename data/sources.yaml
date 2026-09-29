@@ -116,6 +116,35 @@ sources:
       DataMeet Trust. MMR coverage outside Greater Mumbai is incomplete — see repo
       issue #53. Attribution is a licence obligation, not a courtesy.
 
+  - id: bmc_portal_rti_manuals
+    name: BMC Section 4(1)(b) RTI manuals and the consolidated PIO list
+    url: https://portal.mcgm.gov.in/irj/go/km/docs/documents/
+    category: authority
+    acquisition: bulk_download
+    cadence: quarterly
+    licence: unverified
+    terms_reviewed_on: null
+    robots_ok: null
+    archive_prefix: s3://tracesarkar-archive/bmc_portal/
+    status: active
+    # Personal names appear throughout: every PIO row names the individual
+    # currently holding the post. Only designations may be stored.
+    blocklist: pio_name, officer_name, contact_person
+    network: any
+    notes: >
+      Retrieved 29 Sep 2026. The consolidated PIO and First Appellate Authority
+      list (145 pages, updated to 01.01.2025) gives ward x subject -> PIO
+      designation -> FAA designation for all 24 wards. Department handbooks give
+      duties and the records each office holds.
+      Two operational facts any collector must carry. The portal returns
+      "Could not open iView" without a browser User-Agent. Directory listing is
+      disabled, so a crawler finds nothing — a collector needs a URL manifest,
+      not a spider.
+      BMC drops KM paths without notice: the Citizen's Charter URL now 404s and
+      Wayback has no capture. Archive on retrieval, always.
+      The PDFs are print-to-PDF over spreadsheets; Devanagari extracts with
+      dropped matras and needs OCR or a font map before parsing.
+
   - id: osm_overpass
     name: OpenStreetMap (Overpass API)
     url: https://overpass-api.de
