@@ -19,7 +19,32 @@ const (
 	NeedsConfirmation Outcome = "needs_confirmation" // ask the citizen which
 	NeedsRetake       Outcome = "needs_retake"       // the photograph cannot be read
 	OutOfScope        Outcome = "out_of_scope"       // not public infrastructure
+	// NotYetCovered is a real civic problem the platform recognises and has
+	// nowhere to send. It exists because the alternative — accepting it —
+	// classifies a report and then drops it, and the citizen never hears
+	// anything again.
+	NotYetCovered Outcome = "not_yet_covered"
 )
+
+// Coverage is the set of categories the platform can actually route, which is
+// the set that has a row in authority_departments. It is passed in rather than
+// hard-coded here so that adding a department makes its category routable
+// without anyone remembering to edit this package.
+type Coverage map[string]bool
+
+// CoverageFor builds a coverage set.
+func CoverageFor(categories ...string) Coverage {
+	c := make(Coverage, len(categories))
+	for _, k := range categories {
+		c[strings.ToLower(strings.TrimSpace(k))] = true
+	}
+	return c
+}
+
+// Covers reports whether a category can be routed.
+func (c Coverage) Covers(category string) bool {
+	return c[strings.ToLower(strings.TrimSpace(category))]
+}
 
 // Result is what the model returns, before any rule is applied. The shape is
 // guaranteed by structured output; the *vocabulary* is not, which is why the
@@ -71,7 +96,7 @@ var hazardous = map[string]bool{
 }
 
 // Apply runs the platform's rules over a model result.
-func Apply(r Result) Decision {
+func Apply(r Result, covered Coverage) Decision {
 	d := Decision{Result: r}
 
 	// A photograph with people in it can never produce a public derivative
@@ -109,11 +134,31 @@ func Apply(r Result) Decision {
 			d.Alternatives = TopCategories()
 		}
 
+	case !covered.Covers(r.Category):
+		// Recognised, and nowhere to send it.
+		d.Outcome = NotYetCovered
+		d.RejectionReason = notYetCoveredFor(r.Category, r.Subcategory)
+
 	default:
 		d.Outcome = Accepted
 	}
 
 	return d
+}
+
+// notYetCoveredFor tells the citizen what the platform recognised and that it
+// does not cover it yet. It names the thing, because "not supported" tells
+// them nothing, and it promises nothing, because the platform does not act on
+// what it cannot route.
+func notYetCoveredFor(category, subcategory string) string {
+	what := strings.ReplaceAll(strings.ToLower(strings.TrimSpace(category)), "_", " ")
+	if s := strings.TrimSpace(subcategory); s != "" {
+		what = strings.ToLower(s)
+	}
+	return fmt.Sprintf(
+		"This looks like %s. TraceSarkar covers road defects in this ward so far, "+
+			"and does not yet have the department contacts to take %s anywhere. "+
+			"Your photograph is kept, and you can delete it.", what, what)
 }
 
 // rejectionFor explains what the platform thinks it is looking at, in the
