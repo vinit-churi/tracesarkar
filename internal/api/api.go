@@ -49,6 +49,7 @@ type Options struct {
 	// serves captures against the static token, which is what Phase 0 needs.
 	Accounts Accounts
 	Reviews  Reviews
+	Details  Details
 	Issuer   *auth.Issuer
 	Google   *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
@@ -69,6 +70,7 @@ type Server struct {
 	media    Media
 	accounts Accounts
 	reviews  Reviews
+	details  Details
 	issuer   *auth.Issuer
 	google   *auth.GoogleVerifier
 	origins  []string
@@ -116,6 +118,7 @@ func New(opts Options) (*Server, error) {
 		media:    opts.Media,
 		accounts: opts.Accounts,
 		reviews:  opts.Reviews,
+		details:  opts.Details,
 		issuer:   opts.Issuer,
 		google:   opts.Google,
 		origins:  opts.AllowedOrigins,
@@ -146,6 +149,8 @@ func (s *Server) Handler() http.Handler {
 	// The attribution review surface. Personal tier: it exists so a human can
 	// put a precision number on the join before anything it produces is shown
 	// to anyone.
+	mux.Handle("GET /v1/reports/{id}", s.authenticated(http.HandlerFunc(s.handleReportDetail)))
+
 	mux.Handle("GET /v1/review/attribution", s.authenticated(http.HandlerFunc(s.handleReviewQueue)))
 	mux.Handle("POST /v1/review/attribution/{id}", s.authenticated(http.HandlerFunc(s.handleReviewVerdict)))
 

@@ -153,3 +153,45 @@ func (d *DB) EnrichmentFor(ctx context.Context, reportID string) (ReportEnrichme
 
 	return e, nil
 }
+
+// ReportDetail reads one capture and everything concluded about it.
+//
+// Missing enrichment is not an error: a capture whose classification has not
+// run yet is still a capture, and the photograph is safe either way.
+func (d *DB) ReportDetail(ctx context.Context, id string) (ReportDetail, bool, error) {
+	var out ReportDetail
+	err := d.pool.QueryRow(ctx, `
+		SELECT r.id::text, r.account_id::text, r.status::text,
+		       to_char(r.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+		       ST_Y(r.location::geometry), ST_X(r.location::geometry),
+		       COALESCE(r.location_accuracy_m, 0)::float8
+		  FROM reports r WHERE r.id = $1::uuid`, id).Scan(
+		&out.ID, &out.AccountID, &out.Status, &out.CreatedAt,
+		&out.Lat, &out.Lon, &out.AccuracyM)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ReportDetail{}, false, nil
+		}
+		return ReportDetail{}, false, fmt.Errorf("read report: %w", err)
+	}
+
+	if dec, ok, err := d.LatestClassification(ctx, id); err != nil {
+		return out, true, err
+	} else if ok {
+		out.Classification = &dec
+	}
+
+	e, err := d.EnrichmentFor(ctx, id)
+	if err != nil {
+		return out, true, err
+	}
+	out.Ward, out.Authority = e.Ward, e.Authority
+	out.WardConfidence, out.WardBasis = e.WardConfidence, e.WardBasis
+	out.NeedsQuestion = e.NeedsQuestion
+	out.ContractorName, out.WorkCode = e.ContractorName, e.WorkCode
+	out.RoadName, out.DistanceM = e.LocationName, e.DistanceM
+	out.ContractBasis, out.ContractSource = e.ContractBasis, e.ContractSource
+	out.AttrConfidence = e.AttrConfidence
+
+	return out, true, nil
+}
