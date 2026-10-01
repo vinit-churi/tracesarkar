@@ -75,3 +75,32 @@ func Taxonomy() map[string][]string {
 	}
 	return out
 }
+
+// CategoryOf returns the category a subcategory belongs to, or "" if the
+// taxonomy does not contain it.
+//
+// A labeller picks one subcategory per photograph; the category is read off
+// here rather than asked for a second time. Two fields that can disagree
+// eventually will, and a disagreement in the eval set moves the number the
+// model is judged against without anyone noticing.
+func CategoryOf(sub string) string {
+	want := strings.ToLower(strings.TrimSpace(sub))
+	if want == "" {
+		return ""
+	}
+	for category, subs := range taxonomy {
+		for _, s := range subs {
+			if strings.ToLower(s) == want {
+				return category
+			}
+		}
+	}
+	return ""
+}
+
+// IsHazard reports whether a subcategory is one the platform treats as
+// hazardous. It is the same set the model's output is checked against, so
+// ground truth and the guardrail can never drift apart.
+func IsHazard(sub string) bool {
+	return hazardous[strings.ToLower(strings.TrimSpace(sub))]
+}

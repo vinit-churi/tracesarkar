@@ -49,9 +49,14 @@ type Options struct {
 	// serves captures against the static token, which is what Phase 0 needs.
 	Accounts Accounts
 	Reviews  Reviews
-	Details  Details
-	Issuer   *auth.Issuer
-	Google   *auth.GoogleVerifier
+	// Labels and Blobs power the labelling surface, which turns captures into
+	// the evaluation set system 3 is measured against. Optional: without them
+	// the API still serves captures.
+	Labels  Labels
+	Blobs   Blobs
+	Details Details
+	Issuer  *auth.Issuer
+	Google  *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -70,6 +75,8 @@ type Server struct {
 	media    Media
 	accounts Accounts
 	reviews  Reviews
+	labels   Labels
+	blobs    Blobs
 	details  Details
 	issuer   *auth.Issuer
 	google   *auth.GoogleVerifier
@@ -118,6 +125,8 @@ func New(opts Options) (*Server, error) {
 		media:    opts.Media,
 		accounts: opts.Accounts,
 		reviews:  opts.Reviews,
+		labels:   opts.Labels,
+		blobs:    opts.Blobs,
 		details:  opts.Details,
 		issuer:   opts.Issuer,
 		google:   opts.Google,
@@ -152,6 +161,11 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /v1/reports", s.authenticated(http.HandlerFunc(s.handleReportList)))
 	mux.Handle("GET /v1/reports/{id}", s.authenticated(http.HandlerFunc(s.handleReportDetail)))
 
+	mux.Handle("GET /v1/reports/{id}/media", s.authenticated(http.HandlerFunc(s.handleReportMedia)))
+
+	mux.Handle("GET /v1/label/queue", s.authenticated(http.HandlerFunc(s.handleLabelQueue)))
+	mux.Handle("POST /v1/label/{id}", s.authenticated(http.HandlerFunc(s.handleSaveLabel)))
+
 	mux.Handle("GET /v1/review/attribution", s.authenticated(http.HandlerFunc(s.handleReviewQueue)))
 	mux.Handle("POST /v1/review/attribution/{id}", s.authenticated(http.HandlerFunc(s.handleReviewVerdict)))
 
@@ -163,6 +177,10 @@ func (s *Server) Handler() http.Handler {
 		if reviewPage, err := reviewHandler(); err == nil {
 			mux.Handle("GET /review/", reviewPage)
 			mux.Handle("GET /review", http.RedirectHandler("/review/", http.StatusFound))
+		}
+		if labelPage, err := labelHandler(); err == nil {
+			mux.Handle("GET /label/", labelPage)
+			mux.Handle("GET /label", http.RedirectHandler("/label/", http.StatusFound))
 		}
 	} else {
 		s.log.Warn("field kit unavailable", "error", err.Error())
@@ -263,6 +281,9 @@ var fieldkitFS embed.FS
 //go:embed review
 var reviewFS embed.FS
 
+//go:embed label
+var labelFS embed.FS
+
 // reviewHandler serves the attribution review page. Personal tier: it exists
 // so a human can put a precision number on the join, and it shows no data of
 // its own — everything comes from the authenticated API.
@@ -272,6 +293,17 @@ func reviewHandler() (http.Handler, error) {
 		return nil, fmt.Errorf("review assets: %w", err)
 	}
 	return http.StripPrefix("/review", http.FileServer(http.FS(sub))), nil
+}
+
+// labelHandler serves the labelling page. Like the review page it holds no
+// data of its own — the photographs and the taxonomy both come from the
+// authenticated API.
+func labelHandler() (http.Handler, error) {
+	sub, err := fs.Sub(labelFS, "label")
+	if err != nil {
+		return nil, fmt.Errorf("label assets: %w", err)
+	}
+	return http.StripPrefix("/label", http.FileServer(http.FS(sub))), nil
 }
 
 // fieldkitHandler serves the capture page. It is the one route that returns

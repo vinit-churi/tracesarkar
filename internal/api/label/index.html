@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Label captures</title>
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --accent-wash:#F5EAF0; --alert:#A33A1F; --alert-wash:#FBEDE8;
+    --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+         gap:16px;padding:14px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+  h1{font-size:17px;margin:0;font-weight:600}
+  .tally{font-size:13px;color:var(--ink-45);font-variant-numeric:tabular-nums}
+  .tally b{color:var(--ink)}
+  main{max-width:1100px;margin:0 auto;padding:16px;
+       display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media (max-width:860px){main{grid-template-columns:1fr}}
+  .shot{background:#000;border:1px solid var(--hairline);border-radius:12px;
+        overflow:hidden;display:flex;align-items:center;justify-content:center;
+        min-height:340px;position:relative}
+  .shot img{max-width:100%;max-height:70vh;display:block}
+  .meta{font-size:12px;color:var(--ink-45);margin-top:8px;font-variant-numeric:tabular-nums}
+  .panel{background:var(--surface);border:1px solid var(--hairline);
+         border-radius:12px;padding:14px}
+  .step{font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+        color:var(--ink-45);margin:0 0 10px}
+  .opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+       background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
+       padding:9px 11px;margin-bottom:6px;cursor:pointer;font:inherit;font-size:15px}
+  .opt:hover{border-color:var(--accent);background:var(--accent-wash)}
+  .opt kbd{background:var(--evidence);border:1px solid var(--hairline);border-radius:6px;
+           min-width:24px;text-align:center;padding:1px 5px;font-size:13px;
+           font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .opt.hazard{border-left:3px solid var(--alert)}
+  .opt.hazard span.h{color:var(--alert);font-size:12px;font-weight:600}
+  .crumb{font-size:13px;color:var(--ink-70);margin-bottom:10px}
+  .crumb b{color:var(--ink)}
+  .back{background:none;border:none;color:var(--accent);cursor:pointer;
+        font:inherit;font-size:13px;padding:0;text-decoration:underline}
+  .skip{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .skip button{background:var(--surface);border:1px solid var(--hairline);
+               border-radius:10px;padding:8px 12px;cursor:pointer;font:inherit;font-size:14px}
+  .note{font-size:12px;color:var(--ink-45);margin-top:12px;line-height:1.45}
+  .signin{max-width:360px;margin:60px auto;padding:0 16px}
+  .signin input{width:100%;padding:10px;margin-top:8px;border:1px solid var(--hairline);
+                border-radius:8px;font:inherit}
+  .signin button{width:100%;padding:11px;background:var(--ink);color:var(--paper);
+                 border:none;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+  .err{background:var(--alert-wash);color:var(--alert);border-radius:8px;
+       padding:9px 11px;margin-top:10px;font-size:14px}
+  .empty{text-align:center;padding:80px 16px;color:var(--ink-70)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;
+         background:var(--ink);color:var(--paper);padding:9px 14px;border-radius:10px;
+         font-size:14px;opacity:0;transition:opacity .15s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Label captures</h1>
+  <div class="tally" id="tally">…</div>
+</header>
+
+<div class="signin" id="signin" hidden>
+  <p>Sign in with the account that owns these captures.</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username">
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+  <button style="margin-top:12px" id="signinBtn">Sign in</button>
+  <div id="signinErr"></div>
+  <p class="note">A label is recorded against whoever gave it. This is the
+     evaluation set the classifier is measured against, so it has to be
+     someone's judgement, not a shared token's.</p>
+</div>
+
+<main id="app" hidden>
+  <div>
+    <div class="shot"><img id="shot" alt="The capture being labelled"></div>
+    <div class="meta" id="shotMeta"></div>
+    <p class="note">
+      <b>Label what is in the photograph</b>, not what you remember being there.
+      If the photograph is too dark, too blurred or too far away to tell, skip
+      it — a guess here becomes a wrong answer the classifier is marked against
+      forever.<br>
+      You are never shown what the classifier said. Labelling is not grading.
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="crumb" id="crumb"></div>
+    <p class="step" id="step">Category</p>
+    <div id="options"></div>
+    <div class="skip">
+      <button id="skipBtn">Skip — can't tell (s)</button>
+      <button id="undoBtn" hidden>Back (⌫)</button>
+    </div>
+    <div id="err"></div>
+  </div>
+</main>
+
+<div class="empty" id="empty" hidden>
+  <p>Nothing left to label.</p>
+  <p class="tally" id="finalTally"></p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = location.origin;
+let token = localStorage.getItem('ts.label.token') || '';
+let queue = [], taxonomy = {}, current = null, category = null, done = 0, skipped = 0;
+
+const $ = id => document.getElementById(id);
+
+function showSignIn(message) {
+  $('app').hidden = true; $('empty').hidden = true; $('signin').hidden = false;
+  if (message) $('signinErr').innerHTML = '<div class="err">' + message + '</div>';
+}
+
+$('signinBtn').onclick = async () => {
+  $('signinErr').innerHTML = '';
+  try {
+    const res = await fetch(API + '/v1/auth/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: $('email').value.trim(), password: $('password').value})
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not sign in.');
+    token = body.token;
+    localStorage.setItem('ts.label.token', token);
+    $('signin').hidden = true;
+    load();
+  } catch (e) { showSignIn(e.message); }
+};
+
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text; t.classList.add('on');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('on'), 1100);
+}
+
+function tally() {
+  $('tally').innerHTML = '<b>' + done + '</b> labelled · <b>' + queue.length +
+    '</b> left' + (skipped ? ' · ' + skipped + ' skipped' : '');
+}
+
+async function load() {
+  if (!token) return showSignIn();
+  const res = await fetch(API + '/v1/label/queue', {headers: {Authorization: 'Bearer ' + token}});
+  if (res.status === 401) {
+    token = ''; localStorage.removeItem('ts.label.token');
+    return showSignIn('That session has expired. Sign in again.');
+  }
+  const body = await res.json();
+  if (!res.ok) { $('err').innerHTML = '<div class="err">' +
+      (body?.error?.message || 'Could not load the queue.') + '</div>'; return; }
+  queue = body.items || [];
+  taxonomy = body.taxonomy || {};
+  $('signin').hidden = true;
+  next();
+}
+
+// The photograph is fetched with the token, not placed in an <img src> the
+// browser would request unauthenticated — the archive is not public.
+async function showPhoto(item) {
+  const img = $('shot');
+  img.removeAttribute('src');
+  const res = await fetch(API + item.media_url, {headers: {Authorization: 'Bearer ' + token}});
+  if (!res.ok) { img.alt = 'That photograph could not be loaded.'; return; }
+  const blob = await res.blob();
+  if (img._url) URL.revokeObjectURL(img._url);
+  img._url = URL.createObjectURL(blob);
+  img.src = img._url;
+}
+
+function next() {
+  category = null;
+  tally();
+  if (!queue.length) {
+    $('app').hidden = true; $('empty').hidden = false;
+    $('finalTally').innerHTML = '<b>' + done + '</b> labelled this session' +
+      (skipped ? ' · ' + skipped + ' skipped' : '');
+    return;
+  }
+  $('app').hidden = false; $('empty').hidden = true;
+  current = queue[0];
+  showPhoto(current);
+  const when = new Date(current.captured_at);
+  $('shotMeta').textContent = (current.ward ? current.ward + ' · ' : '') +
+    when.toLocaleString() + ' · ' + current.report_id.slice(0, 8);
+  render();
+}
+
+function render() {
+  const box = $('options');
+  box.innerHTML = '';
+  $('undoBtn').hidden = !category;
+
+  if (!category) {
+    $('step').textContent = 'Category';
+    $('crumb').textContent = '';
+    Object.keys(taxonomy).sort().forEach((c, i) => {
+      box.appendChild(option(i + 1, c.replace(/_/g, ' '), () => { category = c; render(); }));
+    });
+    return;
+  }
+
+  $('step').textContent = 'What is it';
+  $('crumb').innerHTML = '<b>' + category.replace(/_/g, ' ') + '</b> · ' +
+    '<button class="back" id="crumbBack">change</button>';
+  $('crumbBack').onclick = () => { category = null; render(); };
+  (taxonomy[category] || []).forEach((sub, i) => {
+    box.appendChild(option(i + 1, sub, () => save(sub), HAZARDS.has(sub.toLowerCase())));
+  });
+}
+
+// Mirrors internal/classify's hazardous set. Shown so the labeller knows which
+// answers carry weight — hazard recall is the one number held to 99%.
+const HAZARDS = new Set(['open manhole','missing manhole cover','collapsed wall',
+  'cracked bridge/fob','distressed building','unsafe scaffolding','sewage overflow']);
+
+function option(key, text, onPick, hazard) {
+  const b = document.createElement('button');
+  b.className = 'opt' + (hazard ? ' hazard' : '');
+  b.innerHTML = '<kbd>' + key + '</kbd><span>' + text + '</span>' +
+    (hazard ? '<span class="h">hazard</span>' : '');
+  b.onclick = onPick;
+  return b;
+}
+
+async function save(sub) {
+  const item = current;
+  try {
+    const res = await fetch(API + '/v1/label/' + item.report_id, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + token},
+      body: JSON.stringify({label: sub, frame_type: 'close'})
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not save that label.');
+    queue.shift();
+    done++;
+    toast(sub + (body.hazard ? ' · hazard' : ''));
+    next();
+  } catch (e) {
+    $('err').innerHTML = '<div class="err">' + e.message + '</div>';
+  }
+}
+
+// Skipping records nothing. An unlabelled capture stays in the queue for
+// another day; a wrongly labelled one is in the eval set forever.
+$('skipBtn').onclick = () => { queue.push(queue.shift()); skipped++; next(); };
+$('undoBtn').onclick = () => { category = null; render(); };
+
+document.addEventListener('keydown', e => {
+  if ($('app').hidden || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+
+  if (e.key === 's') { e.preventDefault(); $('skipBtn').click(); return; }
+  if (e.key === 'Backspace' || e.key === 'Escape') {
+    e.preventDefault();
+    if (category) { category = null; render(); }
+    return;
+  }
+  const n = parseInt(e.key, 10);
+  if (!Number.isNaN(n) && n >= 1) {
+    const buttons = $('options').querySelectorAll('button.opt');
+    if (buttons[n - 1]) { e.preventDefault(); buttons[n - 1].click(); }
+  }
+});
+
+load();
+</script>
+</body>
+</html>

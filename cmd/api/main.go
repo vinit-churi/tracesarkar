@@ -156,6 +156,8 @@ func serve(ctx context.Context, args []string) error {
 		Media:          blobs,
 		Accounts:       db,
 		Reviews:        db,
+		Labels:         db,
+		Blobs:          blobs,
 		Details:        db,
 		Issuer:         issuer,
 		Google:         google,
