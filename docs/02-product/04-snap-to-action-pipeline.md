@@ -221,9 +221,9 @@ without an explicit tap.
 
 | Action | What happens |
 |---|---|
-| **File with the authority** | The filing adapter for `(authority, category)` runs — API where one exists, form automation where permitted, otherwise a pre-filled draft plus a deep link and instructions. The official reference number is captured back into the issue. |
+| **File with the authority** | The complaint, and the first action in the ladder — **it is what starts the statutory clock**, which does not run from a capture here. The filing adapter for `(authority, category)` runs — API where one exists, form automation where permitted, otherwise a pre-filled draft plus a deep link and instructions. The official reference number is captured back into the issue, and everything downstream quotes it. |
 | **Share** | Generates the share kit: a tagged tweet/X post, a WhatsApp card, an image with the annotated photo + contract facts, and a permalink. See [share kit](05-share-kit.md). |
-| **Generate RTI** | Pre-filled RTI addressed to the correct PIO with category-specific questions. Draft only — the citizen reviews, edits, and files. |
+| **Generate RTI** | Pre-filled RTI addressed to the correct PIO, asking for **records** — the action-taken report on the complaint, the work order, the inspection. Never for a repair: an RTI seeking redressal is refused. Draft only — the citizen reviews, edits, and files. |
 | **Add to a campaign** | Attaches the issue to a ward-level or corridor-level campaign for collective weight. |
 | **Escalate** | Available when preconditions are met (SLA breached, RTI unanswered, environmental harm within limitation). Produces the appropriate instrument from the [decision table](../01-research/04-legal-framework.md#9-instrument-decision-table). |
 | **Claim compensation** | For injury/death from a road defect in Maharashtra: assembles a claim under the Bombay HC 2025 framework. |

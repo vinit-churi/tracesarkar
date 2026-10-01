@@ -113,6 +113,7 @@ Use these strings verbatim. They are spec-compliant; improvised copy usually is 
 | `confirm.cta` | Submit report |
 | `submitted.title` | Reported |
 | `submitted.cta` | Share this |
+| `deadline.pending` | 48 hours to attend, once BMC is told |
 | `deadline.title` | 48 hours to attend · 31 h left |
 | `deadline.cite` | Bombay High Court, Oct 2025 · read the order |
 | `deadline.passed` | 48 hours have passed. No action recorded. |
@@ -240,8 +241,8 @@ with the citation line under it. At the bottom a PRIMARY BUTTON "Submit report".
 ### S07 — Submitted
 
 ```
-SCREEN: Success state. A single small confirm-green check glyph, then the title "Reported" in 28px.
-A grey line: "BMC · R/S ward · Roads & Traffic — 48-hour clock started". Then a compact EVIDENCE
+SCREEN: Success state. A single small confirm-green check glyph, then the title "Saved" in 28px.
+A grey line: "BMC · R/S ward · Roads & Traffic — not yet reported to BMC". Then a compact EVIDENCE
 BLOCK with one line "This stretch is under warranty until 28 Nov 2028" and a SOURCE LINE. Then a
 PRIMARY BUTTON with a share glyph reading "Share this", and beneath it two SECONDARY BUTTONs side by
 side: "View issue" and "Report another". No confetti, no illustration, no celebration graphics.

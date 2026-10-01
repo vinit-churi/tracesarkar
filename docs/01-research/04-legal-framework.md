@@ -11,11 +11,68 @@ generate.
 
 ---
 
+## 0. The complaint — not a legal instrument, and it starts every clock
+
+Numbered zero because it comes before everything below and is not one of them. A complaint is a
+request for *action*. Every instrument in this document is a request for a *record*, a *review* or
+a *remedy*, and each one presupposes that a complaint was made and can be referred to.
+
+**Nothing in this file is the citizen's first step.** The first step is to tell the authority,
+through the authority's own channel.
+
+### Why this is load-bearing and not administrative detail
+
+The Bombay High Court's 48-hour direction does not run from the moment a defect exists. It runs
+from notification, and the words are explicit — PIL 71/2013, order of 13 October 2025, paragraph
+70(ix), neutral citation `2025:BHC-OS:18736-DB`:
+
+> All potholes, **once brought to the notice of the concerned Corporation or Authority**, shall be
+> attended to forthwith and, in any event, within forty-eight hours.
+
+TraceSarkar is not the Corporation. A photograph taken here notifies nobody. Until the complaint
+is lodged with BMC, no statutory clock is running, and a screen that says one has started is
+stating something untrue about a legal deadline to the person relying on it. See
+[D085](../00-overview/05-decision-log.md).
+
+The same holds for the contractual 24 hours: BMC tender ETH_8000040832 §10.11 reads "within 24
+hours **of intimation**", and names the channels that count — WhatsApp, Telegram, telephone, email,
+or a written memo.
+
+### Where a road defect complaint goes in Mumbai
+
+| Channel | Note | Verify |
+|---|---|---|
+| **MyBMC MARG** | BMC's integrated complaint management and redressal system, 114 complaint types. Produces a reference number, which is the artefact everything downstream depends on | ⚠️ confirm current URL and whether a reference is always issued |
+| **Pothole QuickFix** | BMC's dedicated pothole app; geo-watermarks the photograph | ⚠️ confirm it is still the current app and not superseded |
+| **1916** | BMC's 24×7 central helpline | ⚠️ confirm a reference number is given over the phone |
+| **WhatsApp chatbot** | Send "Pothole" with location and photograph. Matters because the tender names WhatsApp as valid intimation | ⚠️ confirm the current number |
+
+**The reference number is the product's most valuable field.** It is what proves the authority was
+notified, what dates the clock, and what every later instrument quotes. An escalation without one
+is an assertion; with one it is a record. Capture it, or capture a photograph of the receipt.
+
+**Open question:** whether pothole repair is a *notified service* under the Act in §2 below. If it
+is, the first escalation is an RTS appeal with a personal penalty on the officer, which is faster
+and cheaper than anything else here. This is the single most valuable unanswered question in this
+document.
+
+---
+
 ## 1. Right to Information (RTI Act, 2005)
 
-**Use when:** an authority has breached its SLA, closed a complaint without evidence, or the citizen
-needs the underlying documents (work order, completion certificate, measurement book, payment
-record, inspection reports).
+**RTI gets you records. It does not get you a repair.** The Central Information Commission has
+held repeatedly that the Act is not the forum for redressal of grievances; a PIO's duty is to hand
+over information held, not to act on it. An application asking why a road has not been fixed is
+refused, and the refusal costs a month. An application asking for the action-taken report on a
+numbered complaint is answered.
+
+So RTI sits *after* a complaint in the ladder, as the instrument that produces evidence about what
+was or was not done — and the evidence is what makes every later instrument possible.
+
+**Use when:** a complaint has been lodged and the citizen needs the underlying documents — the
+action-taken report, work order, completion certificate, measurement book, payment record,
+inspection reports — whether because the SLA passed, because the complaint was closed without
+evidence, or because the contract behind the stretch is unknown.
 
 | Attribute | Value | Verify |
 |---|---|---|
@@ -43,9 +100,12 @@ A pre-filled RTI body with:
 
 ### Question templates by category
 
+Each asks for a document or a number. None asks for an explanation, an opinion or a reason —
+those are refused.
+
 | Category | Questions to ask |
 |---|---|
-| Road defect | Contract number covering this stretch; contractor name; award value; work-order and completion dates; DLP end date; last inspection report; penalty imposed for defects, if any |
+| Road defect | Action taken on complaint no. X and the date; contract number covering this stretch; contractor name; award value; work-order and completion dates; DLP end date; last inspection report; penalty imposed for defects, if any |
 | Solid waste | Collection contract for this ward; frequency stipulated; weighment records for the last 30 days; penalty clauses |
 | Drain / flooding | De-silting contract and quantum for this nallah for the current year; pre-monsoon inspection report; silt disposal records |
 | Streetlight | Maintenance contract; SLA for restoration; complaint register extract |
@@ -229,23 +289,37 @@ See [moderation policy](../06-operations/02-moderation-policy.md) and
 
 The escalation engine selects instruments using this table. Multiple may apply simultaneously.
 
+**Row 1 is not optional and not skippable.** Everything under it presupposes a complaint exists and
+can be quoted by reference number. An engine that offers row 3 to someone who has not done row 1 is
+offering an instrument that will be refused.
+
 | Trigger | Instrument | Precondition |
 |---|---|---|
-| SLA breached (any category) | RTI | Issue routed and acknowledged, or filing evidence exists |
+| Defect observed, attributed and routed | **Complaint** to the authority's own channel | None — this is the first step, and it starts the clock |
+| Complaint lodged | *(clock starts)* — 48 h on the Corporation, 24 h on the contractor in DLP | Reference number recorded, or a photographed receipt |
+| SLA elapsed with no action recorded | Escalation within the authority | Reference number and elapsed time |
+| Notified service delayed | RTS appeal | Category maps to a notified service — **unconfirmed for road defects** |
+| Evidence needed of what was or was not done | RTI | Complaint reference to quote, or an unattributed stretch whose contract is sought |
 | RTI unanswered after 30 days | First Appeal | RTI registration number recorded |
 | First appeal unanswered / rejected | SIC Second Appeal | First-appeal decision or 45 days elapsed |
-| Notified service delayed | RTS appeal | Category maps to a notified service |
 | Environmental harm | NGT §14 OA | Within 6 months of first observation |
 | Environmental harm causing damage | NGT §15 claim | Within 5 years |
 | Documents show payment without delivery | Lokayukta complaint | RTI reply in hand; affidavit required |
 | Consumer suffered loss | e-Jagriti complaint | Quantifiable loss with proof |
-| Death or injury from road defect | HC compensation claim | Medical/police records; Maharashtra only |
+| Death or injury from road defect | Compensation claim to the authority, copy to the DLSA Secretary — **not an RTI** | Medical/police records; Maharashtra only. Committee meets within 7 days of intimation and every 15 days after; ₹6,00,000 for death, ₹50,000–₹2,50,000 for injury; payable in 6–8 weeks, then 9% interest and the Commissioner is personally responsible (para 70(vii), (x)) |
 | Defect inside DLP | Contractor liability notice + scorecard entry | Contract matched with confidence ≥ threshold |
 
 ---
 
 ## 10. Research tasks
 
+- [ ] **Is pothole repair a notified service under the Maharashtra RTS Act for BMC?** The highest-
+      value unanswered question here. If it is, the first escalation after a missed SLA is an RTS
+      appeal carrying a personal penalty on the named officer — faster, cheaper and sharper than
+      an RTI. The notified-service list is published per authority; get BMC's
+- [ ] **Confirm the live complaint channels and whether each issues a reference number.** MyBMC
+      MARG, the Pothole QuickFix app, 1916 and the WhatsApp chatbot. A channel that returns no
+      reference cannot date the clock and is worth less to the product whatever its reach
 - [ ] Obtain and archive the current Maharashtra RTI Rules (fee schedule) — **blocking for v1**
 - [ ] Confirm current NGT Western Zone e-filing requirements and any prescribed format
 - [ ] Confirm Lokayukta limitation periods and current form set (Form I / II, Schedules A / B)

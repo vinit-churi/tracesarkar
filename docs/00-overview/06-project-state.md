@@ -165,6 +165,11 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Yours, next week
 
+- [ ] **Lodge one real pothole complaint yourself** — MyBMC MARG or the Pothole QuickFix app — and
+      record what reference number comes back and in what form. The whole escalation ladder hangs
+      off that reference, and nothing in the product can be designed properly until we have seen
+      one ([D085](05-decision-log.md))
+
 - [ ] **Buy the guidelines-and-circulars booklet** at Municipal Head Office. BMC's own tenders say
       it is held at the Dy. Ch. Eng. (Roads)(Planning) offices and may be purchased. No 30-day
       clock, and it may contain the three pothole circulars outright

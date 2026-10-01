@@ -72,7 +72,7 @@ Example (English, X):
 
 > Pothole on Link Road, Kandivali West. @mybmc — R/S ward.
 > This stretch is under warranty from contract WS/2023/ROAD/117 (₹4.11 cr) until Nov 2028.
-> Bombay HC requires action in 48 hours.
+> Bombay HC requires action within 48 hours of a pothole being reported.
 > tracesarkar.org/i/8f2a1c
 > #MumbaiRoads #RSWard
 

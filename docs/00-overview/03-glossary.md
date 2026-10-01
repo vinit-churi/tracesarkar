@@ -16,7 +16,8 @@ right column is the canonical spelling.
 | **Contractor** | A legal entity that holds contracts. Tracks aliases, directors, and blacklisting history. | `contractor` |
 | **DLP** | Defect Liability Period. The warranty window during which a contractor must repair defects free of cost. | `defect_liability_period` |
 | **Observation** | A non-citizen data point about a place and time: rainfall, water level, AQI, news mention. | `observation` |
-| **Escalation** | A generated legal or administrative instrument (RTI, First Appeal, NGT OA, Lokayukta complaint, consumer complaint). | `escalation` |
+| **Complaint** | A request to the authority, through the authority's own channel, that it *do something*. It is not an escalation and not an RTI, and it comes before both: the statutory clocks run from it, not from a capture here. Its reference number is what every later instrument quotes. | `complaint` |
+| **Escalation** | A generated legal or administrative instrument (RTI, First Appeal, NGT OA, Lokayukta complaint, consumer complaint). Always *after* a complaint — each one presupposes one exists. | `escalation` |
 | **Filing** | An escalation that a human has actually submitted, with a reference number. | `filing` |
 | **Share kit** | The generated set of shareable artefacts for an issue (tweet, WhatsApp card, image, permalink). | `share_kit` |
 | **Scorecard** | A contractor's aggregated performance record across all MMR authorities. | `contractor_scorecard` |
@@ -76,7 +77,7 @@ same as administrative wards — the distinction matters when joining datasets.
 
 | Term | Meaning |
 |---|---|
-| **RTI** | Right to Information application under the RTI Act, 2005. Maharashtra online portal: `rtionline.maharashtra.gov.in`. Under the Maharashtra RTI Rules notified in 2026 the application fee is ₹30 and the first-appeal fee ₹50 — **verify the current fee before generating any instrument** (see [legal framework](../01-research/04-legal-framework.md)). |
+| **RTI** | Right to Information application under the RTI Act, 2005. **Gets records, not action** — the Commission has held it is not the forum for redressal of grievances, so an RTI asking for a repair is refused. Use it to obtain what was or was not done. BMC is **not** on `rtionline.maharashtra.gov.in` and is filed with directly, on paper ([D075](05-decision-log.md), [D077](05-decision-log.md)). The ₹30 application and ₹50 first-appeal fees from the 2026 Maharashtra RTI Rules are **unconfirmed — verify before generating any instrument** (see [legal framework](../01-research/04-legal-framework.md)). |
 | **PIO** | Public Information Officer — the addressee of an RTI. |
 | **First Appeal** | Appeal to the First Appellate Authority when the PIO does not reply within 30 days or replies inadequately. |
 | **SIC** | State Information Commission — the second appeal forum. |

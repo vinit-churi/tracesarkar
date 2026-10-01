@@ -34,6 +34,7 @@ These apply to every screen. A screen that breaks one is wrong, however good it 
 | G12 | **Honest state.** Low confidence, stale data, missing coverage, offline queue and partial failure are shown, never hidden. |
 | G13 | **Language is switchable from every screen** (chrome-level control), and generated text is generated *per language*, never translated after the fact. |
 | G14 | **`claimed_resolved` and `citizen_confirmed` never collapse into one label.** Anywhere they are counted, they are counted separately. |
+| G15 | **No screen says a statutory clock is running until the authority has been notified.** The 48 hours run "once brought to the notice of the concerned Corporation" (para 70(ix)); the contractual 24 run "of intimation". A capture here notifies nobody, so before S20 the deadline is described conditionally and never counted down. See [D085](../00-overview/05-decision-log.md). |
 
 ---
 
@@ -157,12 +158,23 @@ Icon + label + colour. One chip per issue state; the label is the glossary term 
 
 ### 3.6 `DeadlineBanner`
 
-Statutory clock. Shows the constant, the remaining/elapsed time, and the citation:
+Statutory clock. Shows the constant, the remaining/elapsed time, and the citation.
+
+**It has two states, and the difference is not cosmetic.** The clock runs from the authority's
+notification, not from our capture (G15), so until a complaint reference exists the banner is
+*pending* and says so:
 
 ```
+pending — no complaint lodged yet
+⏱ 48 hours to attend, once BMC is told
+Bombay High Court, Oct 2025 · [read the order]
+
+running — reference MARG-2026-0611-88213, lodged 11 Jun 08:19
 ⏱ 48 hours to attend  ·  31 h left
 Bombay High Court, Oct 2025 · [read the order]
 ```
+
+A pending banner never shows a countdown, because there is nothing to count down from.
 
 ### 3.7 `ConfidenceRow`
 
@@ -350,7 +362,8 @@ Everything pre-filled; the only affordances are correct and submit.
 - `ConfidenceRow`: `Classified automatically · Pothole · [Wrong? Change]`.
 - Location line: `SK Bole Marg, Dadar West · ±6 m · [move pin]`.
 - Authority line: `BMC · R/S ward · Roads & Traffic · [not right?]`.
-- `DeadlineBanner` preview: `If BMC does not attend within 48 hours, you'll be able to escalate.`
+- `DeadlineBanner` preview, in its pending state: `Once BMC is told, it has 48 hours to attend.`
+  Not "you'll be able to escalate in 48 hours" — nothing is running yet (G15).
 - Optional: `Add a note (optional)` — collapsed, never focused by default, never required.
 - Primary: `Submit report`.
 
@@ -364,12 +377,17 @@ Confirmation, then **share as the primary action** — share is the distribution
 courtesy.
 
 ```
-✓ Reported
-BMC · R/S ward · Roads & Traffic · 48-hour clock started
+✓ Saved
+BMC · R/S ward · Roads & Traffic · not yet reported to BMC
 
 [ ■ Share this ]            ← primary, full width
 [ View issue ]  [ Report another ]
 ```
+
+**"Saved", not "Reported", and no clock.** The capture is in our records, not BMC's. The 48 hours
+begin when BMC is told, which is S20 (v0.2) — so until S20 ships, this screen must not imply
+otherwise (G15). From v0.2 the second line becomes the complaint reference and the banner flips to
+running.
 
 If the attribution found a contract, one line of the payload previews here:
 `This stretch is under warranty until Nov 2028.` — with its `SourceLine`.
