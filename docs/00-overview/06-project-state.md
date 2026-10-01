@@ -30,6 +30,7 @@ Three things are live and answering. Nothing below is aspirational.
 | **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
 | **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
+| **Label** | `…run.app/label/` | Ground truth for the eval set, two keystrokes a capture |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 | **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich then classify, so a capture resolves itself |
 
@@ -172,6 +173,10 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Yours, next week
 
+- [ ] **Label as you go.** Open `…run.app/label/` on a laptop and work through the walk's captures:
+      a number for the category, a number for what it is, `s` to skip. Skip anything you cannot
+      read from the photograph alone — a guess becomes a wrong answer the classifier is marked
+      against forever
 - [ ] **Lodge one real pothole complaint yourself** — MyBMC MARG or the Pothole QuickFix app — and
       record what reference number comes back and in what form. The whole escalation ladder hangs
       off that reference, and nothing in the product can be designed properly until we have seen
@@ -208,9 +213,9 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Mine, in order
 
-- [ ] **A labelling screen.** `report_labels` is empty and there is no way to fill it. Without one
-      a walk produces photographs rather than an eval set, and the eval set is what system 3's bar
-      is measured against
+- [ ] **Build the eval set from `report_labels`** and run it. The labelling surface fills the
+      table; nothing yet reads it back into `classify.RunEval`. That is the last piece between a
+      weekend of walking and a number for system 3
 
 - [ ] **System 4 — issues and the SLA clock.** Then: finishing accounts, the public surface, the
       share kit, the operator console
