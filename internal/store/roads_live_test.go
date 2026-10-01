@@ -58,6 +58,13 @@ func TestLiveRoadSegmentsAreFoundByDistance(t *testing.T) {
 	}
 
 	// A point essentially on the line.
+	//
+	// The fixture is not assumed to be the single nearest row. Its geometry was
+	// copied from BMC's own "Derasar to Dead" stretch, and `ingest roads` has
+	// since loaded that very segment, so the probe now sits on two coincident
+	// rows at the same distance. Which of them sorts first says nothing about
+	// whether the search works — asserting on it tested the tie-break, and
+	// started failing the moment real geometry was loaded.
 	near, err := db.NearestRoadSegments(ctx, 19.23391, 72.84440, 25, 5)
 	if err != nil {
 		t.Fatalf("NearestRoadSegments: %v", err)
@@ -65,11 +72,50 @@ func TestLiveRoadSegmentsAreFoundByDistance(t *testing.T) {
 	if len(near) == 0 {
 		t.Fatal("a point on the road must match it")
 	}
-	if near[0].WorkCode != "W-415-test" {
-		t.Errorf("matched the wrong work: %q", near[0].WorkCode)
+
+	var found *store.RoadMatch
+	for i := range near {
+		if near[i].WorkCode == "W-415-test" {
+			found = &near[i]
+			break
+		}
 	}
-	if near[0].DistanceM > 25 {
-		t.Errorf("distance should be within the buffer: %v m", near[0].DistanceM)
+	if found == nil {
+		t.Fatalf("a point on the road must match it; got %d other matches", len(near))
+	}
+	if found.DistanceM > 25 {
+		t.Errorf("distance should be within the buffer: %v m", found.DistanceM)
+	}
+
+	// Ordering is the contract the old assertion was standing in for, and the
+	// attribution gate depends on it: it reads candidates[0] as the nearest and
+	// measures every rival against that one. A wider search is used here
+	// deliberately — within 25 m the only matches are coincident, so they
+	// cannot demonstrate an order at all.
+	spread, err := db.NearestRoadSegments(ctx, 19.23391, 72.84440, 250, 5)
+	if err != nil {
+		t.Fatalf("NearestRoadSegments (wide): %v", err)
+	}
+	if len(spread) < 3 {
+		t.Fatalf("expected several roads within 250 m to order; got %d", len(spread))
+	}
+	var distinct int
+	for i := 1; i < len(spread); i++ {
+		if spread[i].DistanceM < spread[i-1].DistanceM {
+			t.Errorf("matches must be ordered by distance: %.1f m before %.1f m",
+				spread[i-1].DistanceM, spread[i].DistanceM)
+		}
+		if spread[i].DistanceM > spread[i-1].DistanceM {
+			distinct++
+		}
+	}
+	if distinct == 0 {
+		t.Error("every match was the same distance away, so this proved nothing about order")
+	}
+	for _, m := range spread {
+		if m.DistanceM > 250 {
+			t.Errorf("a match outside the search radius: %q at %.1f m", m.WorkCode, m.DistanceM)
+		}
 	}
 
 	// Roughly 400 m away — a different street. It must not match at 25 m,
