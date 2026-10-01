@@ -79,6 +79,12 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 
+**System 1 was investigated on 1 October 2026 and holds.** A live test reading "matched the wrong
+work" turned out to be asserting on a tie-break, not a mis-attribution — see
+[D090](05-decision-log.md). The investigation did measure something worth knowing: 269 pairs of
+segments from *different* contract packages lie within a metre of each other, so a defect there
+could belong to either contract. The gate answers those honestly rather than guessing.
+
 **Systems 1 and 2 share a limit worth stating.** Both were validated against BMC's own data and a
 human reading the same map the code read. Neither has been tested against a photograph taken at a
 place a person can identify. That is what real captures close, and it is the one thing fieldwork is
@@ -205,10 +211,6 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 - [ ] **A labelling screen.** `report_labels` is empty and there is no way to fill it. Without one
       a walk produces photographs rather than an eval set, and the eval set is what system 3's bar
       is measured against
-- [ ] **`TestLiveRoadSegmentsAreFoundByDistance` fails** — "matched the wrong work: W-415". Pre-dates
-      the sweep work and is gated behind `TRACESARKAR_LIVE`, so CI is green and nobody saw it. It is
-      a system 1 test and system 1's bar was zero wrong matches, so it is either stale fixture
-      expectations after more works were ingested, or a regression. Settle which before the walk
 
 - [ ] **System 4 — issues and the SLA clock.** Then: finishing accounts, the public surface, the
       share kit, the operator console
