@@ -135,7 +135,24 @@ func contains(haystack, needle string) bool {
 	})()
 }
 
+// isolate clears the keys Load reads from the environment in preference to the
+// file. Without it these tests pass in CI and fail for anyone who has sourced
+// .env in their shell — which is everyone, since every psql command needs it.
+// A test that depends on the shell it is run from is not testing the code.
+func isolate(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{
+		"R2_BUCKET_URL", "R2_BUCKET_NAME", "R2_ACCESS_KEY", "R2_SECRET_ACCESS_KEY",
+		"POSTGRESQL_CONNECTION", "POSTGRES_CA_PATH", "POSTGRES_CA_PEM",
+		"NOTIFY_WEBHOOK_URL", "TRACESARKAR_TIER",
+	} {
+		t.Setenv(k, "")
+		os.Unsetenv(k)
+	}
+}
+
 func TestLoadResolvesRelativeCAPathAgainstTheEnvFile(t *testing.T) {
+	isolate(t)
 	dir := t.TempDir()
 	envPath := filepath.Join(dir, ".env")
 	body := "R2_BUCKET_URL=https://acc.r2.cloudflarestorage.com/b\n" +
@@ -158,6 +175,7 @@ func TestLoadResolvesRelativeCAPathAgainstTheEnvFile(t *testing.T) {
 }
 
 func TestLoadLeavesAbsoluteCAPathAlone(t *testing.T) {
+	isolate(t)
 	dir := t.TempDir()
 	envPath := filepath.Join(dir, ".env")
 	body := "R2_BUCKET_URL=https://acc.r2.cloudflarestorage.com/b\n" +
@@ -180,6 +198,7 @@ func TestLoadLeavesAbsoluteCAPathAlone(t *testing.T) {
 // A platform whose only secret channel is environment variables cannot mount a
 // CA file. The PEM travels inline instead, and the process materialises it.
 func TestCAFileMaterialisesAnInlinePEM(t *testing.T) {
+	isolate(t)
 	t.Setenv("R2_BUCKET_URL", "https://acc.r2.cloudflarestorage.com/bucket")
 	t.Setenv("R2_ACCESS_KEY", "key")
 	t.Setenv("R2_SECRET_ACCESS_KEY", "secret")
@@ -304,6 +323,7 @@ func TestLoadExportsFileValuesIntoTheEnvironment(t *testing.T) {
 	}
 
 	t.Run("a key only the file knows about becomes readable", func(t *testing.T) {
+		isolate(t)
 		write("CLASSIFY_API_KEY=from-file\n")
 		os.Unsetenv("CLASSIFY_API_KEY")
 		t.Cleanup(func() { os.Unsetenv("CLASSIFY_API_KEY") })

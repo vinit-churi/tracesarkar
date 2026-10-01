@@ -2,6 +2,9 @@ package store_test
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -128,6 +131,97 @@ func TestLiveRoadSegmentsAreFoundByDistance(t *testing.T) {
 	for _, m := range far {
 		if m.WorkCode == "W-415-test" {
 			t.Errorf("a point 400 m away matched at a 25 m buffer (%.1f m)", m.DistanceM)
+		}
+	}
+}
+
+// Two roads under different contracts can occupy the same place: 269 pairs of
+// segments from different contract packages lie within a metre of each other in
+// the collected data. The attribution gate handles that honestly — it spots a
+// rival giving a different answer and asks rather than guessing — but it reads
+// candidates[0] as the nearest, and with no tie-break the database is free to
+// pick either.
+//
+// That would make the contractor named against a photograph depend on the query
+// plan rather than on the data, and re-running enrichment could name a
+// different company for the same capture, with nothing having changed. A fact
+// published about a named party has to be reproducible.
+func TestLiveTiedRoadSegmentsComeBackInADefinedOrder(t *testing.T) {
+	ctx, pool, db := liveDB(t)
+
+	var workIDs []string
+	rows, err := pool.Query(ctx, `SELECT id FROM works LIMIT 2`)
+	if err != nil {
+		t.Skipf("no collected works to project from: %v", err)
+	}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		workIDs = append(workIDs, id)
+	}
+	rows.Close()
+	if len(workIDs) < 2 {
+		t.Skip("need two collected works to build a tie")
+	}
+
+	t.Cleanup(func() {
+		c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_, _ = pool.Exec(c, `DELETE FROM road_segments WHERE work_code LIKE 'TIE-%'`)
+	})
+
+	// Inserted in descending id order, deliberately. Without a tie-break the
+	// rows come back in whatever order the scan produces, which is insertion
+	// order — so inserting in the order the test requires would let it pass by
+	// luck, which is exactly what it did before this line existed.
+	sort.Sort(sort.Reverse(sort.StringSlice(workIDs)))
+
+	// Identical geometry, different contracts — the shape of the 269 real pairs.
+	// Somewhere in the Arabian Sea off Borivali, so no collected segment can
+	// join the tie and change what is being measured.
+	geo := `{"type":"MultiLineString","coordinates":[[` +
+		`[72.70000,19.23000],[72.70100,19.23010]]]}`
+	for i, id := range workIDs {
+		if err := db.SaveRoadSegment(ctx, store.NewRoadSegment{
+			WorkID:       id,
+			WorkCode:     fmt.Sprintf("TIE-%d", i),
+			Ward:         "R/C",
+			LocationName: fmt.Sprintf("Tied stretch %d", i),
+			GeoJSON:      geo,
+		}); err != nil {
+			t.Fatalf("SaveRoadSegment %d: %v", i, err)
+		}
+	}
+
+	var first []string
+	for call := range 3 {
+		got, err := db.NearestRoadSegments(ctx, 19.23005, 72.70050, 50, 5)
+		if err != nil {
+			t.Fatalf("NearestRoadSegments: %v", err)
+		}
+		var order []string
+		for _, m := range got {
+			if strings.HasPrefix(m.WorkCode, "TIE-") {
+				order = append(order, m.WorkID)
+			}
+		}
+		if len(order) != 2 {
+			t.Fatalf("both tied segments must be returned; got %d", len(order))
+		}
+		if call == 0 {
+			first = order
+			// The rule itself, not merely that it is stable: an order that is
+			// consistent only because the plan has not changed is not a
+			// guarantee of anything.
+			if order[0] >= order[1] {
+				t.Errorf("ties must break on a defined key; got %v", order)
+			}
+			continue
+		}
+		if order[0] != first[0] || order[1] != first[1] {
+			t.Errorf("call %d returned a different order: %v then %v", call, first, order)
 		}
 	}
 }

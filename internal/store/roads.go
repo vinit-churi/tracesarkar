@@ -98,7 +98,12 @@ func (d *DB) NearestRoadSegments(ctx context.Context, lat, lon, radiusM float64,
 		       COALESCE(s.contractor_name, ''), COALESCE(s.source_id, ''), s.retrieved_at
 		  FROM road_segments s, p
 		 WHERE ST_DWithin(s.geom, p.g, $3::float8)
-		 ORDER BY distance_m
+		 -- work_id breaks ties. Roads under different contracts do occupy the
+		 -- same place, and the caller reads the first row as the nearest, so
+		 -- without this the contractor named against a photograph would depend
+		 -- on the query plan — and re-running enrichment could name a different
+		 -- company for the same capture with nothing having changed.
+		 ORDER BY distance_m, s.work_id
 		 LIMIT $4`, lat, lon, radiusM, limit)
 	if err != nil {
 		return nil, fmt.Errorf("nearest road segments: %w", err)
