@@ -11,14 +11,21 @@ import (
 // spending money or depending on a provider being up.
 type fakeClassifier struct {
 	byLabel map[string]Result
-	err     error
-	calls   int
+	// errByLabel fails only the images named in it, which is how a run with
+	// some unreadable photographs is distinguished from a run where the
+	// provider itself is down.
+	errByLabel map[string]error
+	err        error
+	calls      int
 }
 
 func (f *fakeClassifier) Classify(_ context.Context, image []byte, _ string) (Result, error) {
 	f.calls++
 	if f.err != nil {
 		return Result{}, f.err
+	}
+	if e, ok := f.errByLabel[string(image)]; ok {
+		return Result{}, e
 	}
 	return f.byLabel[string(image)], nil
 }

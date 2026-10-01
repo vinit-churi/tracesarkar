@@ -30,16 +30,16 @@ type NewRoadSegment struct {
 
 // RoadMatch is a road segment near a point, with how near.
 type RoadMatch struct {
-	WorkID       string     `json:"work_id"`
-	WorkCode     string     `json:"work_code"`
-	Ward         string     `json:"ward"`
-	LocationName string     `json:"location_name"`
-	DistanceM    float64    `json:"distance_m"`
-	ContractorName string   `json:"contractor_name"`
-	SourceID       string   `json:"source_id"`
+	WorkID         string     `json:"work_id"`
+	WorkCode       string     `json:"work_code"`
+	Ward           string     `json:"ward"`
+	LocationName   string     `json:"location_name"`
+	DistanceM      float64    `json:"distance_m"`
+	ContractorName string     `json:"contractor_name"`
+	SourceID       string     `json:"source_id"`
 	RetrievedAt    *time.Time `json:"retrieved_at"`
-	StartDate    *time.Time `json:"start_date"`
-	EndDate      *time.Time `json:"end_date"`
+	StartDate      *time.Time `json:"start_date"`
+	EndDate        *time.Time `json:"end_date"`
 }
 
 // SaveRoadSegment stores one segment's geometry.

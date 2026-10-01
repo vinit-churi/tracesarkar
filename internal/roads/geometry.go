@@ -32,9 +32,9 @@ type Segment struct {
 	// ContractorName is the company holding the package this road is in.
 	// Displayed only with its source and retrieval time (hard rule 2).
 	ContractorName string
-	Lines        [][]Point
-	StartDate    *time.Time
-	EndDate      *time.Time
+	Lines          [][]Point
+	StartDate      *time.Time
+	EndDate        *time.Time
 }
 
 // The Mumbai Metropolitan Region, generously bounded. This exists to catch the
@@ -53,12 +53,12 @@ var errNoGeometry = errors.New("work has no usable geometry")
 // an empty string array in the field whose name suggests it holds the shape.
 func SegmentFrom(record map[string]any) (Segment, error) {
 	seg := Segment{
-		WorkCode:     text(record["workCode"]),
-		Ward:         ward(record),
+		WorkCode:       text(record["workCode"]),
+		Ward:           ward(record),
 		LocationName:   text(record["locationName"]),
 		ContractorName: contractor(record),
-		StartDate:    date(record["startDate"]),
-		EndDate:      date(record["endDate"]),
+		StartDate:      date(record["startDate"]),
+		EndDate:        date(record["endDate"]),
 	}
 
 	geometry, ok := record["geometrytype"].(map[string]any)
@@ -174,4 +174,3 @@ func date(v any) *time.Time {
 
 // ErrNoGeometry reports whether a work was skipped for want of a shape.
 func ErrNoGeometry(err error) bool { return errors.Is(err, errNoGeometry) }
-

@@ -108,18 +108,18 @@ func (d *DB) SaveAttribution(ctx context.Context, reportID string, a attribute.A
 
 // ReportEnrichment is everything the platform has concluded about a capture.
 type ReportEnrichment struct {
-	Ward             string  `json:"ward,omitempty"`
-	Authority        string  `json:"authority,omitempty"`
-	WardConfidence   string  `json:"ward_confidence,omitempty"`
-	WardBasis        string  `json:"ward_basis,omitempty"`
-	NeedsQuestion    bool    `json:"needs_question"`
-	ContractorName   string  `json:"contractor_name,omitempty"`
-	WorkCode         string  `json:"work_code,omitempty"`
-	LocationName     string  `json:"location_name,omitempty"`
-	DistanceM        float64 `json:"distance_m,omitempty"`
-	ContractBasis    string  `json:"contract_basis,omitempty"`
-	ContractSource   string  `json:"contract_source,omitempty"`
-	AttrConfidence   string  `json:"attribution_confidence,omitempty"`
+	Ward           string  `json:"ward,omitempty"`
+	Authority      string  `json:"authority,omitempty"`
+	WardConfidence string  `json:"ward_confidence,omitempty"`
+	WardBasis      string  `json:"ward_basis,omitempty"`
+	NeedsQuestion  bool    `json:"needs_question"`
+	ContractorName string  `json:"contractor_name,omitempty"`
+	WorkCode       string  `json:"work_code,omitempty"`
+	LocationName   string  `json:"location_name,omitempty"`
+	DistanceM      float64 `json:"distance_m,omitempty"`
+	ContractBasis  string  `json:"contract_basis,omitempty"`
+	ContractSource string  `json:"contract_source,omitempty"`
+	AttrConfidence string  `json:"attribution_confidence,omitempty"`
 }
 
 // EnrichmentFor returns the latest conclusions about a capture. Missing parts

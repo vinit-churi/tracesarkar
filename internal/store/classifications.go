@@ -79,9 +79,23 @@ func (d *DB) LatestClassification(ctx context.Context, reportID string) (classif
 	return dec, true, nil
 }
 
+// MaxClassifyAttempts is how often one capture is retried before it is left
+// alone.
+//
+// Some photographs can never be classified — corrupt bytes, a format the
+// provider rejects, a frame the model refuses. Retrying those without end costs
+// a paid vision call per sweep forever, and because the queue is oldest-first
+// with a limit, they sit at its head and crowd out captures taken after them.
+// Hard rule 7 requires every stage to be retryable; it does not require them to
+// be retried without end.
+//
+// A retired capture is not lost. Its attempts are all recorded with their
+// errors, and raising this number brings it straight back into the queue.
+const MaxClassifyAttempts = 5
+
 // UnclassifiedReports returns captures that have never been classified
-// successfully, oldest first — a capture is never lost, so the queue drains
-// forwards.
+// successfully and have not exhausted their attempts, oldest first — a capture
+// is never lost, so the queue drains forwards.
 func (d *DB) UnclassifiedReports(ctx context.Context, limit int) ([]PendingCapture, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 25
@@ -96,8 +110,10 @@ func (d *DB) UnclassifiedReports(ctx context.Context, limit int) ([]PendingCaptu
 		 WHERE NOT EXISTS (
 		    SELECT 1 FROM classifications c
 		     WHERE c.report_id = r.id AND c.error IS NULL)
+		   AND (SELECT count(*) FROM classifications c
+		         WHERE c.report_id = r.id AND c.error IS NOT NULL) < $2
 		 ORDER BY r.created_at
-		 LIMIT $1`, limit)
+		 LIMIT $1`, limit, MaxClassifyAttempts)
 	if err != nil {
 		return nil, fmt.Errorf("find unclassified reports: %w", err)
 	}

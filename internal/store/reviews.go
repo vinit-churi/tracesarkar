@@ -232,7 +232,6 @@ func (d *DB) GenerateProbes(ctx context.Context, ward string, count int, minOffs
 	return out, rows.Err()
 }
 
-
 // ExpectationAgreement reports whether the join returned the segment a probe
 // was generated from. Null for a real report, which has no expected answer —
 // only a person can say what road is in a photograph.

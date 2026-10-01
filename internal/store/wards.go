@@ -19,14 +19,14 @@ type NewWardBoundary struct {
 
 // WardHit is a ward a point falls in, or near.
 type WardHit struct {
-	Ward      string  `json:"ward"`
-	Authority string  `json:"authority"`
-	Inside    bool    `json:"inside"`
+	Ward      string `json:"ward"`
+	Authority string `json:"authority"`
+	Inside    bool   `json:"inside"`
 	// DistanceToEdgeM is the distance to the ward's boundary *line*.
 	// ST_Distance to the polygon is zero anywhere inside it, which tells you
 	// nothing about whether the answer is safe; nearness to the edge does.
 	DistanceToEdgeM float64 `json:"distance_to_edge_m"`
-	Vintage   string  `json:"vintage"`
+	Vintage         string  `json:"vintage"`
 }
 
 // SaveWardBoundary stores one ward. Idempotent: the boundary set is reloaded

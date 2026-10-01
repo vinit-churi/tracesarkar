@@ -3,6 +3,7 @@ package classify
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -22,7 +23,10 @@ func (f *fakeStore) Save(_ context.Context, a Attempt) error {
 	return nil
 }
 
-type fakeBlobs struct{ data map[string][]byte; err error }
+type fakeBlobs struct {
+	data map[string][]byte
+	err  error
+}
 
 func (f *fakeBlobs) Get(_ context.Context, key string) ([]byte, error) {
 	if f.err != nil {
@@ -148,3 +152,65 @@ func TestNothingPendingIsNotAnError(t *testing.T) {
 }
 
 var _ = time.Now
+
+// A pass in which nothing at all succeeded is a different thing from a pass in
+// which one photograph was unreadable, and the difference matters most on a day
+// of fieldwork: a provider that is down, a key that has expired or a model name
+// that no longer exists fails every capture identically, and reports nothing.
+func TestRunReportsATotalFailure(t *testing.T) {
+	tests := []struct {
+		name    string
+		results []error // one per pending capture; nil means it classified
+		wantErr bool
+	}{
+		{name: "all succeeded", results: []error{nil, nil}},
+		{name: "one bad photograph among good ones", results: []error{errors.New("unsupported image"), nil}},
+		{name: "nothing succeeded", results: []error{errors.New("401 unauthorized"), errors.New("401 unauthorized")}, wantErr: true},
+		{name: "nothing pending is not a failure", results: nil},
+		// One capture failing alone is indistinguishable from one bad
+		// photograph, so it is not reported as a run failure.
+		{name: "a lone failure is ambiguous", results: []error{errors.New("unsupported image")}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &fakeStore{}
+			blobs := &fakeBlobs{data: map[string][]byte{}}
+			byLabel := map[string]Result{}
+			failFor := map[string]error{}
+			for i, want := range tt.results {
+				key := "k" + strconv.Itoa(i)
+				label := "img" + strconv.Itoa(i)
+				store.pending = append(store.pending, Pending{
+					ReportID: "r" + strconv.Itoa(i), ArchiveKey: key,
+				})
+				blobs.data[key] = []byte(label)
+				if want != nil {
+					failFor[label] = want
+				} else {
+					byLabel[label] = goodResult()
+				}
+			}
+
+			_, err := Run(context.Background(), RunnerOptions{
+				Store:      store,
+				Blobs:      blobs,
+				Classifier: &fakeClassifier{byLabel: byLabel, errByLabel: failFor},
+				Coverage:   CoverageFor("road_defect"),
+				Model:      "test", Prompt: "v1",
+			})
+
+			if tt.wantErr && err == nil {
+				t.Error("a pass where every capture failed must be reported, not logged and forgotten")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			// Either way every attempt is recorded — that is what makes the
+			// next pass a retry rather than a repeat.
+			if len(store.saved) != len(tt.results) {
+				t.Errorf("recorded %d attempts, want %d", len(store.saved), len(tt.results))
+			}
+		})
+	}
+}

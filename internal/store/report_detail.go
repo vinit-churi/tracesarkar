@@ -33,4 +33,3 @@ type ReportDetail struct {
 	ContractSource string  `json:"contract_source,omitempty"`
 	AttrConfidence string  `json:"attribution_confidence,omitempty"`
 }
-

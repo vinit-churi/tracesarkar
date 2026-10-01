@@ -83,16 +83,16 @@ const confidenceFloor = 0.65
 // good enough. The list is a floor, not a ceiling — the model may still flag
 // something not on it.
 var hazardous = map[string]bool{
-	"open manhole":           true,
-	"missing manhole cover":  true,
-	"live wire":              true,
-	"exposed electrical":     true,
-	"collapsed wall":         true,
-	"cracked bridge/fob":     true,
-	"distressed building":    true,
-	"unsafe scaffolding":     true,
-	"sewage overflow":        true,
-	"open drain":             true,
+	"open manhole":          true,
+	"missing manhole cover": true,
+	"live wire":             true,
+	"exposed electrical":    true,
+	"collapsed wall":        true,
+	"cracked bridge/fob":    true,
+	"distressed building":   true,
+	"unsafe scaffolding":    true,
+	"sewage overflow":       true,
+	"open drain":            true,
 }
 
 // Apply runs the platform's rules over a model result.

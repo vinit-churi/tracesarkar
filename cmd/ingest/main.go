@@ -66,6 +66,8 @@ func main() {
 		err = runEnrich(ctx, os.Args[min(2, len(os.Args)):])
 	case "classify":
 		err = runClassify(ctx, os.Args[min(2, len(os.Args)):])
+	case "sweep":
+		err = runSweep(ctx, os.Args[min(2, len(os.Args)):])
 	case "wards":
 		err = runWards(ctx, os.Args[min(2, len(os.Args)):])
 	case "review":

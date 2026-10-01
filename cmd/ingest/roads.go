@@ -14,8 +14,8 @@ import (
 
 // segmentSink adapts the store to the loader's interface.
 type segmentSink struct {
-	db          *store.DB
-	provenance  map[string]store.WorkRecord
+	db         *store.DB
+	provenance map[string]store.WorkRecord
 }
 
 func (s segmentSink) SaveSegment(ctx context.Context, seg roads.Segment) error {
@@ -89,4 +89,3 @@ func runRoads(ctx context.Context, args []string) error {
 	}
 	return nil
 }
-

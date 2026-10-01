@@ -101,5 +101,17 @@ func Run(ctx context.Context, o RunnerOptions) (int, error) {
 		log.Info("classification pass", "seen", len(pending), "classified", done,
 			"model", o.Model, "prompt", o.Prompt)
 	}
+
+	// A pass where nothing at all succeeded is reported, not just logged. One
+	// unreadable photograph among good ones is ordinary; a whole batch failing
+	// identically is an expired key, a retired model name or a provider that is
+	// down, and that must reach whoever is watching rather than sit in a log
+	// nobody reads during a day of fieldwork.
+	//
+	// A single capture failing on its own is not enough to tell the two apart,
+	// so it is left to the retry cap and the recorded attempt.
+	if len(pending) > 1 && done == 0 {
+		return done, fmt.Errorf("classify: all %d captures in this pass failed", len(pending))
+	}
 	return done, nil
 }
