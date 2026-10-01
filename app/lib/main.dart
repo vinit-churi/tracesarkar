@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'google_auth.dart';
 import 'screens/capture_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'session_store.dart';
@@ -11,11 +12,17 @@ void main() {
 }
 
 class TraceSarkarApp extends StatefulWidget {
-  const TraceSarkarApp({super.key, this.client, this.sessions});
+  const TraceSarkarApp({
+    super.key,
+    this.client,
+    this.sessions,
+    this.google,
+  });
 
   /// Injectable so a widget test can run the app against a fake server.
   final ApiClient? client;
   final SessionStore? sessions;
+  final GoogleAuthFlow? google;
 
   @override
   State<TraceSarkarApp> createState() => _TraceSarkarAppState();
@@ -24,6 +31,7 @@ class TraceSarkarApp extends StatefulWidget {
 class _TraceSarkarAppState extends State<TraceSarkarApp> {
   late final ApiClient _client = widget.client ?? ApiClient();
   late final SessionStore _sessions = widget.sessions ?? SessionStore();
+  late final GoogleAuthFlow _google = widget.google ?? GoogleAuth.instance;
 
   Session? _session;
   bool _restoring = true;
@@ -51,6 +59,7 @@ class _TraceSarkarAppState extends State<TraceSarkarApp> {
 
   Future<void> _signOut() async {
     await _sessions.clear();
+    await _google.signOut();
     if (!mounted) return;
     setState(() => _session = null);
   }
@@ -67,7 +76,11 @@ class _TraceSarkarAppState extends State<TraceSarkarApp> {
               body: Center(child: CircularProgressIndicator()),
             )
           : _session == null
-              ? SignInScreen(client: _client, onSignedIn: _signedIn)
+              ? SignInScreen(
+                  client: _client,
+                  google: _google,
+                  onSignedIn: _signedIn,
+                )
               : CaptureScreen(
                   client: _client,
                   session: _session!,

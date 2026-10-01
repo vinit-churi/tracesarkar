@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../google_auth.dart';
 import '../theme.dart';
+import '../widgets/google_button.dart';
 
 /// Sign in or create an account. One screen with two modes, because the
 /// difference between them is one field.
@@ -10,10 +12,15 @@ class SignInScreen extends StatefulWidget {
     super.key,
     required this.client,
     required this.onSignedIn,
+    this.google,
   });
 
   final ApiClient client;
   final Future<void> Function(Session) onSignedIn;
+
+  /// How Google sign-in happens. Injected so tests can drive it without a
+  /// platform channel; the real flow is used when it is left out.
+  final GoogleAuthFlow? google;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -25,9 +32,18 @@ class _SignInScreenState extends State<SignInScreen> {
   final _password = TextEditingController();
   final _name = TextEditingController();
 
+  late final GoogleAuthFlow _google = widget.google ?? GoogleAuth.instance;
+
   bool _registering = false;
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Subscribing is what picks up a session the browser already holds.
+    _google.start(_exchangeGoogleToken);
+  }
 
   @override
   void dispose() {
@@ -35,6 +51,28 @@ class _SignInScreenState extends State<SignInScreen> {
     _password.dispose();
     _name.dispose();
     super.dispose();
+  }
+
+  /// Trades Google's ID token for one of ours. The server decides whether the
+  /// token is genuine; a 401 here is an answer, not a transport failure.
+  Future<void> _exchangeGoogleToken(String idToken) async {
+    if (!mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.onSignedIn(await widget.client.signInWithGoogle(idToken));
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'Could not reach the server. Check the connection and try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -145,6 +183,15 @@ class _SignInScreenState extends State<SignInScreen> {
                             )
                           : Text(_registering ? 'Create account' : 'Sign in'),
                     ),
+                    if (_google.available) ...[
+                      const SizedBox(height: 16),
+                      const _Or(),
+                      const SizedBox(height: 16),
+                      googleSignInButton(
+                        onPressed:
+                            _busy ? () {} : () => _google.signIn(),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: _busy
@@ -167,6 +214,32 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The separator between the two ways in. Both are equal here; neither is
+/// presented as the preferred one.
+class _Or extends StatelessWidget {
+  const _Or();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: Tokens.hairline)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'or',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Tokens.ink70),
+          ),
+        ),
+        const Expanded(child: Divider(color: Tokens.hairline)),
+      ],
     );
   }
 }

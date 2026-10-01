@@ -20,7 +20,7 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 2. What we have, as of 29 September 2026
+## 2. What we have, as of 1 October 2026
 
 Three things are live and answering. Nothing below is aspirational.
 
@@ -28,6 +28,7 @@ Three things are live and answering. Nothing below is aspirational.
 |---|---|---|
 | **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy |
 | **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
+| **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 
@@ -179,7 +180,14 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 - [ ] **Narrow what CI holds:** an R2 token scoped to the `tracesarkar` bucket, and a database user
       limited to our tables rather than `avnadmin`. The repository is public. Then rotate both
 - [ ] **Revoke the temporary Dokploy API key** — that host is dead and the key is in a transcript
-- [ ] Create a **Web OAuth client ID** if you want the Google button wired
+- [ ] **Register an Android OAuth client** in Google Cloud so the Google button works on the phone
+      as well as the web: package `org.tracesarkar.app`, SHA-1
+      `30:A3:36:B2:D5:03:17:66:4A:90:9C:80:22:36:47:4E:7D:CD:BB:D2`
+      ([how and why](../06-operations/02-releasing-the-app.md))
+- [ ] **Add the GitHub secrets and variables** the Android workflow needs, listed in the same file.
+      Until they exist, a version tag fails the build rather than publishing an unsigned APK
+- [ ] **Back up `app/android/tracesarkar-release.jks`** somewhere off this machine. It is not in
+      the repository and cannot be regenerated; losing it strands every install
 - [ ] Read §6 and confirm or reverse each decision
 - [ ] Decide whether to tell BMC that its health-department map layer exposes patient records
 - [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM. Nothing collected reaches a
@@ -188,15 +196,11 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Mine, in order
 
-**System 3 — classification** is next, and needs nothing from you to start.
-
-- [ ] Claude vision with a structured output over the road-defect taxonomy, prompt in a versioned
-      file. **Default to Haiku 4.5** and escalate only if the eval set shows it failing — ADR 0006
-      currently defaults the other way and the eval set is what settles it
-- [ ] The eval harness, before the classifier is called done. A classifier without one is a demo
-
-Then, in sequence: issues and the SLA clock, finishing accounts, the public surface, the share kit,
-the operator console.
+- [ ] **Schedule the enrichment pass** so a verdict appears without anyone running
+      `ingest classify` by hand. The loop closes on the phone today only because that is run
+      manually
+- [ ] **System 4 — issues and the SLA clock.** Then: finishing accounts, the public surface, the
+      share kit, the operator console
 
 Carried, not forgotten:
 
@@ -205,7 +209,6 @@ Carried, not forgotten:
       [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) promises
 - [ ] **A real domain** before the public tier. `run.app` and `workers.dev` are fine for now and
       wrong for a civic platform asking to be trusted
-- [ ] `GET /v1/reports/{id}` so a capture can show what happened to it
 - [ ] Runner hardening: advisory lock per ingester, circuit breaker, metrics
 
 Full task list: [backlog](../05-delivery/03-backlog.md).
@@ -284,13 +287,19 @@ IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/trace
 gcloud builds submit --config deploy/cloudrun/api.cloudbuild.yaml --substitutions "_IMAGE=$IMAGE" --region asia-south1
 gcloud run deploy tracesarkar-api --image "$IMAGE" --region asia-south1
 
-# App -> Cloudflare Workers
-cd app
-flutter build web --release --dart-define=API_BASE=https://tracesarkar-api-mlkwom573a-el.a.run.app
-npm run deploy
+# App -> Cloudflare Workers. API_BASE and GOOGLE_CLIENT_ID are read from .env,
+# so neither is retyped from memory — a wrong API_BASE compiles a client that
+# talks to nothing and says nothing.
+make app-deploy
+
+# Android -> a signed APK on the download page
+git tag v0.1.1 && git push origin v0.1.1
 ```
 
-Deploys are explicit, not push-to-main ([ADR 0019](../04-adr/0019-api-on-cloud-run.md)).
+Deploys are explicit, not push-to-main ([ADR 0019](../04-adr/0019-api-on-cloud-run.md)). The
+Android build is the exception: it fires on a version tag, because the thing that makes it
+reproducible — the signing key — lives in CI, not here. See
+[releasing the app](../06-operations/02-releasing-the-app.md).
 
 ### Capturing on your phone
 

@@ -23,6 +23,11 @@ go.work.sum
 *.p12
 secrets/
 credentials.json
+# Google OAuth client files. Only the client_id is needed by this project and
+# it lives in .env; the client_secret in these files is not used at all,
+# because ID tokens are verified against Google's JWKS rather than exchanged.
+client_secret*.json
+*.apps.googleusercontent.com.json
 
 # Data — the archive lives in object storage, not git
 data/archive/
@@ -69,3 +74,10 @@ Thumbs.db
 tmp/
 .tmp/
 coverage.*
+
+# Android release signing. The keystore is the app's identity: losing it means
+# a new package, and leaking it means someone else can sign as us.
+*.jks
+*.jks.old
+*.keystore
+app/android/key.properties

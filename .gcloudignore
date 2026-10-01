@@ -23,5 +23,11 @@ deploy/
 bin/
 dist/
 *.md
+
+# The classifier's prompt is a .md file that the binary embeds. Excluding it
+# makes the build fail with "contains no embeddable files", which is a
+# confusing way to learn that a prompt is source code rather than prose.
+!internal/classify/prompts/
+!internal/classify/prompts/*.md
 data/archive/
 data/raw/

@@ -1,0 +1,172 @@
+name: android
+
+# Builds and publishes the Android app on a version tag. The APK goes to the
+# public R2 downloads bucket, which is what the page at /download reads, and to
+# a GitHub release as a second copy.
+#
+# Two things this workflow must get right:
+#
+#   * It signs with the release keystore, not a debug key. The key's SHA-1 is
+#     registered with Google OAuth, so a build signed with anything else cannot
+#     do Google sign-in — and an APK signed with a different key will not
+#     install over the previous one.
+#   * It compiles API_BASE in. A client built without it points at localhost and
+#     fails silently on a phone.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish when running by hand (e.g. v0.1.3)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Work out the version
+        id: version
+        run: |
+          raw="${{ github.event.inputs.version || github.ref_name }}"
+          echo "tag=$raw" >> "$GITHUB_OUTPUT"
+          echo "number=${raw#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. A debug-signed APK" \
+                 "would not install over the previous release and could not do" \
+                 "Google sign-in, so this build stops here."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > app/android/tracesarkar-release.jks
+          cat > app/android/key.properties <<EOF
+          storeFile=tracesarkar-release.jks
+          keyAlias=$KEY_ALIAS
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEYSTORE_PASSWORD
+          EOF
+
+      - name: Test
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Build the APK
+        working-directory: app
+        env:
+          API_BASE: ${{ vars.API_BASE }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+        run: |
+          test -n "$API_BASE" || { echo "::error::API_BASE variable is not set"; exit 1; }
+          flutter build apk --release \
+            --build-name="${{ steps.version.outputs.number }}" \
+            --build-number="${{ github.run_number }}" \
+            --dart-define=API_BASE="$API_BASE" \
+            --dart-define=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+
+      - name: Confirm it is signed with the release key
+        working-directory: app
+        run: |
+          # A debug-signed APK that reached here would install for nobody who
+          # already has the app. Fail loudly rather than publish it.
+          out=$(${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools | sort -V | tail -1)/apksigner \
+            verify --print-certs build/app/outputs/flutter-apk/app-release.apk)
+          echo "$out"
+          echo "$out" | grep -qi 'CN=TraceSarkar' || {
+            echo "::error::APK is not signed with the TraceSarkar release key"; exit 1; }
+
+      - name: Name the artefact
+        id: artefact
+        run: |
+          v="${{ steps.version.outputs.number }}"
+          src=app/build/app/outputs/flutter-apk/app-release.apk
+          out="tracesarkar-$v.apk"
+          cp "$src" "$out"
+          sha256sum "$out" | tee "$out.sha256"
+          {
+            echo "name=$out"
+            echo "bytes=$(stat -c%s "$out")"
+            echo "sha256=$(cut -d' ' -f1 < "$out.sha256")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_DOWNLOADS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_DOWNLOADS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: auto
+          ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          APK: ${{ steps.artefact.outputs.name }}
+        run: |
+          # latest.json is what the download page reads, so it is written last:
+          # until it points at the new APK, the page keeps offering the old one
+          # rather than a URL that 404s.
+          aws s3 cp "$APK" "s3://tracesarkar-downloads/android/$APK" \
+            --endpoint-url "$ENDPOINT" --content-type application/vnd.android.package-archive
+          aws s3 cp "$APK.sha256" "s3://tracesarkar-downloads/android/$APK.sha256" \
+            --endpoint-url "$ENDPOINT" --content-type text/plain
+
+          cat > latest.json <<EOF
+          {
+            "version": "${{ steps.version.outputs.number }}",
+            "path": "android/$APK",
+            "bytes": ${{ steps.artefact.outputs.bytes }},
+            "sha256": "${{ steps.artefact.outputs.sha256 }}",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}"
+          }
+          EOF
+          aws s3 cp latest.json s3://tracesarkar-downloads/android/latest.json \
+            --endpoint-url "$ENDPOINT" --content-type application/json \
+            --cache-control "no-cache"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.artefact.outputs.name }}
+        run: |
+          notes=$(cat <<EOF
+          Android build ${{ steps.version.outputs.tag }}.
+
+          Download: https://tracesarkar-app.infoyantra.workers.dev/download/
+
+          \`sha256 ${{ steps.artefact.outputs.sha256 }}\`
+
+          Nothing in this app files anything with any authority. Every complaint,
+          RTI or application it produces is a draft the person sends themselves.
+          EOF
+          )
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            gh release upload "${{ steps.version.outputs.tag }}" "$APK" "$APK.sha256" --clobber
+          else
+            gh release create "${{ steps.version.outputs.tag }}" "$APK" "$APK.sha256" \
+              --title "TraceSarkar ${{ steps.version.outputs.tag }}" --notes "$notes"
+          fi
