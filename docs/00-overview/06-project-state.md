@@ -31,6 +31,7 @@ Three things are live and answering. Nothing below is aspirational.
 | **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
+| **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich then classify, so a capture resolves itself |
 
 ### In the database
 
@@ -201,9 +202,14 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Mine, in order
 
-- [ ] **Schedule the enrichment pass** so a verdict appears without anyone running
-      `ingest classify` by hand. The loop closes on the phone today only because that is run
-      manually
+- [ ] **A labelling screen.** `report_labels` is empty and there is no way to fill it. Without one
+      a walk produces photographs rather than an eval set, and the eval set is what system 3's bar
+      is measured against
+- [ ] **`TestLiveRoadSegmentsAreFoundByDistance` fails** — "matched the wrong work: W-415". Pre-dates
+      the sweep work and is gated behind `TRACESARKAR_LIVE`, so CI is green and nobody saw it. It is
+      a system 1 test and system 1's bar was zero wrong matches, so it is either stale fixture
+      expectations after more works were ingested, or a regression. Settle which before the walk
+
 - [ ] **System 4 — issues and the SLA clock.** Then: finishing accounts, the public surface, the
       share kit, the operator console
 
