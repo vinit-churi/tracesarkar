@@ -27,14 +27,20 @@ type PendingLabel struct {
 // and the eval set stops being independent of the thing it measures. The same
 // mistake was made once on the attribution review queue and removed there.
 
-// UnlabelledReports returns captures with a photograph and no human label,
-// oldest first.
+// UnlabelledReports returns the account's own captures that have a photograph
+// and no human label, oldest first.
 //
 // Oldest first for the same reason the classification queue is: a day of
-// walking produces captures in the order they were taken, and labelling them
-// in that order keeps the labeller's memory of the walk in step with what they
-// are looking at.
-func (d *DB) UnlabelledReports(ctx context.Context, limit int) ([]PendingLabel, error) {
+// walking produces captures in the order they were taken, and labelling them in
+// that order keeps the labeller's memory of the walk in step with what they are
+// looking at.
+//
+// Scoped to one account because the photographs are. Serving another person's
+// capture is refused elsewhere, so a queue that listed them would be a column
+// of broken images — and their report ids, wards and timestamps are a
+// disclosure on their own. The comparison is on text, so a reporter that is not
+// a uuid simply matches nothing instead of failing.
+func (d *DB) UnlabelledReports(ctx context.Context, accountID string, limit int) ([]PendingLabel, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -47,10 +53,11 @@ func (d *DB) UnlabelledReports(ctx context.Context, limit int) ([]PendingLabel, 
 		     WHERE report_id = r.id ORDER BY created_at LIMIT 1
 		  ) m ON true
 		  LEFT JOIN report_jurisdiction j ON j.report_id = r.id
-		 WHERE NOT EXISTS (
+		 WHERE r.account_id::text = $1
+		   AND NOT EXISTS (
 		    SELECT 1 FROM report_labels l WHERE l.report_id = r.id)
 		 ORDER BY r.captured_at
-		 LIMIT $1`, limit)
+		 LIMIT $2`, accountID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find unlabelled reports: %w", err)
 	}

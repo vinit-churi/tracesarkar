@@ -52,7 +52,7 @@ func TestLiveUnlabelledReportsDrainAsTheyAreLabelled(t *testing.T) {
 
 	mine := func(t *testing.T) []store.PendingLabel {
 		t.Helper()
-		all, err := db.UnlabelledReports(ctx, 500)
+		all, err := db.UnlabelledReports(ctx, account, 500)
 		if err != nil {
 			t.Fatalf("UnlabelledReports: %v", err)
 		}
@@ -70,6 +70,29 @@ func TestLiveUnlabelledReportsDrainAsTheyAreLabelled(t *testing.T) {
 	queued := mine(t)
 	if len(queued) != 2 {
 		t.Fatalf("both captures must be queued for labelling; got %d", len(queued))
+	}
+	// Only the requester's own captures. The media endpoint already refuses to
+	// serve anyone else's photograph, so a queue that listed them would show a
+	// column of broken images — and listing another account's report ids,
+	// wards and timestamps is a disclosure in its own right.
+	if len(queued) != len(mine(t)) {
+		t.Fatal("the queue is not stable")
+	}
+	other, err := db.UnlabelledReports(ctx, "00000000-0000-0000-0000-000000000000", 500)
+	if err != nil {
+		t.Fatalf("UnlabelledReports for another account: %v", err)
+	}
+	for _, p := range other {
+		for _, id := range ids {
+			if p.ReportID == id {
+				t.Errorf("capture %s was queued for an account that does not own it", id)
+			}
+		}
+	}
+	// A reporter id that is not a uuid at all — the static field-kit token —
+	// must come back empty rather than erroring.
+	if _, err := db.UnlabelledReports(ctx, "field-kit", 10); err != nil {
+		t.Errorf("a non-uuid reporter must not error: %v", err)
 	}
 	// The archive key has to come with it, or the page cannot show the
 	// photograph and the labeller is guessing.

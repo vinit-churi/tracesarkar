@@ -17,7 +17,7 @@ import (
 // Labelling is what turns a day of walking into an evaluation set. Until it
 // exists, system 3 has a classifier and no way to say whether it is any good.
 type Labels interface {
-	UnlabelledReports(ctx context.Context, limit int) ([]store.PendingLabel, error)
+	UnlabelledReports(ctx context.Context, accountID string, limit int) ([]store.PendingLabel, error)
 	SaveReportLabel(ctx context.Context, in store.ReportLabel) error
 	// MediaFor returns the photograph's key and the account that owns it, so a
 	// capture is never served to anyone else.
@@ -48,7 +48,7 @@ func (s *Server) handleLabelQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pending, err := s.labels.UnlabelledReports(r.Context(), 200)
+	pending, err := s.labels.UnlabelledReports(r.Context(), s.reporter(r), 200)
 	if err != nil {
 		s.log.Error("could not read the labelling queue", "error", err.Error())
 		writeError(w, http.StatusInternalServerError, "could not read the labelling queue")

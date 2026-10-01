@@ -18,9 +18,13 @@ type fakeLabels struct {
 	ownsBy map[string]string // reportID -> accountID
 	keyBy  map[string]string // reportID -> archive key
 	err    error
+	// askedFor records which account the queue was read for, so the scoping
+	// is asserted rather than assumed.
+	askedFor string
 }
 
-func (f *fakeLabels) UnlabelledReports(context.Context, int) ([]store.PendingLabel, error) {
+func (f *fakeLabels) UnlabelledReports(_ context.Context, account string, _ int) ([]store.PendingLabel, error) {
+	f.askedFor = account
 	return f.queue, f.err
 }
 func (f *fakeLabels) SaveReportLabel(_ context.Context, in store.ReportLabel) error {
@@ -96,6 +100,9 @@ func TestLabelQueueDoesNotRevealWhatTheModelSaid(t *testing.T) {
 	// The archive key is internal; the page fetches through our own endpoint.
 	if strings.Contains(body, "media/r1/a.jpg") {
 		t.Errorf("the queue exposes the storage key: %s", body)
+	}
+	if labels.askedFor != "account-1" {
+		t.Errorf("the queue was read for %q, not the requester", labels.askedFor)
 	}
 }
 

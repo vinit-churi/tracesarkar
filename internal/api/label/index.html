@@ -13,6 +13,9 @@
     --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
   }
   *{box-sizing:border-box}
+  /* `main` sets display:grid, which beats the hidden attribute's display:none
+     and leaves the panel visible behind the sign-in form. */
+  [hidden]{display:none !important}
   body{margin:0;background:var(--paper);color:var(--ink);
        font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   header{display:flex;align-items:baseline;justify-content:space-between;
