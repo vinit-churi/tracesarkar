@@ -82,6 +82,16 @@ type Config struct {
 const defaultTier = "personal"
 
 // Load reads .env (if present) and then the process environment, which wins.
+// owned lists the keys this package reads into Config itself. They are taken
+// from the environment in preference to the file, and are never written back
+// to it.
+var owned = map[string]bool{
+	"R2_BUCKET_URL": true, "R2_BUCKET_NAME": true,
+	"R2_ACCESS_KEY": true, "R2_SECRET_ACCESS_KEY": true,
+	"POSTGRESQL_CONNECTION": true, "POSTGRES_CA_PATH": true, "POSTGRES_CA_PEM": true,
+	"NOTIFY_WEBHOOK_URL": true, "TRACESARKAR_TIER": true,
+}
+
 func Load(envFile string) (Config, error) {
 	values, err := parseEnvFile(envFile)
 	if err != nil {
@@ -91,14 +101,35 @@ func Load(envFile string) (Config, error) {
 	for k := range values {
 		fromFile[k] = true
 	}
-	for _, key := range []string{
-		"R2_BUCKET_URL", "R2_BUCKET_NAME", "R2_ACCESS_KEY", "R2_SECRET_ACCESS_KEY",
-		"POSTGRESQL_CONNECTION", "POSTGRES_CA_PATH", "POSTGRES_CA_PEM",
-		"NOTIFY_WEBHOOK_URL", "TRACESARKAR_TIER",
-	} {
+	for key := range owned {
 		if v, ok := os.LookupEnv(key); ok && v != "" {
 			values[key] = v
 			fromFile[key] = false
+		}
+	}
+
+	// Keys this package does not itself interpret are exported, so that code
+	// reading os.Getenv elsewhere — the classifier's provider key and model
+	// name — can see them. Deployed jobs get their configuration as a mounted
+	// secret, because Cloud Run offers no other channel for one, so without
+	// this they are invisible in production while working on any machine that
+	// has them exported in a shell.
+	//
+	// The keys above are deliberately not exported. Load resolves a relative
+	// CA path against the env file's own directory, and it can only tell a
+	// file-provided path from an environment one by their absence from the
+	// environment — exporting them would break that on the next call.
+	//
+	// A value already in the environment wins, so a one-off override on the
+	// command line is not replaced by whatever the deployed secret holds.
+	for k, v := range values {
+		if owned[k] {
+			continue
+		}
+		if _, ok := os.LookupEnv(k); !ok && v != "" {
+			if err := os.Setenv(k, v); err != nil {
+				return Config{}, fmt.Errorf("export %s from %s: %w", k, envFile, err)
+			}
 		}
 	}
 

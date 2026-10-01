@@ -282,3 +282,51 @@ func TestCAFileStillRefusesBase64OfSomethingElse(t *testing.T) {
 		t.Fatal("base64 that decodes to a non-certificate must still be refused")
 	}
 }
+
+// TRACESARKAR_ENV_FILE is how the deployed jobs get their configuration: a
+// secret mounted as a file, because that is the only channel Cloud Run offers
+// for one. Code that reads os.Getenv — the classifier's provider key, its model
+// name — then sees nothing, and fails in production while working everywhere a
+// developer has the same values exported in their shell.
+//
+// So the file has to behave like an environment, not like a struct with a fixed
+// list of fields.
+func TestLoadExportsFileValuesIntoTheEnvironment(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "env")
+	write := func(extra string) {
+		base := "R2_BUCKET_URL=https://r2.example\n" +
+			"R2_BUCKET_NAME=b\nR2_ACCESS_KEY=k\nR2_SECRET_ACCESS_KEY=s\n" +
+			"POSTGRESQL_CONNECTION=postgres://u@h/db\n"
+		if err := os.WriteFile(path, []byte(base+extra), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("a key only the file knows about becomes readable", func(t *testing.T) {
+		write("CLASSIFY_API_KEY=from-file\n")
+		os.Unsetenv("CLASSIFY_API_KEY")
+		t.Cleanup(func() { os.Unsetenv("CLASSIFY_API_KEY") })
+
+		if _, err := Load(path); err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if got := os.Getenv("CLASSIFY_API_KEY"); got != "from-file" {
+			t.Errorf("got %q, want the value from the file", got)
+		}
+	})
+
+	t.Run("a value already in the environment wins", func(t *testing.T) {
+		// Otherwise a one-off override on the command line would be silently
+		// replaced by whatever the deployed secret happens to hold.
+		write("CLASSIFY_MODEL=from-file\n")
+		t.Setenv("CLASSIFY_MODEL", "from-the-shell")
+
+		if _, err := Load(path); err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if got := os.Getenv("CLASSIFY_MODEL"); got != "from-the-shell" {
+			t.Errorf("got %q, want the environment to win", got)
+		}
+	})
+}
