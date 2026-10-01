@@ -178,3 +178,107 @@ func TestARefusedModelNeverReachesTheNetwork(t *testing.T) {
 		t.Errorf("the caller should be able to tell a policy refusal apart: %T", err)
 	}
 }
+
+func TestJSONObjectModeSendsTheShapeInThePromptInstead(t *testing.T) {
+	// Some providers accept only the weaker json_object mode, which
+	// guarantees parseable JSON but enforces no schema. The shape then has to
+	// reach the model through the prompt, and be validated here afterwards.
+	var sent map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&sent)
+		_, _ = w.Write([]byte(gatewayReply(t, Result{
+			Category: "road_defect", Subcategory: "pothole",
+			IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9,
+		})))
+	}))
+	defer srv.Close()
+
+	c := NewGateway(GatewayOptions{
+		BaseURL: srv.URL, APIKey: "k", Model: "deepseek-flash",
+		HTTPClient: srv.Client(), SchemaMode: SchemaJSONObject,
+	})
+	if _, err := c.Classify(context.Background(), []byte("jpeg"), ""); err != nil {
+		t.Fatalf("Classify: %v", err)
+	}
+
+	rf, _ := sent["response_format"].(map[string]any)
+	if rf == nil || rf["type"] != "json_object" {
+		t.Errorf("response_format: got %v, want json_object", sent["response_format"])
+	}
+	if rf["json_schema"] != nil {
+		t.Error("json_object mode must not send a json_schema block; providers reject it")
+	}
+	// The shape has to be described somewhere the model will read it.
+	raw, _ := json.Marshal(sent)
+	for _, want := range []string{"is_civic_issue", "image_quality", "confidence"} {
+		if !strings.Contains(string(raw), want) {
+			t.Errorf("json_object mode did not describe %q to the model", want)
+		}
+	}
+}
+
+func TestAReplyMissingRequiredFieldsIsRejected(t *testing.T) {
+	// Without schema enforcement the provider can return any JSON at all.
+	// Accepting a reply with no category would route a complaint nowhere.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"rationale\":\"something\"}"}}]}`))
+	}))
+	defer srv.Close()
+
+	c := NewGateway(GatewayOptions{BaseURL: srv.URL, APIKey: "k", Model: "m",
+		HTTPClient: srv.Client(), SchemaMode: SchemaJSONObject, MaxAttempts: 1})
+
+	_, err := c.Classify(context.Background(), []byte("jpeg"), "")
+	if err == nil {
+		t.Fatal("a reply with no category must be refused")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "category") {
+		t.Errorf("the error should name what was missing: %v", err)
+	}
+}
+
+func TestReasoningModelsGetEnoughRoomToAnswer(t *testing.T) {
+	// A reasoning model spends max_tokens on reasoning first. Measured
+	// against deepseek-flash: 577 reasoning tokens before a 177-token answer.
+	// A 600-token budget returns finish_reason "length" and empty content —
+	// which looks like a broken classifier rather than a budget mistake.
+	var sent map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&sent)
+		_, _ = w.Write([]byte(gatewayReply(t, Result{
+			Category: "road_defect", Subcategory: "pothole",
+			IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9,
+		})))
+	}))
+	defer srv.Close()
+
+	c := NewGateway(GatewayOptions{BaseURL: srv.URL, APIKey: "k", Model: "m", HTTPClient: srv.Client()})
+	if _, err := c.Classify(context.Background(), []byte("jpeg"), ""); err != nil {
+		t.Fatal(err)
+	}
+
+	budget, _ := sent["max_tokens"].(float64)
+	if budget < 2000 {
+		t.Errorf("max_tokens is %v; a reasoning model will spend that before answering", budget)
+	}
+}
+
+func TestAnEmptyAnswerIsReportedAsSuch(t *testing.T) {
+	// finish_reason "length" with empty content is the reasoning-budget
+	// failure. It must not surface as an unhelpful JSON parse error.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"length","message":{"content":""}}]}`))
+	}))
+	defer srv.Close()
+
+	c := NewGateway(GatewayOptions{BaseURL: srv.URL, APIKey: "k", Model: "m",
+		HTTPClient: srv.Client(), MaxAttempts: 1})
+
+	_, err := c.Classify(context.Background(), []byte("jpeg"), "")
+	if err == nil {
+		t.Fatal("an empty answer must be an error")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "token") {
+		t.Errorf("the error should point at the token budget: %v", err)
+	}
+}
