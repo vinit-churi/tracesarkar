@@ -62,6 +62,8 @@ func main() {
 		err = runWatch(ctx, os.Args[2:])
 	case "roads":
 		err = runRoads(ctx, os.Args[min(2, len(os.Args)):])
+	case "enrich":
+		err = runEnrich(ctx, os.Args[min(2, len(os.Args)):])
 	case "classify":
 		err = runClassify(ctx, os.Args[min(2, len(os.Args)):])
 	case "wards":
@@ -94,6 +96,7 @@ func usage() {
   ingest watch [--limit n]   archive newly published Government Resolutions
   ingest roads [--ward R/C]  project collected works into road geometry
   ingest classify            classify captures that have not been classified
+  ingest enrich              resolve ward and contract for captures
   ingest wards               fetch and load BMC ward boundaries
   ingest review [--count n]  queue attribution answers for a human verdict
   ingest all                 snapshot, then watch — one nightly invocation
