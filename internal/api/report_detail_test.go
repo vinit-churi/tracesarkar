@@ -23,6 +23,16 @@ func (f *fakeDetails) ReportDetail(_ context.Context, id string) (ReportDetail, 
 	return d, ok, nil
 }
 
+func (f *fakeDetails) ReportsFor(_ context.Context, accountID string, _ int) ([]ReportDetail, error) {
+	var out []ReportDetail
+	for _, d := range f.byID {
+		if d.AccountID == accountID {
+			out = append(out, d)
+		}
+	}
+	return out, nil
+}
+
 func detailServer(t *testing.T, d *fakeDetails) (*Server, string) {
 	t.Helper()
 	issuer, err := auth.NewIssuer("a-test-signing-secret-32-bytes!!!", time.Hour)
@@ -153,5 +163,33 @@ func TestTheFieldKitTokenCannotBrowseReports(t *testing.T) {
 
 	if rec.Code == http.StatusOK {
 		t.Fatal("an anonymous caller must not read a person's report")
+	}
+}
+
+func TestTheListOnlyEverShowsYourOwnReports(t *testing.T) {
+	mine := sampleDetail()
+	theirs := sampleDetail()
+	theirs.ID, theirs.AccountID = "rep-2", "someone-else"
+
+	srv, token := detailServer(t, &fakeDetails{byID: map[string]ReportDetail{
+		"rep-1": mine, "rep-2": theirs,
+	}})
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/reports", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Reports []ReportDetail `json:"reports"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Reports) != 1 || body.Reports[0].ID != "rep-1" {
+		t.Errorf("the list leaked someone else's report: %+v", body.Reports)
 	}
 }

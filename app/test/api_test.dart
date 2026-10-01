@@ -158,4 +158,61 @@ void main() {
 
     expect(keys.first, keys.last);
   });
+
+  test('a report that has not been enriched yet is still a report', () {
+    // Enrichment runs after the photograph is safe, so a capture can exist
+    // without a verdict. The app must render that, not treat it as broken.
+    final d = ReportDetail.fromJson({'id': 'r1', 'status': 'pending'});
+
+    expect(d.id, 'r1');
+    expect(d.enriched, isFalse);
+    expect(d.summary, 'Working on it…');
+  });
+
+  test('a fully enriched report reads back whole', () {
+    final d = ReportDetail.fromJson({
+      'id': 'r1',
+      'status': 'pending',
+      'classification': {
+        'category': 'road_defect',
+        'subcategory': 'pothole',
+        'outcome': 'accepted',
+        'confidence': 0.91,
+        'rationale': 'Large depression in asphalt',
+      },
+      'ward': 'R/C',
+      'authority': 'BMC',
+      'contractor_name': 'M/s Example Infracon Pvt. Ltd',
+      'road_name': 'Jain Mandir Road',
+      'contract_source': 'bmc_roads_api',
+    });
+
+    expect(d.enriched, isTrue);
+    expect(d.summary, 'pothole');
+    expect(d.ward, 'R/C');
+    expect(d.contractorName, 'M/s Example Infracon Pvt. Ltd');
+  });
+
+  test('reports are read from the list endpoint', () async {
+    final client = ApiClient(
+      baseUrl: 'https://api.test',
+      client: MockClient((request) async {
+        expect(request.headers['Authorization'], 'Bearer tok-1');
+        return http.Response(
+          jsonEncode({
+            'reports': [
+              {'id': 'r1', 'status': 'pending'},
+              {'id': 'r2', 'status': 'pending'},
+            ]
+          }),
+          200,
+        );
+      }),
+    );
+
+    final list = await client.reports('tok-1');
+
+    expect(list.length, 2);
+    expect(list.first.id, 'r1');
+  });
 }

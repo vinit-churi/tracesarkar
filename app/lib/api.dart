@@ -94,6 +94,82 @@ class Capture {
   }
 }
 
+/// What the platform concluded about one capture. Every part is optional:
+/// enrichment runs after the photograph is safe, so a report may be stored
+/// and not yet understood — and a report with a ward and no contract is a
+/// complete answer, not a half-finished one.
+class ReportDetail {
+  ReportDetail({
+    required this.id,
+    required this.status,
+    this.createdAt,
+    this.category,
+    this.subcategory,
+    this.outcome,
+    this.confidence,
+    this.rationale,
+    this.ward,
+    this.authority,
+    this.wardBasis,
+    this.contractorName,
+    this.roadName,
+    this.contractBasis,
+    this.contractSource,
+    this.attributionConfidence,
+  });
+
+  factory ReportDetail.fromJson(Map<String, dynamic> json) {
+    final c = json['classification'] as Map<String, dynamic>?;
+    return ReportDetail(
+      id: (json['id'] ?? '') as String,
+      status: (json['status'] ?? '') as String,
+      createdAt: json['created_at'] as String?,
+      category: c?['category'] as String?,
+      subcategory: c?['subcategory'] as String?,
+      outcome: c?['outcome'] as String?,
+      confidence: (c?['confidence'] as num?)?.toDouble(),
+      rationale: c?['rationale'] as String?,
+      ward: json['ward'] as String?,
+      authority: json['authority'] as String?,
+      wardBasis: json['ward_basis'] as String?,
+      contractorName: json['contractor_name'] as String?,
+      roadName: json['road_name'] as String?,
+      contractBasis: json['contract_basis'] as String?,
+      contractSource: json['contract_source'] as String?,
+      attributionConfidence: json['attribution_confidence'] as String?,
+    );
+  }
+
+  final String id;
+  final String status;
+  final String? createdAt;
+  final String? category;
+  final String? subcategory;
+  final String? outcome;
+  final double? confidence;
+  final String? rationale;
+  final String? ward;
+  final String? authority;
+  final String? wardBasis;
+  final String? contractorName;
+  final String? roadName;
+  final String? contractBasis;
+  final String? contractSource;
+  final String? attributionConfidence;
+
+  /// Whether the platform has finished thinking about this capture.
+  bool get enriched => outcome != null && ward != null;
+
+  /// A short line for a list row.
+  String get summary {
+    if (subcategory != null && subcategory!.isNotEmpty) return subcategory!;
+    if (category != null && category!.isNotEmpty) {
+      return category!.replaceAll('_', ' ');
+    }
+    return 'Working on it…';
+  }
+}
+
 class ApiClient {
   ApiClient({http.Client? client, this.baseUrl = apiBase})
       : _client = client ?? http.Client();
@@ -161,6 +237,29 @@ class ApiClient {
     final response = await http.Response.fromStream(streamed);
     final decoded = _decode(response);
     return decoded['report_id'] as String;
+  }
+
+  /// Reads one capture and everything concluded about it.
+  Future<ReportDetail> report(String id, String token) async {
+    final response = await _client.get(
+      _url('/v1/reports/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final decoded = _decode(response);
+    return ReportDetail.fromJson(decoded['report'] as Map<String, dynamic>);
+  }
+
+  /// Reads the signed-in person's own captures, newest first.
+  Future<List<ReportDetail>> reports(String token) async {
+    final response = await _client.get(
+      _url('/v1/reports'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final decoded = _decode(response);
+    final items = (decoded['reports'] as List<dynamic>? ?? const []);
+    return items
+        .map((e) => ReportDetail.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Map<String, dynamic> _decode(http.Response response) {

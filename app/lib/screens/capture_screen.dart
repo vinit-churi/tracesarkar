@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import '../api.dart';
 import '../fixture_position.dart';
 import '../theme.dart';
+import '../widgets/verdict.dart';
+import 'reports_screen.dart';
 
 /// A capture that has reached the server, kept for this session so the person
 /// can see what they sent.
@@ -79,6 +82,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
   bool _sending = false;
   String? _error;
   final List<_Sent> _sent = [];
+  ReportDetail? _verdict;
+  bool _watching = false;
 
   @override
   void initState() {
@@ -183,7 +188,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
         _sent.insert(0, _Sent(reportId, DateTime.now()));
         _photo = null;
         _notes.clear();
+        _verdict = null;
       });
+      // Enrichment runs after the capture is safe, so the answer arrives a
+      // few seconds later. Watch for it rather than making the person guess.
+      unawaited(_watchVerdict(reportId));
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -196,6 +205,32 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
   }
 
+  /// Polls until the platform has worked out what the capture is.
+  ///
+  /// It gives up quietly: the report is safe and visible under My reports
+  /// either way, and a spinner that never stops is worse than a short wait
+  /// that ends.
+  Future<void> _watchVerdict(String reportId) async {
+    if (_watching) return;
+    setState(() => _watching = true);
+    try {
+      for (var attempt = 0; attempt < 12; attempt++) {
+        await Future<void>.delayed(const Duration(seconds: 3));
+        if (!mounted) return;
+        try {
+          final r = await widget.client.report(reportId, widget.session.token);
+          if (!mounted) return;
+          setState(() => _verdict = r);
+          if (r.enriched) return;
+        } catch (_) {
+          // A failed poll is not a failed capture.
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _watching = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
@@ -205,6 +240,14 @@ class _CaptureScreenState extends State<CaptureScreen> {
       appBar: AppBar(
         title: const Text('TraceSarkar'),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => ReportsScreen(
+                  client: widget.client, session: widget.session),
+            )),
+            child: const Text('My reports',
+                style: TextStyle(color: Tokens.accent)),
+          ),
           TextButton(
             onPressed: widget.onSignOut,
             child: const Text('Sign out',
@@ -270,6 +313,22 @@ class _CaptureScreenState extends State<CaptureScreen> {
                   'is a draft you review and submit yourself.',
                   style: text.bodySmall,
                 ),
+                if (_verdict != null) ...[
+                  const SizedBox(height: 24),
+                  Text('What we worked out', style: text.titleMedium),
+                  const SizedBox(height: 10),
+                  VerdictCard(report: _verdict!),
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ReportsScreen(
+                          client: widget.client, session: widget.session),
+                      ),
+                    ),
+                    child: const Text('See all my reports'),
+                  ),
+                ],
                 if (_sent.isNotEmpty) ...[
                   const SizedBox(height: 32),
                   Text('Sent in this session', style: text.titleMedium),

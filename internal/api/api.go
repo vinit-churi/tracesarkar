@@ -149,6 +149,7 @@ func (s *Server) Handler() http.Handler {
 	// The attribution review surface. Personal tier: it exists so a human can
 	// put a precision number on the join before anything it produces is shown
 	// to anyone.
+	mux.Handle("GET /v1/reports", s.authenticated(http.HandlerFunc(s.handleReportList)))
 	mux.Handle("GET /v1/reports/{id}", s.authenticated(http.HandlerFunc(s.handleReportDetail)))
 
 	mux.Handle("GET /v1/review/attribution", s.authenticated(http.HandlerFunc(s.handleReviewQueue)))

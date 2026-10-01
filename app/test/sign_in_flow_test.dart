@@ -142,4 +142,20 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('the capture screen offers a way into past reports',
+      (tester) async {
+    await SessionStore().save(Session(
+      token: 'tok-1',
+      account: Account(id: 'acct-1', email: 'a@b.org', name: 'A'),
+    ));
+    await tester.pumpWidget(TraceSarkarApp(
+      client: clientReturning((_) => signedIn('a@b.org')),
+      sessions: SessionStore(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My reports'), findsOneWidget);
+  });
+
 }

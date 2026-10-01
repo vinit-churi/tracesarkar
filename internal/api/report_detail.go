@@ -14,6 +14,7 @@ type ReportDetail = store.ReportDetail
 // Details reads one capture and everything concluded about it.
 type Details interface {
 	ReportDetail(ctx context.Context, id string) (ReportDetail, bool, error)
+	ReportsFor(ctx context.Context, accountID string, limit int) ([]ReportDetail, error)
 }
 
 // handleReportDetail returns one capture to the person who made it.
@@ -47,4 +48,28 @@ func (s *Server) handleReportDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"report": detail})
+}
+
+// handleReportList returns the signed-in person's own captures, newest first.
+func (s *Server) handleReportList(w http.ResponseWriter, r *http.Request) {
+	if s.details == nil {
+		writeError(w, http.StatusNotImplemented, "reports are not configured on this server")
+		return
+	}
+	claims, ok := claimsFrom(r.Context())
+	if !ok || claims.AccountID == "" {
+		writeError(w, http.StatusForbidden, "sign in to see your reports")
+		return
+	}
+
+	reports, err := s.details.ReportsFor(r.Context(), claims.AccountID, 100)
+	if err != nil {
+		s.log.Error("could not list reports", "error", err.Error())
+		writeError(w, http.StatusInternalServerError, "could not read your reports")
+		return
+	}
+	if reports == nil {
+		reports = []ReportDetail{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"reports": reports})
 }

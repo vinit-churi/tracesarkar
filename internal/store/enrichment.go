@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/vinit-churi/tracesarkar/internal/attribute"
+	"github.com/vinit-churi/tracesarkar/internal/classify"
 	"github.com/vinit-churi/tracesarkar/internal/jurisdiction"
 )
 
@@ -194,4 +195,62 @@ func (d *DB) ReportDetail(ctx context.Context, id string) (ReportDetail, bool, e
 	out.AttrConfidence = e.AttrConfidence
 
 	return out, true, nil
+}
+
+// ReportsFor returns one person's captures, newest first, each with whatever
+// the platform has concluded about it so far.
+func (d *DB) ReportsFor(ctx context.Context, accountID string, limit int) ([]ReportDetail, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	rows, err := d.pool.Query(ctx, `
+		SELECT r.id::text, r.status::text,
+		       to_char(r.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+		       ST_Y(r.location::geometry), ST_X(r.location::geometry),
+		       COALESCE(r.location_accuracy_m, 0)::float8,
+		       COALESCE(c.category,''), COALESCE(c.subcategory,''),
+		       COALESCE(c.outcome,''), COALESCE(c.confidence,0)::float8,
+		       COALESCE(j.ward,''), COALESCE(j.authority,''),
+		       COALESCE(a.contractor_name,''), COALESCE(a.location_name,''),
+		       COALESCE(a.confidence,'')
+		  FROM reports r
+		  LEFT JOIN LATERAL (SELECT category, subcategory, outcome, confidence
+		                       FROM classifications
+		                      WHERE report_id = r.id AND error IS NULL
+		                      ORDER BY created_at DESC LIMIT 1) c ON true
+		  LEFT JOIN LATERAL (SELECT ward, authority FROM report_jurisdiction
+		                      WHERE report_id = r.id AND error IS NULL
+		                      ORDER BY created_at DESC LIMIT 1) j ON true
+		  LEFT JOIN LATERAL (SELECT contractor_name, location_name, confidence
+		                       FROM report_attribution
+		                      WHERE report_id = r.id AND error IS NULL
+		                      ORDER BY created_at DESC LIMIT 1) a ON true
+		 WHERE r.account_id = $1::uuid
+		 ORDER BY r.created_at DESC
+		 LIMIT $2`, accountID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list reports: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ReportDetail
+	for rows.Next() {
+		var d ReportDetail
+		var cat, sub, outcome string
+		var conf float64
+		if err := rows.Scan(&d.ID, &d.Status, &d.CreatedAt, &d.Lat, &d.Lon,
+			&d.AccuracyM, &cat, &sub, &outcome, &conf,
+			&d.Ward, &d.Authority, &d.ContractorName, &d.RoadName,
+			&d.AttrConfidence); err != nil {
+			return nil, fmt.Errorf("scan report: %w", err)
+		}
+		if outcome != "" {
+			d.Classification = &classify.Decision{
+				Result:  classify.Result{Category: cat, Subcategory: sub, Confidence: conf},
+				Outcome: classify.Outcome(outcome),
+			}
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
 }
