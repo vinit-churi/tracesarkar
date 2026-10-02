@@ -200,7 +200,7 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 - [ ] **Register an Android OAuth client** in Google Cloud so the Google button works on the phone
       as well as the web: package `org.tracesarkar.app`, SHA-1
       `30:A3:36:B2:D5:03:17:66:4A:90:9C:80:22:36:47:4E:7D:CD:BB:D2`
-      ([how and why](../06-operations/02-releasing-the-app.md))
+      ([how and why](../06-operations/05-releasing-the-app.md))
 - [ ] **Add the GitHub secrets and variables** the Android workflow needs, listed in the same file.
       Until they exist, a version tag fails the build rather than publishing an unsigned APK
 - [ ] **Back up `app/android/tracesarkar-release.jks`** somewhere off this machine. It is not in
@@ -317,7 +317,7 @@ git tag v0.1.1 && git push origin v0.1.1
 Deploys are explicit, not push-to-main ([ADR 0019](../04-adr/0019-api-on-cloud-run.md)). The
 Android build is the exception: it fires on a version tag, because the thing that makes it
 reproducible — the signing key — lives in CI, not here. See
-[releasing the app](../06-operations/02-releasing-the-app.md).
+[releasing the app](../06-operations/05-releasing-the-app.md).
 
 ### Capturing on your phone
 

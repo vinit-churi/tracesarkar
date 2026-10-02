@@ -128,22 +128,57 @@ tsctl ai budget set --daily <lower>       # last resort; degrades to queue-and-c
 
 ## 2. Deployment
 
+> **Most of this file describes v1 and does not exist yet** — `tsctl`, the outbox, the deadline
+> scheduler. This section is the exception: it is what actually runs today, and it is kept correct
+> because following a wrong deployment command is how outages start.
+
 ```bash
-# Standard
-git tag v0.2.3 && git push origin v0.2.3      # CI builds, tests, deploys to staging
-tsctl deploy promote --version v0.2.3         # staging → production, after the manual gate
+# API -> Cloud Run. Deploys are explicit, not push-to-main (ADR 0019).
+IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/tracesarkar-api:$(git rev-parse --short HEAD)"
+gcloud builds submit --config deploy/cloudrun/api.cloudbuild.yaml \
+  --substitutions "_IMAGE=$IMAGE" --region asia-south1
+gcloud run deploy tracesarkar-api --image "$IMAGE" --region asia-south1
 
-# Migration (runs before the rolling deploy)
-tsctl migrate status
-tsctl migrate up --dry-run
-tsctl migrate up
+# Collector and sweep share one image.
+IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/tracesarkar-collector:$(git rev-parse --short HEAD)"
+gcloud builds submit --tag "$IMAGE" --region asia-south1 .
+gcloud run jobs update tracesarkar-collector --image "$IMAGE" --region asia-south1
+gcloud run jobs update tracesarkar-sweep      --image "$IMAGE" --region asia-south1
 
-# Rollback (app only — migrations are forward-only and expand/contract safe)
-tsctl deploy rollback api
+# Flutter web client. API_BASE and GOOGLE_CLIENT_ID come from .env.
+make app-deploy
+
+# Rollback: every Cloud Run deploy is a revision, and traffic is moved, not rebuilt.
+gcloud run revisions list --service tracesarkar-api --region asia-south1
+gcloud run services update-traffic tracesarkar-api --to-revisions <REVISION>=100 --region asia-south1
 ```
+
+**A `v*` tag does not deploy anything.** It builds and publishes the Android APK — see
+[releasing the app](05-releasing-the-app.md). Tagging to deploy the API is a mistake this file used
+to invite.
 
 **Migration rule:** every migration must be safe against the previous application version. If it is
 not, it is split into two deploys (expand, then contract).
+
+### The sweep job
+
+`tracesarkar-sweep` runs `ingest sweep` every ten minutes: enrich, then classify. It is what makes a
+capture resolve itself instead of waiting for someone to run a command.
+
+```bash
+gcloud run jobs execute tracesarkar-sweep --region asia-south1 --wait   # run it now
+gcloud logging read 'resource.labels.job_name=tracesarkar-sweep' --limit 20 --freshness=1h
+```
+
+A failed run means one of two things, and the log line says which:
+
+| Log | What it means |
+|---|---|
+| `classify: all N captures in this pass failed` | The provider is down, the key has expired, or the model name has been retired. Check `CLASSIFY_*` in the `tracesarkar-env` secret |
+| A single `classification failed` warning, job green | One unreadable photograph. It is retried up to five times and then left alone ([D087](../00-overview/05-decision-log.md)) |
+
+Stages are independent: a classification outage does not stop jurisdiction resolving, and anything
+missed is picked up by the next run.
 
 ---
 

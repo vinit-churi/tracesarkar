@@ -59,15 +59,19 @@ The gap in MMR governance is not data. It is **synthesis and consequence**.
 
 ## Repository map
 
-**Live now:** an API on Cloud Run, a Flutter client on Cloudflare Workers, and a collector that
-archives BMC's works data twice a day. Two of v1's eight systems have met their measured bars —
-attribution (point to contract, 50 of 50 judged right by a human, zero wrong-contractor matches)
-and jurisdiction (98.17% over 2,405 road works). Everything else lands per the roadmap.
+**Live now:** an API on Cloud Run, a Flutter client on Cloudflare Workers and Android, a collector
+that archives BMC's works data twice a day, and a sweep that enriches and classifies captures every
+ten minutes. Two of v1's eight systems have met their measured bars — attribution (point to
+contract, 50 of 50 judged right by a human, zero wrong-contractor matches) and jurisdiction (98.17%
+over 2,405 road works). Everything else lands per the roadmap.
 
 | | |
 |---|---|
 | App | `https://tracesarkar-app.infoyantra.workers.dev` |
+| Android | `https://tracesarkar-app.infoyantra.workers.dev/download/` |
 | API | `https://tracesarkar-api-mlkwom573a-el.a.run.app` |
+| Label | `…run.app/label/` — ground truth for the classifier's eval set |
+| Review | `…run.app/review/` — attribution verdicts |
 
 Start at [project state](docs/00-overview/06-project-state.md) §2 for what exists today.
 
@@ -79,8 +83,14 @@ Start at [project state](docs/00-overview/06-project-state.md) §2 for what exis
 | [`docs/03-architecture/`](docs/03-architecture/) | System overview, data model, API design, AI pipeline, jurisdiction engine, tender engine, ingestion, deployment, security |
 | [`docs/04-adr/`](docs/04-adr/) | Architecture Decision Records — why Go, why Postgres+PostGIS, why H3, why this AI stack |
 | [`docs/05-delivery/`](docs/05-delivery/) | Roadmap, MVP definition, backlog, metrics, risk register, go-to-market |
-| [`docs/06-operations/`](docs/06-operations/) | Runbook, moderation policy, legal review checklist, cost model |
-| [`cmd/`](cmd/), [`internal/`](internal/) | Go binaries and packages: the ingest command, the API, archive, store, source register, parsers, runner |
+| [`docs/06-operations/`](docs/06-operations/) | Runbook, moderation policy, legal review checklist, cost model, releasing the app |
+| [`cmd/`](cmd/) | `ingest` (collect, enrich, classify, sweep, review) and `api` |
+| [`internal/attribute/`](internal/attribute/) | Point to road to contract, with the confidence gate that asks rather than guesses |
+| [`internal/jurisdiction/`](internal/jurisdiction/) | Ward, department and the edge-distance gate |
+| [`internal/classify/`](internal/classify/) | Taxonomy, versioned prompts, the guardrails, the eval harness |
+| [`internal/roads/`](internal/roads/) | BMC geometry into PostGIS segments |
+| [`internal/sweep/`](internal/sweep/) | Runs the stages that turn a stored capture into an answer |
+| [`internal/`](internal/) | Also: api, archive, store, config, sources, works, ingest, notify, auth |
 | [`app/`](app/README.md) | The Flutter client — Android and web from one codebase: sign in, capture, send |
 | [`docs/templates/`](docs/templates/) | RTI application, NGT original application, Lokayukta complaint, consumer complaint templates |
 
