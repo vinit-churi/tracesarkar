@@ -28,7 +28,7 @@ Three things are live and answering. Nothing below is aspirational.
 |---|---|---|
 | **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy |
 | **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
-| **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag |
+| **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag. v0.1.1 queues captures offline |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
 | **Label** | `…run.app/label/` | Ground truth for the eval set, two keystrokes a capture |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
