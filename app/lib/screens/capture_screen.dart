@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../api.dart';
+import '../outbox.dart';
 import '../fixture_position.dart';
 import '../theme.dart';
 import '../widgets/verdict.dart';
@@ -60,7 +61,12 @@ class CaptureScreen extends StatefulWidget {
     required this.client,
     required this.session,
     required this.onSignOut,
+    this.outbox,
   });
+
+  /// Captures that could not be sent yet. A walk goes in and out of signal and
+  /// a photograph of a pothole cannot be taken again later.
+  final CaptureStore? outbox;
 
   final ApiClient client;
   final Session session;
@@ -81,7 +87,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
   bool _locating = false;
   bool _sending = false;
   String? _error;
+  late final CaptureStore _outbox = widget.outbox ?? Outbox();
+
   final List<_Sent> _sent = [];
+  int _waiting = 0;
   ReportDetail? _verdict;
   bool _watching = false;
 
@@ -89,6 +98,23 @@ class _CaptureScreenState extends State<CaptureScreen> {
   void initState() {
     super.initState();
     _locate();
+    // Anything the last walk could not send goes now, while there is signal.
+    unawaited(_drain());
+  }
+
+  /// Sends whatever is waiting and reports what is left.
+  Future<void> _drain() async {
+    final result = await _outbox.flush(
+      (c) => widget.client.submit(c, widget.session.token),
+    );
+    final left = await _outbox.count();
+    if (!mounted) return;
+    setState(() => _waiting = left);
+    if (result.rejected > 0) {
+      setState(() => _error =
+          '${result.rejected} saved capture(s) were refused by the server and '
+          'have been discarded.');
+    }
   }
 
   @override
@@ -194,11 +220,31 @@ class _CaptureScreenState extends State<CaptureScreen> {
       // few seconds later. Watch for it rather than making the person guess.
       unawaited(_watchVerdict(reportId));
     } on ApiException catch (e) {
+      // The server answered and refused. Saving it would only queue something
+      // that will be refused again.
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
+      // The server could not be reached. The photograph cannot be taken again,
+      // so it is written down and sent when there is signal.
+      await _outbox.add(Capture(
+        bytes: photo,
+        filename: _filename,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracyMetres: position.accuracyMetres,
+        capturedAt: position.at,
+        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+      ));
+      final left = await _outbox.count();
       if (mounted) {
-        setState(() => _error =
-            'Could not reach the server. The capture has not been sent; try again.');
+        setState(() {
+          _waiting = left;
+          _photo = null;
+          _notes.clear();
+          _verdict = null;
+          _error = 'No signal. Saved — it will send itself when you are back '
+              'online. Keep walking.';
+        });
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -306,6 +352,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
                         )
                       : const Text('Send capture'),
                 ),
+                if (_waiting > 0) ...[
+                  const SizedBox(height: 12),
+                  _WaitingNote(count: _waiting, onRetry: _drain),
+                ],
                 const SizedBox(height: 8),
                 Text(
                   'Sending records the photograph and where it was taken. '
@@ -553,6 +603,53 @@ class _SentCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+/// What is still waiting to reach the server.
+///
+/// Shown rather than hidden: someone who has walked for three hours needs to
+/// see that nothing is stuck, and a queue that drains silently is
+/// indistinguishable from one that has lost the photographs.
+class _WaitingNote extends StatelessWidget {
+  const _WaitingNote({required this.count, required this.onRetry});
+
+  final int count;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Tokens.cautionWash,
+        borderRadius: BorderRadius.circular(Tokens.chipRadius),
+        border: Border.all(color: Tokens.caution.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.schedule, size: 20, color: Tokens.caution),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              count == 1
+                  ? '1 capture waiting to send. It is saved on this phone.'
+                  : '$count captures waiting to send. They are saved on this '
+                      'phone.',
+              style: text.bodyLarge?.copyWith(color: Tokens.caution),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text('Send now',
+                style: TextStyle(color: Tokens.caution)),
+          ),
+        ],
       ),
     );
   }
