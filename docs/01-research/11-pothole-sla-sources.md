@@ -106,13 +106,44 @@ above already gives a citable BMC deadline with a penalty.
 
 ---
 
-## What goes in `legal_constants`
+## What is in `legal_constants`
+
+Loaded 3 October 2026 by migration 0019. The table had been empty until then,
+which meant every clock the product showed was either absent or a literal
+somewhere — the thing [hard rule 6](../../CLAUDE.md) exists to prevent.
 
 | Key | Value | Citation | Note |
 |---|---|---|---|
-| `pothole.attend_hours.court` | 48 | `2025:BHC-OS:18736-DB` para 70(ix), 13 Oct 2025 | Binds the corporation |
-| `pothole.attend_hours.contract` | 24 | BMC tender ETH_8000040832 §10.11 | Binds the contractor in DLP |
+| `pothole.attend_hours.court` | 48 | `2025:BHC-OS:18736-DB` para 70(ix), 13 Oct 2025 | Binds the corporation, from notification |
+| `pothole.attend_hours.contract` | 24 | BMC tender ETH_8000040832 §10.11 | Binds the contractor in DLP, from intimation |
 | `pothole.penalty_per_day_paise` | 500000 | Same tender §7.4 | ₹5,000/day per pothole |
+| `waste.refuse_removal_hours` | 24 | R/C SWM RTI manual §4(1)(b)(iii) | Sweeping and refuse removal |
+| `waste.silt_debris_removal_hours` | 24 | Same manual | Silt and debris removal |
+
+### Waste has its own published deadline, and it is BMC's own
+
+Found 3 October 2026 while mapping departments, in BMC's R/Central Solid Waste
+Management RTI handbook, Section 4(1)(b)(iii):
+
+| Activity | Time limit | Basis |
+|---|---|---|
+| Sweeping of roads & removal of refuse | **Within 24 hours** | MMC Act 1888 §365(a); circular DMC/ENV SWM/4345 dt. 16.03.2006 |
+| Removal of silt & debris | **Within 24 hours** | MMC Act 1888 §375(A); same circular |
+
+This is the garbage equivalent of the pothole clock and it needed no RTI — BMC
+publishes it. The circular reference is worth requesting in its own right.
+
+### Water supply has no published repair deadline, and that is a finding
+
+The R/Central Water Works handbook publishes time limits for **granting a
+connection, reading a meter and disconnecting a supply** — fifteen days, ten
+days, four days. It publishes **none for repairing a leak or a burst main**.
+Its "Public Complaints" paragraph says only that complaints may be registered
+with the ward Complaint Officer and the city Water Control Office.
+
+So for a water leak the platform can name the department and must say plainly
+that it has no deadline to show. Borrowing the pothole's 48 hours would be
+inventing one. This is the clearest candidate for the next RTI.
 
 Where both apply, **the shorter binds** and the platform should say which is which — a citizen
 reading "24 hours" deserves to know it is the contractor's own contract, not a court order.

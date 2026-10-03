@@ -44,7 +44,9 @@ Three things are live and answering. Nothing below is aspirational.
 | Road segments in PostGIS | 2,405 · **779 km** of carriageway |
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
-| Department mappings | 2 · both sourced |
+| Department mappings | 4 · road defects, waste, water supply — all sourced |
+| Routable categories | 3 of 6 · `road_defect`, `waste`, `water_drainage` |
+| Legal constants | 5 · two pothole clocks, a penalty, two waste clocks |
 | Government resolutions watched | 248 |
 | Captures stored | 6 |
 | Attribution verdicts by a human | 50 |
@@ -173,6 +175,9 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Yours, next week
 
+- [ ] **Photograph more than potholes.** Garbage, overflowing bins, illegal dumping, blocked
+      drains, waterlogging and burst pipes all route now, and the eval set is far more useful
+      across three categories than one
 - [ ] **Label as you go.** Open `…run.app/label/` on a laptop and work through the walk's captures:
       a number for the category, a number for what it is, `s` to skip. Skip anything you cannot
       read from the photograph alone — a guess becomes a wrong answer the classifier is marked
