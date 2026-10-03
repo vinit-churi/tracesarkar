@@ -240,6 +240,13 @@ Full task list: [backlog](../05-delivery/03-backlog.md).
 
 ## 9. Open questions that matter now
 
+**Widening beyond R/C** has its own file now:
+[scaling beyond one ward](../05-delivery/09-scaling-beyond-one-ward.md). The short of it: the Bombay
+High Court's pothole order already binds every corporation, council and collector in Maharashtra,
+and three Acts cover all 317 urban bodies — so most of the legal layer is statewide already and the
+binding constraint is a boundary dataset, not per-body research.
+
+
 | # | Question | Why now |
 |---|---|---|
 | Q2 | What is the Maharashtra RTI fee? | Blocks RTI generation; your first RTI settles it |

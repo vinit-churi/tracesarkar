@@ -82,7 +82,7 @@ Start at [project state](docs/00-overview/06-project-state.md) §2 for what exis
 | [`docs/02-product/`](docs/02-product/) | Personas, full feature catalog, user flows, the snap-to-action pipeline, trust & anti-abuse, share kit, chatbot, Watchdog TUI |
 | [`docs/03-architecture/`](docs/03-architecture/) | System overview, data model, API design, AI pipeline, jurisdiction engine, tender engine, ingestion, deployment, security |
 | [`docs/04-adr/`](docs/04-adr/) | Architecture Decision Records — why Go, why Postgres+PostGIS, why H3, why this AI stack |
-| [`docs/05-delivery/`](docs/05-delivery/) | Roadmap, MVP definition, backlog, metrics, risk register, go-to-market |
+| [`docs/05-delivery/`](docs/05-delivery/) | Roadmap, MVP definition, backlog, metrics, risk register, go-to-market, scaling beyond one ward |
 | [`docs/06-operations/`](docs/06-operations/) | Runbook, moderation policy, legal review checklist, cost model, releasing the app |
 | [`cmd/`](cmd/) | `ingest` (collect, enrich, classify, sweep, review) and `api` |
 | [`internal/attribute/`](internal/attribute/) | Point to road to contract, with the confidence gate that asks rather than guesses |

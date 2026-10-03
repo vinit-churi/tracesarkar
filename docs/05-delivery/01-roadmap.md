@@ -1,5 +1,9 @@
 # Roadmap
 
+> **Beyond one ward:** how this widens to the rest of Maharashtra — the five layers, the
+> coverage ladder, and what not to do — is in
+> [scaling beyond one ward](09-scaling-beyond-one-ward.md).
+
 **Governing principle:** every phase must produce something a real person uses, and every phase is
 gated on the previous one producing evidence — not on the previous one merely shipping.
 
