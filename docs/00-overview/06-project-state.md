@@ -82,6 +82,18 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 
+**The first real captures landed on 5 October 2026, and earned their keep.** Two photographs of a
+waste problem — one in R/C, one in R/N — went through the whole chain, and reading what came back
+found three defects no probe could have shown: a road contractor named against a garbage report, a
+subcategory vocabulary nothing was checking, and coverage that ignored the ward
+([D101](05-decision-log.md)–[D104](05-decision-log.md)). All three are fixed. The lesson is the one
+the limit below already stated, now with evidence: probes test the join, photographs test the
+product.
+
+**Photograph quality is now a measured constraint.** Both evening captures were rated `poor` by the
+classifier and scored 0.50 and 0.62 against a confidence floor of 0.65, so both correctly asked
+rather than guessed. Daylight, close, filling the frame.
+
 **System 1 was investigated on 1 October 2026 and holds.** A live test reading "matched the wrong
 work" turned out to be asserting on a tie-break, not a mis-attribution — see
 [D090](05-decision-log.md). The investigation did measure something worth knowing: 269 pairs of
