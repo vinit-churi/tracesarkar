@@ -35,6 +35,7 @@ type captureMeta struct {
 		Label           string   `json:"label"`
 		Conditions      []string `json:"conditions"`
 		WardGroundTruth string   `json:"ward_ground_truth"`
+		Landmark        string   `json:"landmark"`
 		Notes           string   `json:"notes"`
 	} `json:"label"`
 }
@@ -191,6 +192,7 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 				Label:           label,
 				Conditions:      meta.Label.Conditions,
 				WardGroundTruth: meta.Label.WardGroundTruth,
+				Landmark:        meta.Label.Landmark,
 				Notes:           meta.Label.Notes,
 				LabelledBy:      s.reporter(r),
 			}); err != nil {

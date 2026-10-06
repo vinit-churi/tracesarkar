@@ -47,13 +47,19 @@ type NewMedia struct {
 // ReportLabel is the human judgement that makes a report usable as evaluation
 // data. Without it a photograph is a photograph, not ground truth.
 type ReportLabel struct {
-	ReportID        string
-	FrameType       string
-	Label           string
-	Conditions      []string
+	ReportID   string
+	FrameType  string
+	Label      string
+	Conditions []string
+	// WardGroundTruth is the surveyor's own answer, used to score what the
+	// resolver computes from the GPS. Empty when they do not know, which is
+	// the honest and common case — a guess here scores a correct answer wrong.
 	WardGroundTruth string
-	Notes           string
-	LabelledBy      string
+	// Landmark is what they do know: a street or a corner. It establishes the
+	// ward independently of the fix, at a desk, from BMC's own ward maps.
+	Landmark   string
+	Notes      string
+	LabelledBy string
 }
 
 // Media as stored.
@@ -189,15 +195,17 @@ func (d *DB) SaveReportLabel(ctx context.Context, in ReportLabel) error {
 	}
 	_, err := d.pool.Exec(ctx, `
 		INSERT INTO report_labels (report_id, frame_type, label, conditions,
-		                           ward_ground_truth, notes, labelled_by)
-		VALUES ($1::uuid, $2, $3, $4, NULLIF($5,''), NULLIF($6,''), NULLIF($7,'')::uuid)
+		                           ward_ground_truth, landmark, notes, labelled_by)
+		VALUES ($1::uuid, $2, $3, $4, NULLIF($5,''), NULLIF($6,''), NULLIF($7,''),
+		        NULLIF($8,'')::uuid)
 		ON CONFLICT (report_id) DO UPDATE SET
 		  frame_type = EXCLUDED.frame_type, label = EXCLUDED.label,
 		  conditions = EXCLUDED.conditions,
 		  ward_ground_truth = EXCLUDED.ward_ground_truth,
+		  landmark = EXCLUDED.landmark,
 		  notes = EXCLUDED.notes, labelled_at = now()`,
 		in.ReportID, in.FrameType, in.Label, conditions,
-		in.WardGroundTruth, in.Notes, in.LabelledBy)
+		in.WardGroundTruth, in.Landmark, in.Notes, in.LabelledBy)
 	if err != nil {
 		return fmt.Errorf("save label: %w", err)
 	}

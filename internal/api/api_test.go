@@ -155,3 +155,34 @@ func TestTheWardCanBeChangedWhileSurveying(t *testing.T) {
 		t.Error("the ward chooser is inside the setup card")
 	}
 }
+
+// The ward is what the resolver computes from the GPS fix, and ward_ground_truth
+// exists to score that computation — so it cannot be filled in from the same
+// fix, and it must not be guessed. Almost nobody standing on a street in Mumbai
+// knows their lettered ward; what they do know is the street.
+func TestTheFieldKitAsksForALandmarkAndNotAGuessedWard(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	body := rec.Body.String()
+
+	if !strings.Contains(body, `id="where"`) {
+		t.Error("it does not ask where the surveyor is")
+	}
+	if !strings.Contains(body, "landmark") {
+		t.Error("the landmark is not sent with the capture")
+	}
+	// Not sure must be the default, so an unknown is recorded as unknown.
+	if !strings.Contains(body, `<option value="">not sure</option>`) {
+		t.Error(`"not sure" is not the default ward`)
+	}
+	if strings.Contains(body, `ward.value = settings.ward || 'R/C'`) {
+		t.Error("the ward still defaults to a guess")
+	}
+}

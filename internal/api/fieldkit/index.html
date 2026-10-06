@@ -90,9 +90,15 @@
     <span class="chip" data-frame="noticeboard">noticeboard</span>
   </div>
 
-  <label for="ward">Ward you are standing in</label>
-  <select id="ward"><option value="">loading…</option></select>
-  <p class="muted" id="ward-note"></p>
+  <label for="where">Where are you</label>
+  <input id="where" type="text" placeholder="street or landmark — e.g. Chandavarkar Road, near the station">
+  <p class="muted">What you can actually name. The ward is worked out from this
+     later, at a desk, from BMC's own maps.</p>
+
+  <label for="ward">Ward, if you happen to know it</label>
+  <select id="ward"><option value="">not sure</option></select>
+  <p class="muted" id="ward-note">Leave this alone unless you are certain. A
+     guess scores a correct answer as wrong.</p>
 
   <label for="label">What is it</label>
   <select id="label"><option value="">loading the taxonomy…</option></select>
@@ -263,8 +269,13 @@ async function loadTaxonomy() {
     // answer as wrong, and somewhere outside every boundary has to be sayable
     // — Mira Road is a different corporation, 1.5 km past the nearest ward we
     // hold, and pretending it is a BMC ward would poison the golden set.
+    // "not sure" stays first and stays the default. The ward is what the
+    // resolver computes from the fix and what this is meant to score it
+    // against, so it cannot be filled in from that same fix — and a guess is
+    // worse than an absence, because nobody can tell afterwards which points
+    // were sound.
     const ward = els('ward');
-    ward.innerHTML = '';
+    ward.innerHTML = '<option value="">not sure</option>';
     for (const w of (body.wards || [])) {
       const o = document.createElement('option');
       o.value = w; o.textContent = w;
@@ -275,13 +286,15 @@ async function loadTaxonomy() {
     outside.textContent = 'outside BMC — a different corporation';
     ward.appendChild(outside);
 
-    ward.value = settings.ward || 'R/C';
+    ward.value = settings.ward || '';
     ward.onchange = () => {
       settings.save(settings.token, ward.value);
       els('ward-note').textContent = ward.value === 'outside'
         ? 'Nothing here can be resolved — no boundary, no department, no contract. '
           + 'Useful only as a case the platform must answer honestly.'
-        : '';
+        : (ward.value === ''
+            ? 'Fine. The landmark above is what matters.'
+            : '');
     };
     ward.onchange();
   } catch (e) {
@@ -357,6 +370,7 @@ els('capture').onclick = async () => {
         label: els('label').value,
         conditions: selected('conditions', 'cond'),
         ward_ground_truth: settings.ward,
+        landmark: els('where').value.trim(),
         notes: els('notes').value.trim()
       }
     },
