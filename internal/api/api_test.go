@@ -136,21 +136,23 @@ func TestTheWardCanBeChangedWhileSurveying(t *testing.T) {
 	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
 	body := rec.Body.String()
 
-	// Chosen from what the platform actually holds, never typed.
-	if strings.Contains(body, `<input id="ward"`) {
-		t.Error("the ward is still a free-text field")
+	// Offered from the wards the platform holds, however it is rendered — the
+	// point is that it is not free text with no list behind it.
+	if !strings.Contains(body, `list="wards"`) && !strings.Contains(body, `<select id="ward">`) {
+		t.Error("the ward is not offered from the wards we hold")
 	}
-	if !strings.Contains(body, `<select id="ward">`) {
-		t.Error("the ward is not a chooser")
-	}
-	// Somewhere outside every boundary has to be sayable. Mira Road is a
-	// different corporation and calling it a BMC ward poisons the golden set.
-	if !strings.Contains(body, "outside BMC") {
+	// Somewhere outside every boundary has to be sayable, and discoverable.
+	// Mira Road is a different corporation and calling it a BMC ward poisons
+	// the golden set.
+	if !strings.Contains(body, "outside") {
 		t.Error("there is no way to say you are outside BMC")
+	}
+	if !strings.Contains(body, "in a BMC ward at all") {
+		t.Error("nothing tells the surveyor that option exists")
 	}
 	// And it must sit with the capture, not behind the sign-in card.
 	setup := strings.Index(body, `id="setup"`)
-	ward := strings.Index(body, `<select id="ward">`)
+	ward := strings.Index(body, `id="ward"`)
 	if setup < 0 || ward < 0 || ward < setup {
 		t.Error("the ward chooser is inside the setup card")
 	}
@@ -178,11 +180,47 @@ func TestTheFieldKitAsksForALandmarkAndNotAGuessedWard(t *testing.T) {
 	if !strings.Contains(body, "landmark") {
 		t.Error("the landmark is not sent with the capture")
 	}
-	// Not sure must be the default, so an unknown is recorded as unknown.
-	if !strings.Contains(body, `<option value="">not sure</option>`) {
-		t.Error(`"not sure" is not the default ward`)
+	// Unknown must be the default, so an unknown is recorded as unknown. The
+	// field starts empty and says so, rather than pre-selecting a ward the
+	// surveyor would then have to notice and correct.
+	if !strings.Contains(body, `placeholder="not sure"`) {
+		t.Error("the ward field does not default to not knowing")
 	}
 	if strings.Contains(body, `ward.value = settings.ward || 'R/C'`) {
 		t.Error("the ward still defaults to a guess")
+	}
+}
+
+// Six categories and forty subcategories in a dropdown is a scroll on a phone,
+// one-handed, in the sun. Typed and filtered is faster, and the list is still
+// the taxonomy's — a free-text box that accepts anything would send labels the
+// server drops.
+func TestTheFieldKitFiltersRatherThanScrolls(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	body := rec.Body.String()
+
+	for _, id := range []string{"label", "ward"} {
+		if !strings.Contains(body, `<input id="`+id+`" list=`) {
+			t.Errorf("%q is not an autocomplete", id)
+		}
+		if strings.Contains(body, `<select id="`+id+`">`) {
+			t.Errorf("%q is still a dropdown", id)
+		}
+	}
+	// Typed freely means it has to be checked before it is sent, or a
+	// photograph arrives with a label the server silently drops.
+	if !strings.Contains(body, "KNOWN_LABELS") {
+		t.Error("a typed label is never checked against the taxonomy")
+	}
+	if !strings.Contains(body, "will not be recorded") {
+		t.Error("nothing tells the surveyor their label is unusable")
 	}
 }

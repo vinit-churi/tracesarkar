@@ -96,12 +96,17 @@
      later, at a desk, from BMC's own maps.</p>
 
   <label for="ward">Ward, if you happen to know it</label>
-  <select id="ward"><option value="">not sure</option></select>
-  <p class="muted" id="ward-note">Leave this alone unless you are certain. A
-     guess scores a correct answer as wrong.</p>
+  <input id="ward" list="wards" placeholder="not sure" autocomplete="off"
+         autocapitalize="characters" spellcheck="false">
+  <datalist id="wards"></datalist>
+  <p class="muted" id="ward-note">Leave it blank unless you are certain — a
+     guess scores a correct answer as wrong. Type <b>outside</b> if you are not
+     in a BMC ward at all, such as Mira Road.</p>
 
   <label for="label">What is it</label>
-  <select id="label"><option value="">loading the taxonomy…</option></select>
+  <input id="label" list="labels" placeholder="start typing — pothole, dumping…"
+         autocomplete="off" spellcheck="false">
+  <datalist id="labels"></datalist>
   <p class="muted" id="label-hint"></p>
 
   <label>Conditions</label>
@@ -232,6 +237,8 @@ function refreshCaptureButton() {
 // missing_manhole_cover, garbage, not_civic — none of them values the taxonomy
 // holds. A label it does not hold cannot be scored against anything, so every
 // photograph taken with one was a guaranteed miss in the evaluation.
+let KNOWN_LABELS = new Set();
+
 const HINTS = {
   'illegal dumping': 'No bin or collection point here — someone left it.',
   'uncollected garbage': 'At a bin or collection point, not emptied.',
@@ -249,21 +256,34 @@ async function loadTaxonomy() {
     if (!res.ok) throw new Error('could not load the taxonomy');
     const body = await res.json();
     const hazards = new Set(body.hazards || []);
-    const sel = els('label');
-    sel.innerHTML = '';
+    KNOWN_LABELS = new Set();
+    const list = els('labels');
+    list.innerHTML = '';
     for (const category of Object.keys(body.taxonomy).sort()) {
-      const group = document.createElement('optgroup');
-      group.label = category.replace(/_/g, ' ');
       for (const sub of body.taxonomy[category]) {
+        KNOWN_LABELS.add(sub);
         const o = document.createElement('option');
         o.value = sub;
-        o.textContent = hazards.has(sub) ? sub + '  ⚠ hazard' : sub;
-        group.appendChild(o);
+        // The category and the hazard mark ride along as the description, so
+        // typing "man" surfaces "open manhole · road_defect · hazard".
+        o.label = category.replace(/_/g, ' ') + (hazards.has(sub) ? ' · hazard' : '');
+        list.appendChild(o);
       }
-      sel.appendChild(group);
     }
-    sel.onchange = () => { els('label-hint').textContent = HINTS[sel.value] || ''; };
-    sel.onchange();
+    const label = els('label');
+    label.oninput = () => {
+      const v = label.value.trim().toLowerCase();
+      if (!v) { els('label-hint').textContent = ''; label.style.borderColor = ''; return; }
+      // Typed freely, so it has to be checked here too: a value the taxonomy
+      // does not hold is dropped by the server, and a photograph that arrives
+      // without a label is a photograph nobody can score.
+      const known = KNOWN_LABELS.has(v);
+      label.style.borderColor = known ? '' : 'var(--alert)';
+      els('label-hint').textContent = known
+        ? (HINTS[v] || (hazards.has(v) ? 'Treated as a hazard.' : ''))
+        : 'Not one of the labels — pick from the list or this will not be recorded.';
+    };
+    label.oninput();
 
     // Wards are chosen, not typed. A misspelled ground truth scores a correct
     // answer as wrong, and somewhere outside every boundary has to be sayable
@@ -275,28 +295,26 @@ async function loadTaxonomy() {
     // worse than an absence, because nobody can tell afterwards which points
     // were sound.
     const ward = els('ward');
-    ward.innerHTML = '<option value="">not sure</option>';
-    for (const w of (body.wards || [])) {
+    const wards = els('wards');
+    wards.innerHTML = '';
+    for (const w of (body.wards || []).concat(['outside'])) {
       const o = document.createElement('option');
-      o.value = w; o.textContent = w;
-      ward.appendChild(o);
+      o.value = w;
+      o.label = w === 'outside' ? 'a different corporation' : 'BMC ward';
+      wards.appendChild(o);
     }
-    const outside = document.createElement('option');
-    outside.value = 'outside';
-    outside.textContent = 'outside BMC — a different corporation';
-    ward.appendChild(outside);
 
     ward.value = settings.ward || '';
-    ward.onchange = () => {
-      settings.save(settings.token, ward.value);
+    ward.oninput = () => {
+      settings.save(settings.token, ward.value.trim());
       els('ward-note').textContent = ward.value === 'outside'
         ? 'Nothing here can be resolved — no boundary, no department, no contract. '
           + 'Useful only as a case the platform must answer honestly.'
-        : (ward.value === ''
-            ? 'Fine. The landmark above is what matters.'
+        : (ward.value.trim() === ''
+            ? 'Fine — the landmark above is what matters.'
             : '');
     };
-    ward.onchange();
+    ward.oninput();
   } catch (e) {
     setStatus('taxonomy unavailable — sign in first');
   }
@@ -367,9 +385,9 @@ els('capture').onclick = async () => {
       captured_at: new Date().toISOString(),
       label: {
         frame_type: (selected('frames', 'frame')[0] || 'close'),
-        label: els('label').value,
+        label: els('label').value.trim().toLowerCase(),
         conditions: selected('conditions', 'cond'),
-        ward_ground_truth: settings.ward,
+        ward_ground_truth: settings.ward === 'outside' ? '' : settings.ward,
         landmark: els('where').value.trim(),
         notes: els('notes').value.trim()
       }
