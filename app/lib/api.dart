@@ -116,6 +116,9 @@ class ReportDetail {
     this.contractBasis,
     this.contractSource,
     this.attributionConfidence,
+    this.latitude,
+    this.longitude,
+    this.accuracyMetres,
   });
 
   factory ReportDetail.fromJson(Map<String, dynamic> json) {
@@ -137,6 +140,9 @@ class ReportDetail {
       contractBasis: json['contract_basis'] as String?,
       contractSource: json['contract_source'] as String?,
       attributionConfidence: json['attribution_confidence'] as String?,
+      latitude: (json['lat'] as num?)?.toDouble(),
+      longitude: (json['lon'] as num?)?.toDouble(),
+      accuracyMetres: (json['accuracy_m'] as num?)?.toDouble(),
     );
   }
 
@@ -156,6 +162,19 @@ class ReportDetail {
   final String? contractBasis;
   final String? contractSource;
   final String? attributionConfidence;
+
+  /// Where the photograph was taken, and how far out that may be.
+  ///
+  /// Nullable rather than defaulted: 0,0 is a real place in the Gulf of Guinea
+  /// and no capture was ever taken there. The accuracy travels with it because
+  /// every confidence gate downstream reasons about it — a verdict that says
+  /// "the point lies 9 m from this road" is unreadable without knowing the fix
+  /// could be out by six.
+  final double? latitude;
+  final double? longitude;
+  final double? accuracyMetres;
+
+  bool get hasLocation => latitude != null && longitude != null;
 
   /// Whether the platform has finished thinking about this capture.
   bool get enriched => outcome != null && ward != null;
@@ -247,6 +266,22 @@ class ApiClient {
     );
     final decoded = _decode(response);
     return ReportDetail.fromJson(decoded['report'] as Map<String, dynamic>);
+  }
+
+  /// Reads one capture's photograph.
+  ///
+  /// Fetched with the token rather than handed to an <img>: the archive bucket
+  /// is not public, and this endpoint serves a capture only to the account that
+  /// made it.
+  Future<Uint8List> media(String id, String token) async {
+    final response = await _client.get(
+      _url('/v1/reports/$id/media'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode >= 400) {
+      throw ApiException(response.statusCode, 'That photograph could not be loaded.');
+    }
+    return response.bodyBytes;
   }
 
   /// Reads the signed-in person's own captures, newest first.

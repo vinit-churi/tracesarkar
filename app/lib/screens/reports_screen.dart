@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -171,6 +173,7 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   ReportDetail? _report;
+  Uint8List? _photo;
   String? _error;
 
   @override
@@ -184,6 +187,12 @@ class _ReportScreenState extends State<ReportScreen> {
       final r = await widget.client.report(widget.reportId, widget.session.token);
       if (!mounted) return;
       setState(() => _report = r);
+      // The photograph is the report. It is fetched separately because the
+      // archive is not public and the bytes need the token.
+      final bytes =
+          await widget.client.media(widget.reportId, widget.session.token);
+      if (!mounted) return;
+      setState(() => _photo = bytes);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -206,6 +215,8 @@ class _ReportScreenState extends State<ReportScreen> {
               else if (_report == null)
                 const Center(child: CircularProgressIndicator())
               else ...[
+                _PhotoAndPlace(report: _report!, photo: _photo),
+                const SizedBox(height: 16),
                 VerdictCard(report: _report!),
                 const SizedBox(height: 12),
                 Text(
@@ -218,6 +229,66 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// The photograph, and where it was taken.
+///
+/// Shown above the verdict because it is what the person recognises — a list
+/// of conclusions about a capture you cannot see is hard to trust and
+/// impossible to correct. The position is theirs and this screen is theirs,
+/// so it is exact here; public surfaces coarsen it (hard rule 4).
+class _PhotoAndPlace extends StatelessWidget {
+  const _PhotoAndPlace({required this.report, required this.photo});
+
+  final ReportDetail report;
+  final Uint8List? photo;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(Tokens.cardRadius),
+          child: AspectRatio(
+            aspectRatio: 4 / 3,
+            child: photo == null
+                ? Container(
+                    color: Tokens.evidence,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : Image.memory(photo!, fit: BoxFit.cover),
+          ),
+        ),
+        if (report.hasLocation) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.place_outlined, size: 16, color: Tokens.ink45),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${report.latitude!.toStringAsFixed(5)}, '
+                  '${report.longitude!.toStringAsFixed(5)}'
+                  '${report.accuracyMetres != null ? ' · ±${report.accuracyMetres!.round()} m' : ''}',
+                  style: text.bodySmall?.copyWith(color: Tokens.ink45),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
