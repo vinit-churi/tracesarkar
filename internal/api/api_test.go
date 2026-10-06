@@ -1,0 +1,54 @@
+package api
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+// The methodology page is the one surface that must work without signing in.
+// A platform that publishes facts about named parties has to publish how it got
+// them, and a page nobody can reach proves nothing.
+func TestMethodologyIsPublic(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	// Deliberately no Authorization header.
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/methodology/", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d without a token, want 200", rec.Code)
+	}
+	body := rec.Body.String()
+
+	// The limitations are the part that makes the rest worth reading.
+	for _, must := range []string{
+		"Limitations",
+		"Classification accuracy is unmeasured",
+		"2025:BHC-OS:18736-DB",
+		"Nothing is ever filed automatically",
+	} {
+		if !strings.Contains(body, must) {
+			t.Errorf("the page does not say %q", must)
+		}
+	}
+	// It must not claim a number the project has not measured. Checked past
+	// the stylesheet, because a table is allowed to be 100% wide.
+	prose := body
+	if i := strings.Index(body, "</style>"); i >= 0 {
+		prose = body[i:]
+	}
+	if strings.Contains(prose, "100%") {
+		t.Error("the page claims 100% in its prose; the honest floor is 92.9%")
+	}
+	if !strings.Contains(prose, "92.9%") {
+		t.Error("the page does not show the measured precision floor")
+	}
+}

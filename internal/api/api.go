@@ -178,6 +178,13 @@ func (s *Server) Handler() http.Handler {
 			mux.Handle("GET /review/", reviewPage)
 			mux.Handle("GET /review", http.RedirectHandler("/review/", http.StatusFound))
 		}
+		if page, err := methodologyHandler(); err == nil {
+			// Public on purpose, and the only page that is. A platform that
+			// publishes facts about named parties has to publish how it got
+			// them and what it does not know.
+			mux.Handle("GET /methodology/", page)
+			mux.Handle("GET /methodology", http.RedirectHandler("/methodology/", http.StatusFound))
+		}
 		if labelPage, err := labelHandler(); err == nil {
 			mux.Handle("GET /label/", labelPage)
 			mux.Handle("GET /label", http.RedirectHandler("/label/", http.StatusFound))
@@ -284,6 +291,9 @@ var reviewFS embed.FS
 //go:embed label
 var labelFS embed.FS
 
+//go:embed methodology
+var methodologyFS embed.FS
+
 // reviewHandler serves the attribution review page. Personal tier: it exists
 // so a human can put a precision number on the join, and it shows no data of
 // its own — everything comes from the authenticated API.
@@ -293,6 +303,15 @@ func reviewHandler() (http.Handler, error) {
 		return nil, fmt.Errorf("review assets: %w", err)
 	}
 	return http.StripPrefix("/review", http.FileServer(http.FS(sub))), nil
+}
+
+// methodologyHandler serves the public methodology page.
+func methodologyHandler() (http.Handler, error) {
+	sub, err := fs.Sub(methodologyFS, "methodology")
+	if err != nil {
+		return nil, fmt.Errorf("methodology assets: %w", err)
+	}
+	return http.StripPrefix("/methodology", http.FileServer(http.FS(sub))), nil
 }
 
 // labelHandler serves the labelling page. Like the review page it holds no

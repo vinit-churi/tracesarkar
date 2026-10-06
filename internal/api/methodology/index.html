@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodology · how TraceSarkar answers · TraceSarkar</title>
+<meta name="description" content="Where TraceSarkar's facts come from, how they are measured, and what it does not know.">
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --accent-wash:#F5EAF0;
+    --alert:#A33A1F; --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  header{border-bottom:1px solid var(--hairline);padding:14px 16px}
+  header div{max-width:760px;margin:0 auto;display:flex;align-items:baseline;
+             justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:600}
+  .brand span{color:var(--ink-45);font-weight:400}
+  main{max-width:760px;margin:0 auto;padding:32px 16px 72px}
+  h1{font-size:34px;line-height:1.15;letter-spacing:-.5px;margin:0 0 10px}
+  .lede{color:var(--ink-70);margin:0 0 8px}
+  .asof{font-size:13px;color:var(--ink-45);margin:0 0 36px}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-45);
+     margin:40px 0 12px;padding-top:20px;border-top:1px solid var(--hairline)}
+  h3{font-size:18px;margin:24px 0 6px}
+  p{margin:0 0 14px}
+  ol,ul{margin:0 0 14px;padding-left:22px;color:var(--ink-70)}
+  li{margin-bottom:7px}
+  table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:15px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--hairline);
+        vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-45);
+     font-weight:600}
+  code{background:var(--accent-wash);padding:1px 5px;border-radius:4px;font-size:14px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .chain{background:var(--evidence);border-left:3px solid var(--accent);
+         border-radius:0 8px 8px 0;padding:14px 16px;margin:0 0 16px;font-size:15px}
+  .chain b{display:block;margin-bottom:4px}
+  .num{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+       padding:14px 16px;margin-bottom:10px}
+  .num .v{font-size:26px;font-weight:600;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+  .num .k{font-size:13px;color:var(--ink-45)}
+  .num .src{font-size:12px;color:var(--ink-45);margin-top:6px}
+  .limits{background:var(--caution-wash);border:1px solid rgba(138,100,16,.25);
+          border-radius:12px;padding:16px 18px}
+  .limits h2{border:none;padding:0;margin:0 0 10px;color:var(--caution)}
+  .limits li{color:var(--caution)}
+  .rules li{color:var(--ink)}
+  .never{color:var(--alert);font-weight:600}
+  footer{border-top:1px solid var(--hairline);margin-top:48px;padding-top:20px;
+         font-size:13px;color:var(--ink-45)}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header><div>
+  <span class="brand">TraceSarkar <span>· Mumbai</span></span>
+  <span style="font-size:13px;color:var(--ink-45)">Methodology</span>
+</div></header>
+
+<main>
+  <h1>Methodology</h1>
+  <p class="lede">
+    Where the facts on this platform come from, how each one is measured, and —
+    at least as important — what it does not know.
+  </p>
+  <p class="asof">As of 6 October 2026. Every figure below was measured, not estimated.</p>
+
+  <h2>1 · What this answers</h2>
+  <p>
+    A resident photographs a civic problem. The platform resolves which authority
+    is responsible for that spot, which of its departments owns that kind of
+    problem, what obliges them and by when, and — where the data exists — which
+    public contract covers the stretch and who holds it.
+  </p>
+  <div class="chain">
+    <b>The join</b>
+    a point and its GPS accuracy → the ward polygon that contains it → the road
+    segments within a search radius derived from that accuracy → the contract
+    those segments belong to → the contractor named in it, with the document it
+    was read from and the time it was read.
+  </div>
+  <p>
+    It states facts and the joins between them. It does not conclude that anyone
+    has done anything wrong.
+  </p>
+
+  <h2>2 · Where the data comes from</h2>
+  <table>
+    <tr><th>What</th><th>Source</th><th>How</th></tr>
+    <tr>
+      <td>Road works, contractors, dates, geometry</td>
+      <td>BMC's own roads API</td>
+      <td>Collected twice daily; every response archived before it is parsed</td>
+    </tr>
+    <tr>
+      <td>Ward boundaries</td>
+      <td>BMC's own boundary layer</td>
+      <td>The same API the works come from, so the two agree by construction</td>
+    </tr>
+    <tr>
+      <td>Which department owns which problem</td>
+      <td>BMC Section 4(1)(b) RTI handbooks, per ward, per department</td>
+      <td>Read first-hand and archived; designations only, never named individuals</td>
+    </tr>
+    <tr>
+      <td>Deadlines and penalties</td>
+      <td>A High Court order, a BMC road tender, a BMC RTI handbook</td>
+      <td>Quoted with citation; see §4</td>
+    </tr>
+    <tr>
+      <td>What is in a photograph</td>
+      <td>A vision model, over a fixed six-category taxonomy</td>
+      <td>Structured output, versioned prompt, platform rules applied after</td>
+    </tr>
+  </table>
+  <p>
+    <strong>The archive is the record, not the parsed row.</strong> Public bodies
+    move and delete documents without notice — BMC's own Citizen's Charter URL
+    already returns a 404. Every source document is stored as retrieved, with a
+    digest and a timestamp, so a claim can be checked against what was actually
+    published rather than against our reading of it.
+  </p>
+
+  <h2>3 · What has been measured</h2>
+
+  <div class="num">
+    <div class="v">98.17%</div>
+    <div class="k">Ward resolution agreement, over 2,405 road works</div>
+    <div class="src">BMC's works endpoint states each work's ward; BMC's boundary
+      endpoint decides it. Two independent statements from the same API agreed on
+      2,361 of 2,405. The bar was ≥95%.</div>
+  </div>
+
+  <div class="num">
+    <div class="v">≥ 92.9%</div>
+    <div class="k">Contract attribution precision, honest lower bound</div>
+    <div class="src">Fifty of fifty answers judged right by a human. The figure
+      shown is the 95% confidence floor for a clean run of that size — fifty out
+      of fifty does not mean the next fifty will be. Zero wrong-contractor
+      matches. Judged against displaced probe points, not photographs; see §5.</div>
+  </div>
+
+  <div class="num">
+    <div class="v">43–57%</div>
+    <div class="k">Of Borivali carriageway with contract geometry</div>
+    <div class="src">Measured against OpenStreetMap: 43% within 5 m, 57% within
+      25 m. Better on busier roads — secondary 77%, tertiary 69%. So "we have no
+      contract data for this stretch" is a normal answer, not a failure.</div>
+  </div>
+
+  <h2>4 · The deadlines, and who they bind</h2>
+  <p>
+    No deadline is written into the software. Each lives in a versioned table with
+    its citation and the date it took effect.
+  </p>
+  <table>
+    <tr><th>Obligation</th><th>Binds</th><th>Source</th></tr>
+    <tr>
+      <td><strong>48 hours</strong> to attend a pothole, once the corporation has
+        been notified</td>
+      <td>The corporation</td>
+      <td>High Court of Bombay, PIL 71/2013, order of 13 October 2025, para 70(ix),
+        <code>2025:BHC-OS:18736-DB</code></td>
+    </tr>
+    <tr>
+      <td><strong>24 hours</strong> to rectify a defect, from intimation</td>
+      <td>The contractor, during the defect liability period</td>
+      <td>BMC road tender ETH_8000040832, clause 10.11</td>
+    </tr>
+    <tr>
+      <td><strong>₹5,000 per day</strong>, per defect</td>
+      <td>The contractor</td>
+      <td>Same tender, clause 7.4</td>
+    </tr>
+    <tr>
+      <td><strong>24 hours</strong> to remove refuse, and to remove silt and debris</td>
+      <td>The corporation</td>
+      <td>R/Central Solid Waste Management RTI handbook, §4(1)(b)(iii); MMC Act 1888
+        ss. 365(a) and 375(A)</td>
+    </tr>
+  </table>
+  <p>
+    The clocks run from <em>notification</em>, not from the moment a problem
+    exists, and not from the moment it is photographed here. Photographing
+    something on this platform notifies nobody. The complaint to the authority's
+    own channel is what starts them.
+  </p>
+  <p>
+    <strong>Water supply has no published repair deadline.</strong> The R/Central
+    Water Works handbook sets time limits for granting a connection, reading a
+    meter and restoring a disconnected supply, and none for repairing a burst
+    main. Where a document creates no obligation, this platform does not invent
+    one by borrowing another.
+  </p>
+
+  <h2>5 · What this does not know</h2>
+  <div class="limits">
+    <h2>Limitations</h2>
+    <ul>
+      <li><strong>One ward.</strong> Departments and deadlines are recorded for
+        R/Central, Borivali. A capture elsewhere in Mumbai resolves to a ward and
+        stops there. A capture outside Greater Mumbai resolves to nothing — it is
+        kept, and the platform says plainly that it is outside every boundary held.</li>
+      <li><strong>Three categories of six.</strong> Road defects, waste and water
+        supply have a department behind them. The other three are recognised and
+        have nowhere to be sent, and are told so.</li>
+      <li><strong>Classification accuracy is unmeasured.</strong> There is no
+        labelled evaluation set yet, so no accuracy figure is claimed. Anything
+        below the confidence floor asks the person rather than guessing.</li>
+      <li><strong>Attribution has been judged on probes, not photographs.</strong>
+        The reviewer read the same map the code read, which establishes that the
+        join picks a plausible road, not a correct one. Only photographs taken at
+        identifiable places settle that, and they are still being collected.</li>
+      <li><strong>Contract data is BMC's alone.</strong> Other corporations in the
+        region have not been shown to publish works geometry at all.</li>
+      <li><strong>Three pothole circulars are cited by BMC and published by nobody.</strong>
+        Searched and not found; an RTI is the only route to their text.</li>
+    </ul>
+  </div>
+
+  <h2>6 · Rules this platform holds itself to</h2>
+  <ul class="rules">
+    <li><span class="never">Nothing is ever filed automatically.</span> Complaints,
+      RTIs and applications are generated as drafts. A person reads one and sends
+      it themselves. There is no code path that submits a legal instrument.</li>
+    <li><span class="never">No unsourced fact about a named party.</span> Every
+      contractor name, award value or designation carries the document it came from
+      and the time it was retrieved. Without a source, the field is not shown.</li>
+    <li><span class="never">No assertion of wrongdoing.</span> The platform states
+      that a contract covers a location and that its liability period is running.
+      It does not conclude that anyone is at fault.</li>
+    <li><span class="never">A contract is shown only where it governs the problem.</span>
+      A road contract covers a stretch of road; it does not make its contractor
+      answerable for rubbish left on it, and their name does not appear beside one.</li>
+    <li><span class="never">Precise reporter location never reaches a public surface.</span>
+      Exact coordinates stay internal and visible only to the person who captured them.</li>
+    <li><span class="never">A capture is never lost.</span> The photograph is stored
+      before anything is attempted on it, and every stage after that can be retried.</li>
+  </ul>
+
+  <h2>7 · Corrections</h2>
+  <p>
+    If a fact here is wrong — a contractor misattributed, a deadline misread, a
+    document misquoted — it should be corrected and the correction recorded. Use
+    the support route on this site. A named party may ask for a right of reply.
+  </p>
+
+  <footer>
+    Road works, ward boundaries and department mappings are derived from documents
+    published by the Brihanmumbai Municipal Corporation. Road network comparisons
+    use OpenStreetMap data, © OpenStreetMap contributors (ODbL). Court orders are
+    quoted from the published judgment.
+  </footer>
+</main>
+
+</body>
+</html>
