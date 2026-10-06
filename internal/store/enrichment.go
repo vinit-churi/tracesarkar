@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/vinit-churi/tracesarkar/internal/action"
 	"github.com/vinit-churi/tracesarkar/internal/attribute"
 	"github.com/vinit-churi/tracesarkar/internal/classify"
 	"github.com/vinit-churi/tracesarkar/internal/jurisdiction"
@@ -196,7 +197,50 @@ func (d *DB) ReportDetail(ctx context.Context, id string) (ReportDetail, bool, e
 	out.ContractBasis, out.ContractSource = e.ContractBasis, e.ContractSource
 	out.AttrConfidence = e.AttrConfidence
 
+	out.NextStep = d.nextStep(ctx, out)
 	return out, true, nil
+}
+
+// nextStep attaches what to do about a capture, once enough is known to say.
+//
+// Nil rather than an empty draft when the category or ward is still unknown:
+// the platform does not tell someone to complain to a desk it has not worked
+// out yet, and "we are still thinking" is an honest state.
+func (d *DB) nextStep(ctx context.Context, r ReportDetail) *action.Next {
+	if r.Classification == nil || r.Ward == "" || r.Authority == "" {
+		return nil
+	}
+	category := r.Classification.Category
+	if category == "" {
+		return nil
+	}
+
+	routing, _, err := d.RoutingFor(ctx, r.Authority, r.Ward, category)
+	if err != nil {
+		// A next step that cannot be built is not worth failing the report
+		// over; the capture and the verdict are still worth showing.
+		return nil
+	}
+
+	where := r.RoadName
+	if where == "" {
+		where = r.Ward + " ward"
+	}
+	next := action.Draft(action.Facts{
+		Category:         category,
+		Subcategory:      r.Classification.Subcategory,
+		Ward:             r.Ward,
+		Authority:        r.Authority,
+		Where:            where,
+		Lat:              r.Lat,
+		Lon:              r.Lon,
+		Department:       routing.Department,
+		Officer:          routing.Officer,
+		Office:           routing.Office,
+		DeadlineHours:    routing.DeadlineHours,
+		DeadlineCitation: routing.DeadlineCitation,
+	})
+	return &next
 }
 
 // ReportsFor returns one person's captures, newest first, each with whatever

@@ -35,10 +35,12 @@
          border-radius:12px;padding:14px}
   .step{font-size:12px;text-transform:uppercase;letter-spacing:.6px;
         color:var(--ink-45);margin:0 0 10px}
-  .opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  .opt{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
        background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
        padding:9px 11px;margin-bottom:6px;cursor:pointer;font:inherit;font-size:15px}
   .opt:hover{border-color:var(--accent);background:var(--accent-wash)}
+  .opt span{display:flex;flex-direction:column;line-height:1.3}
+  .opt small{color:var(--ink-45);font-size:12px;margin-top:1px}
   .opt kbd{background:var(--evidence);border:1px solid var(--hairline);border-radius:6px;
            min-width:24px;text-align:center;padding:1px 5px;font-size:13px;
            font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -228,13 +230,27 @@ function render() {
 
 // Mirrors internal/classify's hazardous set. Shown so the labeller knows which
 // answers carry weight — hazard recall is the one number held to 99%.
+// The same rule the model is given, shown to the person labelling. Two
+// subcategories that look alike in a photograph and are told apart by
+// something else will otherwise be labelled one way and classified the other,
+// and the evaluation measures the disagreement rather than the model.
+const HINTS = {
+  'illegal dumping': 'No bin or collection point here — someone left it.',
+  'uncollected garbage': 'At a bin or collection point, not emptied.',
+  'debris': 'Construction or demolition rubble, not household waste.',
+  'utility-dig damage': 'A trench or reinstated strip, usually straight-edged.',
+  'pothole': 'A hole in the carriageway itself.',
+};
+
 const HAZARDS = new Set(['open manhole','missing manhole cover','collapsed wall',
   'cracked bridge/fob','distressed building','unsafe scaffolding','sewage overflow']);
 
 function option(key, text, onPick, hazard) {
   const b = document.createElement('button');
   b.className = 'opt' + (hazard ? ' hazard' : '');
-  b.innerHTML = '<kbd>' + key + '</kbd><span>' + text + '</span>' +
+  const hint = HINTS[text];
+  b.innerHTML = '<kbd>' + key + '</kbd><span>' + text +
+    (hint ? '<small>' + hint + '</small>' : '') + '</span>' +
     (hazard ? '<span class="h">hazard</span>' : '');
   b.onclick = onPick;
   return b;

@@ -92,3 +92,30 @@ func TestTheTaxonomyBlockOffersSubcategoriesAsAClosedList(t *testing.T) {
 		t.Error("subcategories are still emitted as a comma-joined blob")
 	}
 }
+
+// Two subcategories in the taxonomy describe a heap of rubbish, and the
+// difference is not visible in the rubbish — it is whether the place is a
+// collection point. BMC's own model is that refuse goes to a collection point
+// and a compactor empties it on a schedule, so waste there is a failure to
+// collect and waste anywhere else is something a person left.
+//
+// Without the rule stated the model guesses, the labeller guesses differently,
+// and the evaluation measures the disagreement rather than the model.
+func TestThePromptSeparatesDumpingFromUncollectedWaste(t *testing.T) {
+	block := Prompt{Text: "PROMPT"}.WithTaxonomy()
+	lower := strings.ToLower(block)
+
+	for _, phrase := range []string{
+		"collection point",
+		"illegal dumping",
+		"uncollected garbage",
+	} {
+		if !strings.Contains(lower, phrase) {
+			t.Errorf("the prompt never mentions %q", phrase)
+		}
+	}
+	// The distinguishing test has to be stated, not implied.
+	if !strings.Contains(lower, "bin") {
+		t.Error("the prompt does not say what to look for")
+	}
+}

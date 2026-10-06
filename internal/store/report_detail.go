@@ -3,6 +3,7 @@ package store
 import (
 	"time"
 
+	"github.com/vinit-churi/tracesarkar/internal/action"
 	"github.com/vinit-churi/tracesarkar/internal/classify"
 )
 
@@ -31,6 +32,11 @@ type ReportDetail struct {
 
 	// ExifTakenAt is when the image says it was taken, where it says so.
 	ExifTakenAt *time.Time `json:"exif_taken_at,omitempty"`
+
+	// NextStep is what to do about this capture. Absent until the platform
+	// knows the category and the ward, because a next step addressed to the
+	// wrong desk is worse than none.
+	NextStep *action.Next `json:"next_step,omitempty"`
 
 	ContractorName string  `json:"contractor_name,omitempty"`
 	WorkCode       string  `json:"work_code,omitempty"`

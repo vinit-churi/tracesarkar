@@ -51,6 +51,24 @@ func LoadPrompt(name string) (Prompt, error) {
 // It is generated from the same map the guardrails check against, so the
 // prompt and the validation can never drift apart — a category the model is
 // told about is by construction one the platform can route.
+// hints disambiguate subcategories that describe the same thing in a
+// photograph and differ by something else. Stated here rather than left to
+// judgement, because the evaluation set is labelled by a person reading the
+// same rule — without it the measurement is of the disagreement, not the model.
+var hints = map[string]string{
+	"waste": "`illegal dumping` and `uncollected garbage` look alike and are " +
+		"told apart by the place, not the rubbish. BMC's model is that refuse " +
+		"goes to a collection point and a compactor empties it on a schedule. " +
+		"Waste at a bin, a container or a marked collection point that has not " +
+		"been emptied is `uncollected garbage`. Waste anywhere there is no bin " +
+		"or collection point — against a wall, at the base of a tree, on an " +
+		"empty plot, down a slope — is `illegal dumping`. If no bin or " +
+		"container is visible, prefer `illegal dumping`.",
+	"road_defect": "`pothole` is a hole in the carriageway. `utility-dig damage` " +
+		"is a trench or reinstated strip left by digging, usually straight-edged " +
+		"and running across or along the road.",
+}
+
 func (p Prompt) WithTaxonomy() string {
 	var b strings.Builder
 	b.WriteString(p.Text)
@@ -70,6 +88,9 @@ func (p Prompt) WithTaxonomy() string {
 		fmt.Fprintf(&b, "\n### %s\n\n", c)
 		for _, sub := range Subcategories(c) {
 			fmt.Fprintf(&b, "- %s\n", sub)
+		}
+		if hint := hints[c]; hint != "" {
+			fmt.Fprintf(&b, "\n%s\n", hint)
 		}
 	}
 	return b.String()
