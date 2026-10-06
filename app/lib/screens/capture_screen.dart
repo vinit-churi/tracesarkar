@@ -55,6 +55,34 @@ class _Fix {
   final bool isFixture;
 }
 
+/// Turns whatever the platform threw into something a person can act on.
+///
+/// Without a position there is no capture, so this is the one error on the
+/// platform that has to carry instructions rather than just a cause. "User
+/// denied Geolocation" is what a browser says to a programmer: shown to a
+/// person it reads as an accusation and tells them nothing about what to do
+/// next.
+String locationMessage(String raw) {
+  final e = raw.toLowerCase();
+
+  if (e.contains('denied') || e.contains('permission')) {
+    return 'Location permission is switched off for this site. Tap the icon at '
+        'the left of the address bar, allow Location, then Refresh. '
+        'Without a position a photograph cannot be matched to a ward or a '
+        'contract.';
+  }
+  if (e.contains('services are disabled') || e.contains('location service')) {
+    return 'Location services are switched off on this device. Turn them on in '
+        'system settings, then Refresh.';
+  }
+  if (e.contains('timeout')) {
+    return 'No fix yet. Indoors a phone often cannot see enough satellites — '
+        'step into the open sky and Refresh.';
+  }
+  return 'The position could not be read. Refresh to try again; if it keeps '
+      'failing, step into the open sky.';
+}
+
 class CaptureScreen extends StatefulWidget {
   const CaptureScreen({
     super.key,
@@ -161,7 +189,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       if (!mounted) return;
       setState(() => _position = _Fix.measured(position));
     } catch (e) {
-      if (mounted) setState(() => _locationError = e.toString());
+      if (mounted) setState(() => _locationError = locationMessage(e.toString()));
     } finally {
       if (mounted) setState(() => _locating = false);
     }
