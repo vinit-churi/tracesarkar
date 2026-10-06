@@ -64,8 +64,6 @@
   <input id="email" type="email" placeholder="you@example.org" autocomplete="username">
   <label for="password">Password</label>
   <input id="password" type="password" autocomplete="current-password">
-  <label for="ward">Ward you are surveying</label>
-  <input id="ward" type="text" value="R/C" placeholder="R/C">
   <button id="save-setup">Sign in</button>
   <p class="muted" id="setup-note">Captures are filed against the account that
     makes them, so they appear in your own reports and in your labelling queue.
@@ -91,6 +89,10 @@
     <span class="chip" data-frame="wide">wide</span>
     <span class="chip" data-frame="noticeboard">noticeboard</span>
   </div>
+
+  <label for="ward">Ward you are standing in</label>
+  <select id="ward"><option value="">loading…</option></select>
+  <p class="muted" id="ward-note"></p>
 
   <label for="label">What is it</label>
   <select id="label"><option value="">loading the taxonomy…</option></select>
@@ -141,7 +143,9 @@ const settings = {
   }
 };
 if (!settings.token) els('setup').hidden = false;
-els('ward').value = settings.ward;
+// The ward lives on the capture screen, not in setup: someone surveying
+// Borivali and Dahisar in one afternoon crosses a boundary, and a ward set
+// once at sign-in would label every capture after the crossing wrongly.
 
 // Signs in for a session token rather than taking the shared one. A capture
 // filed against the shared identity belongs to nobody: it does not appear in
@@ -254,6 +258,32 @@ async function loadTaxonomy() {
     }
     sel.onchange = () => { els('label-hint').textContent = HINTS[sel.value] || ''; };
     sel.onchange();
+
+    // Wards are chosen, not typed. A misspelled ground truth scores a correct
+    // answer as wrong, and somewhere outside every boundary has to be sayable
+    // — Mira Road is a different corporation, 1.5 km past the nearest ward we
+    // hold, and pretending it is a BMC ward would poison the golden set.
+    const ward = els('ward');
+    ward.innerHTML = '';
+    for (const w of (body.wards || [])) {
+      const o = document.createElement('option');
+      o.value = w; o.textContent = w;
+      ward.appendChild(o);
+    }
+    const outside = document.createElement('option');
+    outside.value = 'outside';
+    outside.textContent = 'outside BMC — a different corporation';
+    ward.appendChild(outside);
+
+    ward.value = settings.ward || 'R/C';
+    ward.onchange = () => {
+      settings.save(settings.token, ward.value);
+      els('ward-note').textContent = ward.value === 'outside'
+        ? 'Nothing here can be resolved — no boundary, no department, no contract. '
+          + 'Useful only as a case the platform must answer honestly.'
+        : '';
+    };
+    ward.onchange();
   } catch (e) {
     setStatus('taxonomy unavailable — sign in first');
   }

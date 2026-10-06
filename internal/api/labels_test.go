@@ -34,6 +34,10 @@ func (f *fakeLabels) SaveReportLabel(_ context.Context, in store.ReportLabel) er
 	f.saved = append(f.saved, in)
 	return nil
 }
+func (f *fakeLabels) Wards(context.Context) ([]string, error) {
+	return []string{"R/C", "R/N", "R/S"}, nil
+}
+
 func (f *fakeLabels) MediaFor(_ context.Context, reportID string) (key, contentType, owner string, err error) {
 	k, ok := f.keyBy[reportID]
 	if !ok {

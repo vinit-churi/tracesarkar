@@ -119,3 +119,39 @@ func TestFieldKitDoesNotCarryItsOwnTaxonomy(t *testing.T) {
 		t.Error("the field kit does not fetch the taxonomy")
 	}
 }
+
+// The ward belongs on the capture screen, not in one-time setup. Someone
+// surveying Borivali and Dahisar in one afternoon crosses a boundary, and a
+// ward set once at sign-in labels every capture after the crossing wrongly —
+// which is worse than not recording one, because it looks like evidence.
+func TestTheWardCanBeChangedWhileSurveying(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	body := rec.Body.String()
+
+	// Chosen from what the platform actually holds, never typed.
+	if strings.Contains(body, `<input id="ward"`) {
+		t.Error("the ward is still a free-text field")
+	}
+	if !strings.Contains(body, `<select id="ward">`) {
+		t.Error("the ward is not a chooser")
+	}
+	// Somewhere outside every boundary has to be sayable. Mira Road is a
+	// different corporation and calling it a BMC ward poisons the golden set.
+	if !strings.Contains(body, "outside BMC") {
+		t.Error("there is no way to say you are outside BMC")
+	}
+	// And it must sit with the capture, not behind the sign-in card.
+	setup := strings.Index(body, `id="setup"`)
+	ward := strings.Index(body, `<select id="ward">`)
+	if setup < 0 || ward < 0 || ward < setup {
+		t.Error("the ward chooser is inside the setup card")
+	}
+}

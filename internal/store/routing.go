@@ -76,3 +76,29 @@ func (d *DB) RoutingFor(ctx context.Context, authority, ward, category string) (
 	}
 	return r, true, nil
 }
+
+// Wards lists the wards the platform holds a boundary for, sorted.
+//
+// Offered rather than typed, because a ward typed by hand is a ward that can
+// be misspelled, and a misspelled ground truth scores a correct answer as
+// wrong. It is also the honest edge of the platform: a place not on this list
+// is one where nothing can be resolved, and the person standing there should
+// be told that rather than left guessing which code to enter.
+func (d *DB) Wards(ctx context.Context) ([]string, error) {
+	rows, err := d.pool.Query(ctx,
+		`SELECT DISTINCT ward FROM ward_boundaries WHERE ward <> '' ORDER BY ward`)
+	if err != nil {
+		return nil, fmt.Errorf("wards: %w", err)
+	}
+	defer rows.Close()
+
+	var out []string
+	for rows.Next() {
+		var w string
+		if err := rows.Scan(&w); err != nil {
+			return nil, fmt.Errorf("scan ward: %w", err)
+		}
+		out = append(out, w)
+	}
+	return out, rows.Err()
+}

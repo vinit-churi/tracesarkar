@@ -22,6 +22,8 @@ type Labels interface {
 	// MediaFor returns the photograph's key and the account that owns it, so a
 	// capture is never served to anyone else.
 	MediaFor(ctx context.Context, reportID string) (key, contentType, owner string, err error)
+	// Wards are what a surveyor's ground truth is chosen from.
+	Wards(ctx context.Context) ([]string, error)
 }
 
 // Blobs reads stored media back. Separate from Media, which only writes: the
@@ -49,10 +51,19 @@ type queueItem struct {
 // against anything, so a day of fieldwork would have produced a day of
 // guaranteed misses.
 func (s *Server) handleTaxonomy(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
+	body := map[string]any{
 		"taxonomy": classify.Taxonomy(),
 		"hazards":  classify.Hazards(),
-	})
+	}
+	// The wards come too, so a surveyor picks one rather than typing it. A
+	// ward typed by hand can be misspelled, and a misspelled ground truth
+	// scores a correct answer as wrong.
+	if s.labels != nil {
+		if wards, err := s.labels.Wards(r.Context()); err == nil {
+			body["wards"] = wards
+		}
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 // handleLabelQueue lists captures waiting for a human judgement.
