@@ -1,6 +1,10 @@
 package store
 
-import "github.com/vinit-churi/tracesarkar/internal/classify"
+import (
+	"time"
+
+	"github.com/vinit-churi/tracesarkar/internal/classify"
+)
 
 // ReportDetail is everything the platform knows about one capture.
 //
@@ -25,6 +29,9 @@ type ReportDetail struct {
 	WardBasis      string `json:"ward_basis,omitempty"`
 	NeedsQuestion  bool   `json:"needs_question,omitempty"`
 
+	// ExifTakenAt is when the image says it was taken, where it says so.
+	ExifTakenAt *time.Time `json:"exif_taken_at,omitempty"`
+
 	ContractorName string  `json:"contractor_name,omitempty"`
 	WorkCode       string  `json:"work_code,omitempty"`
 	RoadName       string  `json:"road_name,omitempty"`
@@ -32,6 +39,38 @@ type ReportDetail struct {
 	ContractBasis  string  `json:"contract_basis,omitempty"`
 	ContractSource string  `json:"contract_source,omitempty"`
 	AttrConfidence string  `json:"attribution_confidence,omitempty"`
+}
+
+// staleAfter is how far the photograph's own timestamp may be from the moment
+// the report was sent before the position stops meaning "where this is".
+//
+// Fifteen minutes is a walk, not a journey: the first real captures were three
+// seconds apart, and a capture queued offline and sent when signal returns is
+// still minutes, not hours.
+const staleAfter = 15 * time.Minute
+
+// PositionIsStale reports whether the photograph was taken far enough from the
+// moment it was sent that the position attached to it is not where it was
+// taken.
+//
+// The position on a report is the device's position when it was sent. Pick a
+// photograph out of a gallery at your desk and the report claims the problem is
+// at your desk — and attribution will name whichever contract covers the desk.
+// False when the image carries no timestamp: that is not a claim either way.
+func (d ReportDetail) PositionIsStale() bool {
+	if d.ExifTakenAt == nil || d.CreatedAt == "" {
+		return false
+	}
+	sent, err := time.Parse(time.RFC3339, d.CreatedAt)
+	if err != nil {
+		return false
+	}
+	gap := sent.Sub(*d.ExifTakenAt)
+	if gap < 0 {
+		// A camera clock running ahead is not trustworthy either.
+		gap = -gap
+	}
+	return gap > staleAfter
 }
 
 // contractGoverns is the set of categories a road works contract actually
@@ -59,7 +98,10 @@ func (d ReportDetail) ForCitizen() ReportDetail {
 	if d.Classification != nil {
 		category = d.Classification.Category
 	}
-	if contractGoverns[category] {
+	// A stale position was not where the photograph was taken, so the contract
+	// matched against it covers the wrong place. Naming its holder would be
+	// worse than naming nobody.
+	if contractGoverns[category] && !d.PositionIsStale() {
 		return d
 	}
 

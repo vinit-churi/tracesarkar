@@ -165,10 +165,12 @@ func (d *DB) ReportDetail(ctx context.Context, id string) (ReportDetail, bool, e
 		SELECT r.id::text, r.account_id::text, r.status::text,
 		       to_char(r.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 		       ST_Y(r.location::geometry), ST_X(r.location::geometry),
-		       COALESCE(r.location_accuracy_m, 0)::float8
+		       COALESCE(r.location_accuracy_m, 0)::float8,
+		       (SELECT exif_taken_at FROM report_media
+		         WHERE report_id = r.id ORDER BY created_at LIMIT 1)
 		  FROM reports r WHERE r.id = $1::uuid`, id).Scan(
 		&out.ID, &out.AccountID, &out.Status, &out.CreatedAt,
-		&out.Lat, &out.Lon, &out.AccuracyM)
+		&out.Lat, &out.Lon, &out.AccuracyM, &out.ExifTakenAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ReportDetail{}, false, nil

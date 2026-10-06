@@ -2,6 +2,7 @@ package store
 
 import (
 	"testing"
+	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/classify"
 )
@@ -97,5 +98,85 @@ func TestContractIsOnlyShownWhereTheContractGovernsIt(t *testing.T) {
 				t.Error("suppressing the contract must not suppress the ward")
 			}
 		})
+	}
+}
+
+// A photograph picked out of a gallery hours after it was taken carries a
+// position that is wherever the device was when it was sent — which may be an
+// office on the other side of the city. The report must say so, because
+// everything downstream treats that position as where the problem is, and
+// attribution will name whichever contract covers it.
+func TestAStalePhotographSaysThePositionIsNotWhereItWasTaken(t *testing.T) {
+	sent := time.Date(2026, 10, 6, 11, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name      string
+		takenAt   *time.Time
+		wantStale bool
+	}{
+		{
+			name:    "no timestamp in the image is not a claim either way",
+			takenAt: nil,
+		},
+		{
+			// Measured on the first real captures: three seconds apart.
+			name:    "taken and sent together",
+			takenAt: ptr(sent.Add(-3 * time.Second)),
+		},
+		{
+			name:    "a few minutes is still the same walk",
+			takenAt: ptr(sent.Add(-4 * time.Minute)),
+		},
+		{
+			name:      "taken this morning, sent from the office",
+			takenAt:   ptr(sent.Add(-5 * time.Hour)),
+			wantStale: true,
+		},
+		{
+			// A camera clock set wrong runs ahead. Unknown, not trustworthy.
+			name:      "taken in the future",
+			takenAt:   ptr(sent.Add(3 * time.Hour)),
+			wantStale: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := ReportDetail{CreatedAt: sent.Format(time.RFC3339), ExifTakenAt: tt.takenAt}
+			if got := d.PositionIsStale(); got != tt.wantStale {
+				t.Errorf("PositionIsStale() = %v, want %v", got, tt.wantStale)
+			}
+		})
+	}
+}
+
+func ptr(t time.Time) *time.Time { return &t }
+
+// A road defect normally shows its contractor. One whose position is stale
+// does not: the contract was matched against wherever the device was when the
+// photograph was sent, which is not where the problem is.
+func TestAStalePositionWithholdsTheContractEvenForARoadDefect(t *testing.T) {
+	sent := time.Date(2026, 10, 6, 11, 0, 0, 0, time.UTC)
+	taken := sent.Add(-5 * time.Hour)
+
+	d := ReportDetail{
+		CreatedAt: sent.Format(time.RFC3339),
+		Ward:      "R/C", Authority: "BMC",
+		ExifTakenAt:    &taken,
+		ContractorName: "M/s Example Infracon Pvt. Ltd",
+		Classification: &classify.Decision{
+			Result:  classify.Result{Category: "road_defect", Subcategory: "pothole"},
+			Outcome: classify.Accepted,
+		},
+	}
+
+	if got := d.ForCitizen(); got.ContractorName != "" {
+		t.Errorf("named a contractor from a position five hours out of date: %q",
+			got.ContractorName)
+	}
+	// The ward is still worth stating — it is wrong for a different reason and
+	// the person can correct it.
+	if d.ForCitizen().Ward != "R/C" {
+		t.Error("the ward should survive")
 	}
 }

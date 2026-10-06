@@ -60,12 +60,16 @@
 </header>
 
 <div class="card" id="setup" hidden>
-  <label for="token">API token</label>
-  <input id="token" type="password" placeholder="the API_TOKEN the server was started with" autocomplete="off">
+  <label for="email">Email</label>
+  <input id="email" type="email" placeholder="you@example.org" autocomplete="username">
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password">
   <label for="ward">Ward you are surveying</label>
-  <input id="ward" type="text" value="R/S" placeholder="R/S">
-  <button id="save-setup">Save</button>
-  <p class="muted">Stored on this device only.</p>
+  <input id="ward" type="text" value="R/C" placeholder="R/C">
+  <button id="save-setup">Sign in</button>
+  <p class="muted" id="setup-note">Captures are filed against the account that
+    makes them, so they appear in your own reports and in your labelling queue.
+    Signing in with the shared token instead files them against nobody.</p>
 </div>
 
 <div class="card">
@@ -143,7 +147,7 @@ let position = null, photoFile = null;
 // --- settings -------------------------------------------------------------
 const settings = {
   get token() { return localStorage.getItem('ts_token') || ''; },
-  get ward()  { return localStorage.getItem('ts_ward') || 'R/S'; },
+  get ward()  { return localStorage.getItem('ts_ward') || 'R/C'; },
   save(token, ward) {
     localStorage.setItem('ts_token', token);
     localStorage.setItem('ts_ward', ward);
@@ -151,8 +155,29 @@ const settings = {
 };
 if (!settings.token) els('setup').hidden = false;
 els('ward').value = settings.ward;
-els('save-setup').onclick = () => {
-  settings.save(els('token').value.trim(), els('ward').value.trim() || 'R/S');
+
+// Signs in for a session token rather than taking the shared one. A capture
+// filed against the shared identity belongs to nobody: it does not appear in
+// the person's own reports, and the labelling queue — which is scoped to the
+// account that made the capture — never shows it. A day of fieldwork filed
+// that way is a day of photographs nobody can label.
+els('save-setup').onclick = async () => {
+  const note = els('setup-note');
+  const email = els('email').value.trim();
+  const password = els('password').value;
+  if (!email || !password) { note.textContent = 'Enter the email and password of your account.'; return; }
+  note.textContent = 'Signing in…';
+  let token = '';
+  try {
+    const res = await fetch('/v1/auth/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not sign in.');
+    token = body.token;
+  } catch (e) { note.textContent = e.message; return; }
+  settings.save(token, els('ward').value.trim() || 'R/C');
   els('setup').hidden = true;
   setStatus('saved');
 };
@@ -288,7 +313,7 @@ els('capture').onclick = async () => {
 let flushing = false;
 async function flush() {
   if (flushing) return;
-  if (!settings.token) { setStatus('set the API token first'); els('setup').hidden = false; return; }
+  if (!settings.token) { setStatus('sign in first'); els('setup').hidden = false; return; }
   flushing = true;
   try {
     for (const { key, value } of await allQueued()) {

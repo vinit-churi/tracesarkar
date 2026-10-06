@@ -36,6 +36,12 @@ type NewMedia struct {
 	Width       int
 	Height      int
 	CapturedAt  *time.Time
+	// ExifTakenAt is when the image itself says it was taken. Nullable: many
+	// images carry no EXIF, and absence is ordinary rather than a fault. It
+	// exists so a photograph picked out of a gallery hours later can be told
+	// apart from one taken on the spot, because the position attached to a
+	// report is the device's position when it was sent.
+	ExifTakenAt *time.Time
 }
 
 // ReportLabel is the human judgement that makes a report usable as evaluation
@@ -163,12 +169,12 @@ func (d *DB) AddReportMedia(ctx context.Context, in NewMedia) error {
 	}
 	_, err = d.pool.Exec(ctx, `
 		INSERT INTO report_media (id, report_id, role, archive_key, content_type, bytes,
-		                          sha256, width, height, captured_at)
+		                          sha256, width, height, captured_at, exif_taken_at)
 		VALUES (gen_random_uuid(), $1::uuid, $2, $3, NULLIF($4,''), NULLIF($5,0)::bigint,
-		        $6, NULLIF($7,0), NULLIF($8,0), $9)
+		        $6, NULLIF($7,0), NULLIF($8,0), $9, $10)
 		ON CONFLICT (report_id, sha256) DO NOTHING`,
 		in.ReportID, in.Role, in.ArchiveKey, in.ContentType, in.Bytes,
-		sum, in.Width, in.Height, in.CapturedAt)
+		sum, in.Width, in.Height, in.CapturedAt, in.ExifTakenAt)
 	if err != nil {
 		return fmt.Errorf("add media: %w", err)
 	}

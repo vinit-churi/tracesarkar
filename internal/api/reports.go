@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/vinit-churi/tracesarkar/internal/exif"
 )
 
 // captureMeta is the JSON part of a capture, as specified in
@@ -141,6 +143,16 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 				"could not store the photograph; please retry")
 			return
 		}
+		// What the image itself says about when it was taken. Recorded so a
+		// photograph picked out of a gallery hours later can be told apart
+		// from one taken on the spot — the position on a report is the
+		// device's position when it was sent, so the two are only the same
+		// place when the two times are the same time.
+		var takenAt *time.Time
+		if t, ok := exif.TakenAt(body, mumbai); ok {
+			takenAt = &t
+		}
+
 		if err := s.reports.AddReportMedia(r.Context(), NewMedia{
 			ReportID:    reportID,
 			Role:        role,
@@ -148,6 +160,7 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 			ContentType: contentType,
 			Bytes:       int64(len(body)),
 			SHA256:      digest,
+			ExifTakenAt: takenAt,
 		}); err != nil {
 			s.log.Error("could not record media", "error", err.Error(), "report_id", reportID)
 			writeError(w, http.StatusInternalServerError, "could not record the photograph")
@@ -199,6 +212,9 @@ func (s *Server) reporter(r *http.Request) string {
 
 // mediaKey addresses a photograph by report and content hash, so the same image
 // uploaded twice lands in the same place.
+// EXIF timestamps carry no time zone, and this platform operates in one city.
+var mumbai = time.FixedZone("IST", 5*3600+1800)
+
 func mediaKey(reportID, digest, filename string) string {
 	ext := ".jpg"
 	if i := strings.LastIndex(filename, "."); i >= 0 && len(filename)-i <= 5 {

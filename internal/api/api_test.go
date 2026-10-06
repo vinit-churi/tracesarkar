@@ -52,3 +52,37 @@ func TestMethodologyIsPublic(t *testing.T) {
 		t.Error("the page does not show the measured precision floor")
 	}
 }
+
+// The field kit files captures against whoever made them. It used to take the
+// shared API token, which files them against nobody: they never appear in that
+// person's own reports, and the labelling queue is scoped to the account that
+// made the capture, so a day of fieldwork filed that way is a day of
+// photographs nobody can label.
+func TestFieldKitSignsInRatherThanTakingTheSharedToken(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d", rec.Code)
+	}
+	body := rec.Body.String()
+
+	if !strings.Contains(body, "/v1/auth/login") {
+		t.Error("the field kit does not sign in")
+	}
+	if strings.Contains(body, "the API_TOKEN the server was started with") {
+		t.Error("the field kit still asks for the shared token")
+	}
+	// The ward it defaults to has to be the one being surveyed. R/S was the
+	// pilot ward until 29 September, when it became R/C.
+	if strings.Contains(body, `value="R/S"`) {
+		t.Error("the field kit still defaults to the old pilot ward")
+	}
+}
