@@ -1,6 +1,7 @@
-import 'dart:typed_data';
+
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api.dart';
 import '../theme.dart';
@@ -174,6 +175,7 @@ class ReportScreen extends StatefulWidget {
 class _ReportScreenState extends State<ReportScreen> {
   ReportDetail? _report;
   Uint8List? _photo;
+  bool _photoFailed = false;
   String? _error;
 
   @override
@@ -187,12 +189,19 @@ class _ReportScreenState extends State<ReportScreen> {
       final r = await widget.client.report(widget.reportId, widget.session.token);
       if (!mounted) return;
       setState(() => _report = r);
-      // The photograph is the report. It is fetched separately because the
-      // archive is not public and the bytes need the token.
-      final bytes =
-          await widget.client.media(widget.reportId, widget.session.token);
-      if (!mounted) return;
-      setState(() => _photo = bytes);
+
+      // Fetched separately because the archive is not public and the bytes
+      // need the token — and in its own try, because a photograph that will
+      // not load must not take the verdict with it. Everything the platform
+      // worked out is still worth reading without it.
+      try {
+        final bytes =
+            await widget.client.media(widget.reportId, widget.session.token);
+        if (!mounted) return;
+        setState(() => _photo = bytes);
+      } catch (_) {
+        if (mounted) setState(() => _photoFailed = true);
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -215,9 +224,14 @@ class _ReportScreenState extends State<ReportScreen> {
               else if (_report == null)
                 const Center(child: CircularProgressIndicator())
               else ...[
-                _PhotoAndPlace(report: _report!, photo: _photo),
+                _PhotoAndPlace(
+                    report: _report!, photo: _photo, failed: _photoFailed),
                 const SizedBox(height: 16),
                 VerdictCard(report: _report!),
+                if (_report!.nextStep != null) ...[
+                  const SizedBox(height: 16),
+                  _NextStepCard(step: _report!.nextStep!),
+                ],
                 const SizedBox(height: 12),
                 Text(
                   'Nothing has been filed with any authority. Any complaint or '
@@ -241,10 +255,15 @@ class _ReportScreenState extends State<ReportScreen> {
 /// impossible to correct. The position is theirs and this screen is theirs,
 /// so it is exact here; public surfaces coarsen it (hard rule 4).
 class _PhotoAndPlace extends StatelessWidget {
-  const _PhotoAndPlace({required this.report, required this.photo});
+  const _PhotoAndPlace({
+    required this.report,
+    required this.photo,
+    this.failed = false,
+  });
 
   final ReportDetail report;
   final Uint8List? photo;
+  final bool failed;
 
   @override
   Widget build(BuildContext context) {
@@ -257,17 +276,27 @@ class _PhotoAndPlace extends StatelessWidget {
           borderRadius: BorderRadius.circular(Tokens.cardRadius),
           child: AspectRatio(
             aspectRatio: 4 / 3,
-            child: photo == null
-                ? Container(
+            child: photo != null
+                ? Image.memory(photo!, fit: BoxFit.cover)
+                : Container(
                     color: Tokens.evidence,
                     alignment: Alignment.center,
-                    child: const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : Image.memory(photo!, fit: BoxFit.cover),
+                    child: failed
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                              'The photograph could not be loaded. Everything '
+                              'below was still worked out from it.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Tokens.ink45, fontSize: 13),
+                            ),
+                          )
+                        : const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                  ),
           ),
         ),
         if (report.hasLocation) ...[
@@ -289,6 +318,97 @@ class _PhotoAndPlace extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+
+/// What to do about this capture.
+///
+/// The thing that separates this from an app that collects complaints and
+/// forwards them: it names the desk, gives the words, and says what obliges
+/// them once told. Nothing here sends anything — hard rule 1 — so the action
+/// is Copy, and the person sends it.
+class _NextStepCard extends StatelessWidget {
+  const _NextStepCard({required this.step});
+
+  final NextStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Tokens.surface,
+        borderRadius: BorderRadius.circular(Tokens.cardRadius),
+        border: Border.all(color: Tokens.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('What to do next', style: text.titleMedium),
+          const SizedBox(height: 10),
+
+          if (!step.available) ...[
+            Text(step.whatHappensNext,
+                style: text.bodyLarge?.copyWith(color: Tokens.ink70)),
+          ] else ...[
+            for (final c in step.channels) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.arrow_forward, size: 16, color: Tokens.accent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(c.name,
+                              style: text.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                          Text(c.how,
+                              style: text.bodySmall?.copyWith(color: Tokens.ink70)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Tokens.evidence,
+                borderRadius: BorderRadius.circular(Tokens.chipRadius),
+              ),
+              child: Text(step.text ?? '', style: text.bodySmall),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Clipboard.setData(ClipboardData(text: step.text ?? '')),
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('Copy the complaint text'),
+            ),
+
+            const SizedBox(height: 14),
+            Text(step.whatHappensNext,
+                style: text.bodyLarge?.copyWith(color: Tokens.ink70)),
+            if (step.deadlineCitation != null &&
+                step.deadlineCitation!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              // The source travels with the constant (hard rule 2).
+              Text('Source · ${step.deadlineCitation}',
+                  style: text.bodySmall?.copyWith(color: Tokens.ink45)),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

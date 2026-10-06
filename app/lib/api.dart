@@ -98,6 +98,54 @@ class Capture {
 /// enrichment runs after the photograph is safe, so a report may be stored
 /// and not yet understood — and a report with a ward and no contract is a
 /// complete answer, not a half-finished one.
+/// One way to reach the authority.
+class Channel {
+  Channel({required this.name, required this.how, this.url});
+  factory Channel.fromJson(Map<String, dynamic> j) => Channel(
+        name: (j['name'] ?? '') as String,
+        how: (j['how'] ?? '') as String,
+        url: j['url'] as String?,
+      );
+  final String name;
+  final String how;
+  final String? url;
+}
+
+/// What to do about a capture.
+///
+/// [available] is false when the platform has not worked out which desk owns
+/// this kind of problem in this ward. It still carries [whatHappensNext],
+/// which says so — an honest "we don't know yet" is a better answer than a
+/// complaint addressed to an office with no duty for it.
+class NextStep {
+  NextStep({
+    required this.available,
+    required this.whatHappensNext,
+    this.text,
+    this.channels = const [],
+    this.deadlineHours,
+    this.deadlineCitation,
+  });
+
+  factory NextStep.fromJson(Map<String, dynamic> j) => NextStep(
+        available: (j['available'] ?? false) as bool,
+        whatHappensNext: (j['what_happens_next'] ?? '') as String,
+        text: j['text'] as String?,
+        channels: ((j['channels'] as List<dynamic>?) ?? const [])
+            .map((c) => Channel.fromJson(c as Map<String, dynamic>))
+            .toList(),
+        deadlineHours: (j['deadline_hours'] as num?)?.toInt(),
+        deadlineCitation: j['deadline_citation'] as String?,
+      );
+
+  final bool available;
+  final String whatHappensNext;
+  final String? text;
+  final List<Channel> channels;
+  final int? deadlineHours;
+  final String? deadlineCitation;
+}
+
 class ReportDetail {
   ReportDetail({
     required this.id,
@@ -119,6 +167,7 @@ class ReportDetail {
     this.latitude,
     this.longitude,
     this.accuracyMetres,
+    this.nextStep,
   });
 
   factory ReportDetail.fromJson(Map<String, dynamic> json) {
@@ -143,6 +192,9 @@ class ReportDetail {
       latitude: (json['lat'] as num?)?.toDouble(),
       longitude: (json['lon'] as num?)?.toDouble(),
       accuracyMetres: (json['accuracy_m'] as num?)?.toDouble(),
+      nextStep: json['next_step'] == null
+          ? null
+          : NextStep.fromJson(json['next_step'] as Map<String, dynamic>),
     );
   }
 
@@ -175,6 +227,9 @@ class ReportDetail {
   final double? accuracyMetres;
 
   bool get hasLocation => latitude != null && longitude != null;
+
+  /// What to do about this capture, once the platform knows enough to say.
+  final NextStep? nextStep;
 
   /// Whether the platform has finished thinking about this capture.
   bool get enriched => outcome != null && ward != null;
