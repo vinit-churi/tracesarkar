@@ -25,6 +25,7 @@ type fakeReports struct {
 	saveErr    error
 	mediaErr   error
 	labelSaved int
+	labels     []ReportLabel
 }
 
 func (f *fakeReports) SaveReport(_ context.Context, in NewReport) (string, bool, error) {
@@ -47,8 +48,9 @@ func (f *fakeReports) AddReportMedia(_ context.Context, in NewMedia) error {
 	return nil
 }
 
-func (f *fakeReports) SaveReportLabel(_ context.Context, _ ReportLabel) error {
+func (f *fakeReports) SaveReportLabel(_ context.Context, in ReportLabel) error {
 	f.labelSaved++
+	f.labels = append(f.labels, in)
 	return nil
 }
 

@@ -86,3 +86,36 @@ func TestFieldKitSignsInRatherThanTakingTheSharedToken(t *testing.T) {
 		t.Error("the field kit still defaults to the old pilot ward")
 	}
 }
+
+// The field kit must not keep its own copy of the vocabulary. It had one, and
+// it had drifted: missing_manhole_cover, garbage, not_civic — none of them
+// values the taxonomy holds, so every photograph labelled through it would
+// have been unscoreable.
+func TestFieldKitDoesNotCarryItsOwnTaxonomy(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	body := rec.Body.String()
+
+	// Checked as markup rather than as text: the comment explaining why these
+	// were removed necessarily names them.
+	for _, stale := range []string{
+		"missing_manhole_cover", "utility_dig_damage", "faded_markings",
+		"garbage", "not_civic", "blocked_drain", "streetlight_out",
+	} {
+		for _, form := range []string{">" + stale + "<", `value="` + stale + `"`} {
+			if strings.Contains(body, form) {
+				t.Errorf("the field kit still offers %q", stale)
+			}
+		}
+	}
+	if !strings.Contains(body, "/v1/taxonomy") {
+		t.Error("the field kit does not fetch the taxonomy")
+	}
+}

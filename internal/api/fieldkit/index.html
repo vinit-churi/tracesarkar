@@ -93,21 +93,8 @@
   </div>
 
   <label for="label">What is it</label>
-  <select id="label">
-    <optgroup label="road_defect">
-      <option>pothole</option><option>crack</option><option>subsidence</option>
-      <option>missing_manhole_cover</option><option>open_manhole</option>
-      <option>damaged_speed_breaker</option><option>utility_dig_damage</option>
-      <option>faded_markings</option>
-    </optgroup>
-    <optgroup label="other categories">
-      <option>garbage</option><option>debris</option><option>waterlogging</option>
-      <option>blocked_drain</option><option>streetlight_out</option><option>broken_footpath</option>
-    </optgroup>
-    <optgroup label="negatives">
-      <option>not_civic</option>
-    </optgroup>
-  </select>
+  <select id="label"><option value="">loading the taxonomy…</option></select>
+  <p class="muted" id="label-hint"></p>
 
   <label>Conditions</label>
   <div class="chips" id="conditions">
@@ -229,6 +216,49 @@ els('photo').onchange = e => {
 function refreshCaptureButton() {
   els('capture').disabled = !(photoFile && position);
 }
+
+// --- taxonomy -------------------------------------------------------------
+// Fetched, never hardcoded. This list used to be a copy that had drifted:
+// missing_manhole_cover, garbage, not_civic — none of them values the taxonomy
+// holds. A label it does not hold cannot be scored against anything, so every
+// photograph taken with one was a guaranteed miss in the evaluation.
+const HINTS = {
+  'illegal dumping': 'No bin or collection point here — someone left it.',
+  'uncollected garbage': 'At a bin or collection point, not emptied.',
+  'debris': 'Construction or demolition rubble, not household waste.',
+  'utility-dig damage': 'A trench or reinstated strip, usually straight-edged.',
+  'pothole': 'A hole in the carriageway itself.',
+};
+
+async function loadTaxonomy() {
+  if (!settings.token) return;
+  try {
+    const res = await fetch('/v1/taxonomy', {
+      headers: {'Authorization': 'Bearer ' + settings.token}
+    });
+    if (!res.ok) throw new Error('could not load the taxonomy');
+    const body = await res.json();
+    const hazards = new Set(body.hazards || []);
+    const sel = els('label');
+    sel.innerHTML = '';
+    for (const category of Object.keys(body.taxonomy).sort()) {
+      const group = document.createElement('optgroup');
+      group.label = category.replace(/_/g, ' ');
+      for (const sub of body.taxonomy[category]) {
+        const o = document.createElement('option');
+        o.value = sub;
+        o.textContent = hazards.has(sub) ? sub + '  ⚠ hazard' : sub;
+        group.appendChild(o);
+      }
+      sel.appendChild(group);
+    }
+    sel.onchange = () => { els('label-hint').textContent = HINTS[sel.value] || ''; };
+    sel.onchange();
+  } catch (e) {
+    setStatus('taxonomy unavailable — sign in first');
+  }
+}
+loadTaxonomy();
 
 // --- queue ----------------------------------------------------------------
 function openDB() {

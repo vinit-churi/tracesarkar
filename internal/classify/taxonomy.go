@@ -117,3 +117,16 @@ func Subcategories(category string) []string {
 	sort.Strings(out)
 	return out
 }
+
+// Hazards lists the subcategories the platform treats as dangerous, so a
+// surface can mark them without keeping its own copy of the set.
+func Hazards() []string {
+	out := make([]string, 0, len(hazardous))
+	for h := range hazardous {
+		if CategoryOf(h) != "" {
+			out = append(out, h)
+		}
+	}
+	sort.Strings(out)
+	return out
+}

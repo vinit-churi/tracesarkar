@@ -163,6 +163,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.Handle("GET /v1/reports/{id}/media", s.authenticated(http.HandlerFunc(s.handleReportMedia)))
 
+	mux.Handle("GET /v1/taxonomy", s.authenticated(http.HandlerFunc(s.handleTaxonomy)))
 	mux.Handle("GET /v1/label/queue", s.authenticated(http.HandlerFunc(s.handleLabelQueue)))
 	mux.Handle("POST /v1/label/{id}", s.authenticated(http.HandlerFunc(s.handleSaveLabel)))
 

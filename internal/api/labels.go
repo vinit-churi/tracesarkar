@@ -41,6 +41,20 @@ type queueItem struct {
 	MediaURL   string `json:"media_url"`
 }
 
+// handleTaxonomy serves the vocabulary every surface must label in.
+//
+// Served rather than copied, because the field kit had its own hardcoded list
+// — "missing_manhole_cover", "garbage", "not_civic" — and none of those are
+// values the taxonomy contains. A label it does not contain cannot be scored
+// against anything, so a day of fieldwork would have produced a day of
+// guaranteed misses.
+func (s *Server) handleTaxonomy(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"taxonomy": classify.Taxonomy(),
+		"hazards":  classify.Hazards(),
+	})
+}
+
 // handleLabelQueue lists captures waiting for a human judgement.
 func (s *Server) handleLabelQueue(w http.ResponseWriter, r *http.Request) {
 	if s.labels == nil {

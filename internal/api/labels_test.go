@@ -201,3 +201,56 @@ func TestLabelQueueNeedsAuthentication(t *testing.T) {
 }
 
 var _ = json.Marshal
+
+// The capture path writes a label straight from the request, and until now
+// nothing checked it. The field kit sent its own hardcoded vocabulary —
+// "missing_manhole_cover", "garbage", "not_civic" — none of which the taxonomy
+// contains, so a day of fieldwork would have produced labels the evaluation
+// cannot score and every case would have counted as a miss.
+func TestACaptureLabelMustBeInTheTaxonomy(t *testing.T) {
+	tests := []struct {
+		name  string
+		label string
+		kept  bool
+	}{
+		{name: "a taxonomy value is kept", label: "open manhole", kept: true},
+		{name: "case and spacing are forgiven", label: "  Open Manhole ", kept: true},
+		{name: "the field kit's underscored form is refused", label: "missing_manhole_cover"},
+		{name: "a value that is not in the taxonomy is refused", label: "garbage"},
+		{name: "the old not-civic marker is refused", label: "not_civic"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reports := &fakeReports{}
+			srv := newTestServer(t, reports, &fakeBlobs{})
+
+			meta := `{"location":{"lat":19.23,"lon":72.84,"accuracy_m":6},` +
+				`"captured_at":"2026-10-10T09:00:00Z",` +
+				`"label":{"frame_type":"close","label":"` + tt.label + `"}}`
+			req := captureRequest(t, meta, map[string][]byte{"close": []byte("jpegbytes")})
+			req.Header.Set("Authorization", "Bearer test-token")
+			rec := httptest.NewRecorder()
+			srv.Handler().ServeHTTP(rec, req)
+
+			// The capture itself is never rejected over its label. Hard rule 7:
+			// the photograph is the thing that cannot be retaken.
+			if rec.Code != http.StatusAccepted {
+				t.Fatalf("the capture was rejected: %d %s", rec.Code, rec.Body.String())
+			}
+
+			if tt.kept {
+				if len(reports.labels) != 1 {
+					t.Fatalf("a valid label was not stored: %+v", reports.labels)
+				}
+				if reports.labels[0].Label != strings.ToLower(strings.TrimSpace(tt.label)) {
+					t.Errorf("stored %q", reports.labels[0].Label)
+				}
+				return
+			}
+			if len(reports.labels) != 0 {
+				t.Errorf("an unscoreable label was stored: %q", reports.labels[0].Label)
+			}
+		})
+	}
+}

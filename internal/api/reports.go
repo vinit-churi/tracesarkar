@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vinit-churi/tracesarkar/internal/classify"
 	"github.com/vinit-churi/tracesarkar/internal/exif"
 )
 
@@ -169,18 +170,34 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if meta.Label != nil {
-		if err := s.reports.SaveReportLabel(r.Context(), ReportLabel{
-			ReportID:        reportID,
-			FrameType:       meta.Label.FrameType,
-			Label:           meta.Label.Label,
-			Conditions:      meta.Label.Conditions,
-			WardGroundTruth: meta.Label.WardGroundTruth,
-			Notes:           meta.Label.Notes,
-			LabelledBy:      s.reporter(r),
-		}); err != nil {
-			// The capture is already safe; a label that failed to save is worth
-			// logging, not worth rejecting the report over.
-			s.log.Warn("could not save label", "error", err.Error(), "report_id", reportID)
+		// Only a subcategory the taxonomy knows. A label it does not contain
+		// cannot be scored against anything — the evaluation set is labelled
+		// from this vocabulary — so storing one would turn a photograph into a
+		// guaranteed miss rather than evidence.
+		//
+		// The capture is never rejected over it. The photograph is the thing
+		// that cannot be retaken (hard rule 7); a label can be added later at
+		// /label/.
+		label := strings.ToLower(strings.TrimSpace(meta.Label.Label))
+		if classify.CategoryOf(label) == "" {
+			s.log.Warn("label is not in the taxonomy; capture kept, label dropped",
+				"report_id", reportID, "label", meta.Label.Label)
+			label = ""
+		}
+		if label != "" {
+			if err := s.reports.SaveReportLabel(r.Context(), ReportLabel{
+				ReportID:        reportID,
+				FrameType:       meta.Label.FrameType,
+				Label:           label,
+				Conditions:      meta.Label.Conditions,
+				WardGroundTruth: meta.Label.WardGroundTruth,
+				Notes:           meta.Label.Notes,
+				LabelledBy:      s.reporter(r),
+			}); err != nil {
+				// The capture is already safe; a label that failed to save is worth
+				// logging, not worth rejecting the report over.
+				s.log.Warn("could not save label", "error", err.Error(), "report_id", reportID)
+			}
 		}
 	}
 
