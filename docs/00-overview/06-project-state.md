@@ -31,6 +31,8 @@ Three things are live and answering. Nothing below is aspirational.
 | **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag. v0.1.1 queues captures offline |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
 | **Label** | `…run.app/label/` | Ground truth for the eval set, two keystrokes a capture |
+| **Methodology** | `…run.app/methodology/` | Public, no sign-in — sources, measurements, limits |
+| **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 | **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich then classify, so a capture resolves itself |
 
@@ -230,9 +232,10 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ### Mine, in order
 
-- [ ] **Build the eval set from `report_labels`** and run it. The labelling surface fills the
-      table; nothing yet reads it back into `classify.RunEval`. That is the last piece between a
-      weekend of walking and a number for system 3
+- [ ] **Decide what separates `uncollected garbage` from `illegal dumping`** before labelling at
+      volume. The first eval run scored 1 of 2 on subcategory, and the miss was that distinction on
+      a heap of household waste at a tree base — both readings defensible. Whatever is decided sets
+      the ceiling on measurable subcategory accuracy
 
 - [ ] **System 4 — issues and the SLA clock.** Then: finishing accounts, the public surface, the
       share kit, the operator console
