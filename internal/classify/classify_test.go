@@ -200,3 +200,94 @@ func TestCoverageDrivesRoutingRatherThanAHardCodedList(t *testing.T) {
 		t.Errorf("outcome: got %q, want %q once waste is covered", got.Outcome, Accepted)
 	}
 }
+
+// The model returns a string, and structured output guarantees only that it is
+// a string. Both of the first two real captures came back with a subcategory
+// the taxonomy does not contain — "uncollected garbage and illegal dumping",
+// "construction and demolition debris dumped on roadside" — and sailed through
+// to Accepted, because Apply checked the category and never the subcategory.
+//
+// Two things break when that happens. The evaluation set is labelled from the
+// taxonomy, so free text scores as a miss even where the model was right. And
+// the hazard override is an exact lookup, so a phrase the model invents loses
+// the backstop that hazard recall depends on.
+func TestApplyChecksTheSubcategoryAgainstTheTaxonomy(t *testing.T) {
+	covered := CoverageFor("road_defect", "waste")
+
+	tests := []struct {
+		name        string
+		result      Result
+		wantOutcome Outcome
+		wantKnown   bool
+	}{
+		{
+			name:        "a subcategory from the taxonomy is accepted",
+			result:      Result{Category: "waste", Subcategory: "illegal dumping", IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9},
+			wantOutcome: Accepted,
+			wantKnown:   true,
+		},
+		{
+			// Seen in the field, not invented for this test.
+			name:        "a compound subcategory the model invented is asked about",
+			result:      Result{Category: "waste", Subcategory: "uncollected garbage and illegal dumping", IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9},
+			wantOutcome: NeedsConfirmation,
+			wantKnown:   false,
+		},
+		{
+			name:        "a subcategory belonging to a different category is asked about",
+			result:      Result{Category: "waste", Subcategory: "pothole", IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9},
+			wantOutcome: NeedsConfirmation,
+			wantKnown:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := Apply(tt.result, covered)
+			if d.Outcome != tt.wantOutcome {
+				t.Errorf("outcome = %q, want %q", d.Outcome, tt.wantOutcome)
+			}
+			if d.SubcategoryKnown != tt.wantKnown {
+				t.Errorf("SubcategoryKnown = %v, want %v", d.SubcategoryKnown, tt.wantKnown)
+			}
+			// When it asks, it must offer the answers it can actually act on.
+			if !tt.wantKnown && len(d.Alternatives) == 0 {
+				t.Error("asking without offering the taxonomy's own options is a dead end")
+			}
+		})
+	}
+}
+
+// The hazard override is a safety backstop, so it errs towards flagging. An
+// exact-match lookup misses every phrasing the model invents around a hazard,
+// and hazard recall is the one number held to 99%.
+func TestHazardOverrideSurvivesTheModelsPhrasing(t *testing.T) {
+	covered := CoverageFor("road_defect")
+
+	for _, sub := range []string{
+		"open manhole",
+		"uncovered open manhole on the footpath",
+		"Missing Manhole Cover near the junction",
+		"collapsed wall beside the road",
+	} {
+		d := Apply(Result{
+			Category: "road_defect", Subcategory: sub,
+			IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9,
+			HazardToLife: false,
+		}, covered)
+		if !d.HazardToLife {
+			t.Errorf("%q did not trip the hazard override", sub)
+		}
+	}
+
+	// It must not fire on anything that merely reads like one.
+	for _, sub := range []string{"pothole", "uncollected garbage", "faded markings"} {
+		d := Apply(Result{
+			Category: "road_defect", Subcategory: sub,
+			IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9,
+		}, covered)
+		if d.HazardToLife {
+			t.Errorf("%q wrongly tripped the hazard override", sub)
+		}
+	}
+}

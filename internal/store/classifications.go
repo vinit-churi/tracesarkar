@@ -101,12 +101,13 @@ func (d *DB) UnclassifiedReports(ctx context.Context, limit int) ([]PendingCaptu
 		limit = 25
 	}
 	rows, err := d.pool.Query(ctx, `
-		SELECT r.id::text, m.archive_key
+		SELECT r.id::text, m.archive_key, COALESCE(j.ward, '')
 		  FROM reports r
 		  JOIN LATERAL (
 		    SELECT archive_key FROM report_media
 		     WHERE report_id = r.id ORDER BY created_at LIMIT 1
 		  ) m ON true
+		  LEFT JOIN report_jurisdiction j ON j.report_id = r.id
 		 WHERE NOT EXISTS (
 		    SELECT 1 FROM classifications c
 		     WHERE c.report_id = r.id AND c.error IS NULL)
@@ -122,7 +123,7 @@ func (d *DB) UnclassifiedReports(ctx context.Context, limit int) ([]PendingCaptu
 	var out []PendingCapture
 	for rows.Next() {
 		var p PendingCapture
-		if err := rows.Scan(&p.ReportID, &p.ArchiveKey); err != nil {
+		if err := rows.Scan(&p.ReportID, &p.ArchiveKey, &p.Ward); err != nil {
 			return nil, fmt.Errorf("scan pending capture: %w", err)
 		}
 		out = append(out, p)
@@ -134,10 +135,41 @@ func (d *DB) UnclassifiedReports(ctx context.Context, limit int) ([]PendingCaptu
 type PendingCapture struct {
 	ReportID   string
 	ArchiveKey string
+	// Ward, empty when jurisdiction has not resolved yet. Empty means not
+	// covered, because a capture whose ward is unknown cannot be known to
+	// have a department behind it.
+	Ward string
+}
+
+// CoverageByWard lists, per ward, the categories that have a department behind
+// them — which is the set the platform can actually route *there*.
+//
+// Per ward because a department recorded for R/Central says nothing about
+// R/North. Asking only "is this category covered anywhere" accepted a waste
+// report in Dahisar on the strength of a Borivali department, which promises
+// the citizen a desk that does not exist for them.
+func (d *DB) CoverageByWard(ctx context.Context) (map[string][]string, error) {
+	rows, err := d.pool.Query(ctx,
+		`SELECT DISTINCT ward, category FROM authority_departments WHERE ward <> ''`)
+	if err != nil {
+		return nil, fmt.Errorf("coverage by ward: %w", err)
+	}
+	defer rows.Close()
+
+	out := map[string][]string{}
+	for rows.Next() {
+		var ward, category string
+		if err := rows.Scan(&ward, &category); err != nil {
+			return nil, fmt.Errorf("scan coverage: %w", err)
+		}
+		out[ward] = append(out[ward], category)
+	}
+	return out, rows.Err()
 }
 
 // CoveredCategories lists the issue categories that have a department behind
-// them, which is the set the platform can actually route.
+// them anywhere. Kept for reporting on how far coverage has got; routing uses
+// CoverageByWard, because "covered somewhere" is not "covered here".
 func (d *DB) CoveredCategories(ctx context.Context) ([]string, error) {
 	rows, err := d.pool.Query(ctx, `SELECT DISTINCT category FROM authority_departments`)
 	if err != nil {

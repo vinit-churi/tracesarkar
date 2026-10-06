@@ -61,13 +61,17 @@ func runClassify(ctx context.Context, args []string) error {
 		return err
 	}
 
-	// Coverage comes from the database, so a category becomes routable the
-	// moment a department is recorded for it.
-	categories, err := db.CoveredCategories(ctx)
+	// Coverage comes from the database, so a category becomes routable in a
+	// ward the moment a department is recorded for it there.
+	byWard, err := db.CoverageByWard(ctx)
 	if err != nil {
 		return err
 	}
-	if len(categories) == 0 {
+	coverage := make(map[string]classify.Coverage, len(byWard))
+	for ward, categories := range byWard {
+		coverage[ward] = classify.CoverageFor(categories...)
+	}
+	if len(coverage) == 0 {
 		slog.Warn("no department mappings; every classification will be not_yet_covered")
 	}
 
@@ -82,8 +86,8 @@ func runClassify(ctx context.Context, args []string) error {
 
 	done, err := classify.Run(ctx, classify.RunnerOptions{
 		Store: db, Blobs: blobs, Classifier: client,
-		Coverage: classify.CoverageFor(categories...),
-		Model:    *model, Prompt: prompt.Version,
+		CoverageByWard: coverage,
+		Model:          *model, Prompt: prompt.Version,
 		Limit: *limit, Log: slog.Default(),
 	})
 	if err != nil {

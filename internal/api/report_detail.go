@@ -47,7 +47,9 @@ func (s *Server) handleReportDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"report": detail})
+	// ForCitizen removes anything the platform has no standing to claim —
+	// chiefly a road contractor's name on a report that is not about the road.
+	writeJSON(w, http.StatusOK, map[string]any{"report": detail.ForCitizen()})
 }
 
 // handleReportList returns the signed-in person's own captures, newest first.
@@ -70,6 +72,11 @@ func (s *Server) handleReportList(w http.ResponseWriter, r *http.Request) {
 	}
 	if reports == nil {
 		reports = []ReportDetail{}
+	}
+	for i := range reports {
+		// The same rule as the detail endpoint. A name suppressed on one
+		// screen and printed on the other is suppressed nowhere.
+		reports[i] = reports[i].ForCitizen()
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"reports": reports})
 }

@@ -54,3 +54,41 @@ func TestAMissingPromptIsAnErrorNotAnEmptyString(t *testing.T) {
 		t.Fatal("a missing prompt must fail loudly; an empty system prompt would silently degrade every classification")
 	}
 }
+
+// The first two real captures both came back with a subcategory the taxonomy
+// has never heard of — "debris / construction and demolition waste dumped on
+// roadside", "illegal dumping / uncollected garbage pile". The model was
+// describing the photograph rather than choosing from a list, because the
+// taxonomy block gave it a comma-joined blob under an instruction about
+// categories.
+//
+// Every such capture becomes needs_confirmation, so a day of walking would
+// produce a pile of reports that all need answering by hand and an evaluation
+// that measures vocabulary compliance instead of whether the model can see.
+func TestTheTaxonomyBlockOffersSubcategoriesAsAClosedList(t *testing.T) {
+	block := Prompt{Text: "PROMPT"}.WithTaxonomy()
+
+	// Each subcategory on its own line, so it reads as something to copy
+	// rather than prose to paraphrase.
+	for _, sub := range []string{"pothole", "open manhole", "illegal dumping"} {
+		if !strings.Contains(block, "\n- "+sub+"\n") {
+			t.Errorf("%q is not offered as its own item:\n%s", sub, block)
+		}
+	}
+
+	// And it has to say so in words, about the subcategory specifically.
+	lower := strings.ToLower(block)
+	if !strings.Contains(lower, "subcategory") {
+		t.Error("the block never mentions the subcategory field")
+	}
+	for _, phrase := range []string{"exactly one", "verbatim"} {
+		if !strings.Contains(lower, phrase) {
+			t.Errorf("the instruction does not say %q:\n%s", phrase, block)
+		}
+	}
+
+	// A comma-joined run of subcategories is the shape that caused this.
+	if strings.Contains(block, "pothole, crack") {
+		t.Error("subcategories are still emitted as a comma-joined blob")
+	}
+}

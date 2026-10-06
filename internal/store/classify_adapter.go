@@ -14,7 +14,9 @@ func (d *DB) Pending(ctx context.Context, limit int) ([]classify.Pending, error)
 	}
 	out := make([]classify.Pending, 0, len(captures))
 	for _, c := range captures {
-		out = append(out, classify.Pending{ReportID: c.ReportID, ArchiveKey: c.ArchiveKey})
+		out = append(out, classify.Pending{
+			ReportID: c.ReportID, ArchiveKey: c.ArchiveKey, Ward: c.Ward,
+		})
 	}
 	return out, nil
 }

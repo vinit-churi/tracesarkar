@@ -54,7 +54,7 @@ func TestTheRunnerClassifiesEveryPendingCapture(t *testing.T) {
 
 	n, err := Run(context.Background(), RunnerOptions{
 		Store: store, Blobs: blobs, Classifier: c,
-		Coverage: CoverageFor("road_defect"), Model: "m", Prompt: "v1",
+		CoverageByWard: map[string]Coverage{"": CoverageFor("road_defect")}, Model: "m", Prompt: "v1",
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -80,7 +80,7 @@ func TestOneFailureDoesNotStopTheRest(t *testing.T) {
 
 	n, err := Run(context.Background(), RunnerOptions{
 		Store: store, Blobs: blobs, Classifier: c,
-		Coverage: CoverageFor("road_defect"), Model: "m", Prompt: "v1",
+		CoverageByWard: map[string]Coverage{"": CoverageFor("road_defect")}, Model: "m", Prompt: "v1",
 	})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -102,7 +102,7 @@ func TestAFailedAttemptIsRecordedRatherThanForgotten(t *testing.T) {
 
 	if _, err := Run(context.Background(), RunnerOptions{
 		Store: store, Blobs: blobs, Classifier: c,
-		Coverage: CoverageFor("road_defect"), Model: "m", Prompt: "v1",
+		CoverageByWard: map[string]Coverage{"": CoverageFor("road_defect")}, Model: "m", Prompt: "v1",
 	}); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestEveryAttemptRecordsWhatProducedIt(t *testing.T) {
 
 	if _, err := Run(context.Background(), RunnerOptions{
 		Store: store, Blobs: blobs, Classifier: c,
-		Coverage: CoverageFor("road_defect"), Model: "deepseek-flash", Prompt: "v1",
+		CoverageByWard: map[string]Coverage{"": CoverageFor("road_defect")}, Model: "deepseek-flash", Prompt: "v1",
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestEveryAttemptRecordsWhatProducedIt(t *testing.T) {
 func TestNothingPendingIsNotAnError(t *testing.T) {
 	n, err := Run(context.Background(), RunnerOptions{
 		Store: &fakeStore{}, Blobs: &fakeBlobs{}, Classifier: &fakeClassifier{},
-		Coverage: CoverageFor("road_defect"), Model: "m", Prompt: "v1",
+		CoverageByWard: map[string]Coverage{"": CoverageFor("road_defect")}, Model: "m", Prompt: "v1",
 	})
 	if err != nil {
 		t.Fatalf("an empty queue is the normal case: %v", err)
@@ -193,11 +193,11 @@ func TestRunReportsATotalFailure(t *testing.T) {
 			}
 
 			_, err := Run(context.Background(), RunnerOptions{
-				Store:      store,
-				Blobs:      blobs,
-				Classifier: &fakeClassifier{byLabel: byLabel, errByLabel: failFor},
-				Coverage:   CoverageFor("road_defect"),
-				Model:      "test", Prompt: "v1",
+				Store:          store,
+				Blobs:          blobs,
+				Classifier:     &fakeClassifier{byLabel: byLabel, errByLabel: failFor},
+				CoverageByWard: map[string]Coverage{"": CoverageFor("road_defect")},
+				Model:          "test", Prompt: "v1",
 			})
 
 			if tt.wantErr && err == nil {
@@ -212,5 +212,70 @@ func TestRunReportsATotalFailure(t *testing.T) {
 				t.Errorf("recorded %d attempts, want %d", len(store.saved), len(tt.results))
 			}
 		})
+	}
+}
+
+// Coverage is per ward, not per category. A department recorded for R/Central
+// says nothing about R/North, and the first real capture outside Borivali — a
+// waste report in Dahisar — was treated as routable because R/Central happens
+// to have a solid waste department. Accepting it promises the citizen a desk
+// that does not exist for them.
+func TestCoverageIsPerWard(t *testing.T) {
+	store := &fakeStore{pending: []Pending{
+		{ReportID: "covered", ArchiveKey: "k1", Ward: "R/C"},
+		{ReportID: "elsewhere", ArchiveKey: "k2", Ward: "R/N"},
+	}}
+	blobs := &fakeBlobs{data: map[string][]byte{"k1": []byte("a"), "k2": []byte("b")}}
+	waste := Result{Category: "waste", Subcategory: "illegal dumping",
+		IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9}
+	c := &fakeClassifier{byLabel: map[string]Result{"a": waste, "b": waste}}
+
+	_, err := Run(context.Background(), RunnerOptions{
+		Store: store, Blobs: blobs, Classifier: c,
+		// Only R/Central has a solid waste department.
+		CoverageByWard: map[string]Coverage{
+			"R/C": CoverageFor("road_defect", "waste"),
+			"R/N": CoverageFor("road_defect"),
+		},
+		Model: "m", Prompt: "v1",
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	got := map[string]Outcome{}
+	for _, a := range store.saved {
+		got[a.ReportID] = a.Decision.Outcome
+	}
+	if got["covered"] != Accepted {
+		t.Errorf("R/C waste should be accepted, got %q", got["covered"])
+	}
+	if got["elsewhere"] != NotYetCovered {
+		t.Errorf("R/N has no waste department, so it must say so; got %q",
+			got["elsewhere"])
+	}
+}
+
+// A capture whose ward has not resolved cannot be known to be covered, and
+// saying it is routable on the strength of not knowing is the wrong way to be
+// wrong.
+func TestAnUnresolvedWardIsNotCovered(t *testing.T) {
+	store := &fakeStore{pending: []Pending{{ReportID: "nowhere", ArchiveKey: "k1"}}}
+	blobs := &fakeBlobs{data: map[string][]byte{"k1": []byte("a")}}
+	c := &fakeClassifier{byLabel: map[string]Result{"a": {
+		Category: "waste", Subcategory: "illegal dumping",
+		IsCivicIssue: true, ImageQuality: "good", Confidence: 0.9,
+	}}}
+
+	if _, err := Run(context.Background(), RunnerOptions{
+		Store: store, Blobs: blobs, Classifier: c,
+		CoverageByWard: map[string]Coverage{"R/C": CoverageFor("waste")},
+		Model:          "m", Prompt: "v1",
+	}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if len(store.saved) != 1 || store.saved[0].Decision.Outcome != NotYetCovered {
+		t.Errorf("expected not_yet_covered for an unresolved ward, got %+v", store.saved)
 	}
 }

@@ -104,3 +104,16 @@ func CategoryOf(sub string) string {
 func IsHazard(sub string) bool {
 	return hazardous[strings.ToLower(strings.TrimSpace(sub))]
 }
+
+// Subcategories lists what a category can be, for offering as choices when the
+// model described the thing in its own words. Sorted, so the order a citizen
+// sees does not depend on map iteration.
+func Subcategories(category string) []string {
+	subs, ok := taxonomy[strings.ToLower(strings.TrimSpace(category))]
+	if !ok {
+		return nil
+	}
+	out := append([]string(nil), subs...)
+	sort.Strings(out)
+	return out
+}

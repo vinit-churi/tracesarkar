@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get TraceSarkar for Android</title>
+<meta name="description" content="Install the TraceSarkar Android app.">
+<style>
+  /* Tokens from docs/02-product/11-screen-spec.md §2. The palette is
+     party-neutral by requirement; plum is the single accent. */
+  :root {
+    --ink: #141518; --ink70: #4A4D55; --ink45: #7C8089;
+    --paper: #FBFAF8; --surface: #FFFFFF; --hairline: #E3E1DC;
+    --accent: #6B2C4F; --accent-wash: #F5EAF0;
+    --caution: #8A6410; --caution-wash: #FAF3E2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 48px 16px; background: var(--paper); color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.4px; }
+  .lede { color: var(--ink70); margin: 0 0 32px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 24px; margin-bottom: 16px;
+  }
+  .get {
+    display: block; text-align: center; text-decoration: none;
+    background: var(--ink); color: var(--paper); font-weight: 600;
+    padding: 14px 20px; border-radius: 10px;
+  }
+  .get:hover { background: var(--accent); }
+  .meta { color: var(--ink45); font-size: 14px; margin-top: 12px; text-align: center; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.6px;
+       color: var(--ink45); margin: 0 0 12px; }
+  ol { margin: 0; padding-left: 20px; color: var(--ink70); }
+  ol li { margin-bottom: 8px; }
+  .note {
+    background: var(--caution-wash); border: 1px solid rgba(138,100,16,.25);
+    border-radius: 8px; padding: 12px 14px; color: var(--caution); font-size: 14px;
+  }
+  footer { margin-top: 32px; font-size: 14px; color: var(--ink45); }
+  a { color: var(--accent); }
+  code { background: var(--accent-wash); padding: 1px 5px; border-radius: 4px;
+         font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <p style="margin:0 0 24px"><a href="/" style="color:var(--ink);font-weight:700;text-decoration:none">← TraceSarkar</a></p>
+  <h1>TraceSarkar for Android</h1>
+  <p class="lede">
+    Photograph a civic problem and see which authority and which public contract
+    cover that spot.
+  </p>
+
+  <div class="card">
+    <a class="get" id="download" href="#">Download the APK</a>
+    <p class="meta" id="meta">Loading the latest build…</p>
+  </div>
+
+  <div class="card">
+    <h2>Installing it</h2>
+    <ol>
+      <li>Open the downloaded file from your notifications or Downloads.</li>
+      <li>Android will ask whether to allow installs from your browser. Allow it
+          for that browser only.</li>
+      <li>Tap <strong>Install</strong>, then open the app and sign in.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Why it is not on the Play Store</h2>
+    <p style="margin:0 0 12px;color:var(--ink70)">
+      This is an early build, distributed directly while the platform is still
+      being developed. It is signed with a fixed key, so updates install over the
+      previous version rather than asking you to uninstall first.
+    </p>
+    <p class="note">
+      Nothing in this app files anything with any authority. Every complaint,
+      RTI or application it produces is a draft you send yourself.
+    </p>
+  </div>
+
+  <footer>
+    Prefer the browser? <a href="https://tracesarkar-app.infoyantra.workers.dev/">Use TraceSarkar on the web</a> — it does
+    everything except run in the background.
+  </footer>
+</main>
+
+<script>
+// The build this page offers is whatever the last release wrote to R2. Keeping
+// it in a small JSON file means a new release does not need this page rebuilt.
+const BASE = 'https://pub-71d6c1ee16d945b992e92f076ad6e1ed.r2.dev';
+const link = document.getElementById('download');
+const meta = document.getElementById('meta');
+
+fetch(BASE + '/android/latest.json', { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(d => {
+    link.href = BASE + '/' + d.path;
+    link.setAttribute('download', '');
+    const mb = (d.bytes / 1048576).toFixed(1);
+    const when = new Date(d.built_at).toLocaleDateString(undefined,
+      { year: 'numeric', month: 'short', day: 'numeric' });
+    meta.textContent = `Version ${d.version} · ${mb} MB · built ${when}`;
+  })
+  .catch(() => {
+    // Say so plainly rather than offering a link that goes nowhere.
+    link.removeAttribute('href');
+    link.style.opacity = '.45';
+    link.style.cursor = 'default';
+    meta.textContent = 'No build published yet. Check back shortly.';
+  });
+</script>
+</body>
+</html>

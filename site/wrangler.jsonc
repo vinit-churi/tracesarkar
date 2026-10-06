@@ -1,0 +1,23 @@
+{
+  "$schema": "../app/node_modules/wrangler/config-schema.json",
+  "name": "tracesarkar-site",
+  "compatibility_date": "2026-10-05",
+
+  // Same account as the app Worker; novamakers.tech lives here too.
+  "account_id": "dba7a9b5ed108516b714250de2a0dd0f",
+
+  // The public landing page and the APK download page. Static assets only,
+  // no Worker code. The APK itself stays in the tracesarkar-downloads R2
+  // bucket; /download/ reads android/latest.json from it.
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+
+  "routes": [
+    { "pattern": "tracesarkar.novamakers.tech", "custom_domain": true }
+  ],
+
+  "observability": { "enabled": true }
+}

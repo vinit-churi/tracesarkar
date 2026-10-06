@@ -11,6 +11,10 @@ import (
 type Pending struct {
 	ReportID   string
 	ArchiveKey string
+	// Ward decides what counts as covered. A department recorded for one ward
+	// says nothing about the next one, and a capture whose ward has not
+	// resolved yet cannot be known to be covered at all.
+	Ward string
 }
 
 // Attempt is one classification, successful or not.
@@ -39,11 +43,14 @@ type RunnerOptions struct {
 	Store      Store
 	Blobs      Blobs
 	Classifier Classifier
-	Coverage   Coverage
-	Model      string
-	Prompt     string
-	Limit      int
-	Log        *slog.Logger
+	// CoverageByWard is the set of categories that have a department, per
+	// ward. A ward absent from the map covers nothing, which is the honest
+	// answer for somewhere no department has been recorded.
+	CoverageByWard map[string]Coverage
+	Model          string
+	Prompt         string
+	Limit          int
+	Log            *slog.Logger
 }
 
 // Run classifies the captures waiting for it, and reports how many succeeded.
@@ -74,7 +81,7 @@ func Run(ctx context.Context, o RunnerOptions) (int, error) {
 			var raw Result
 			raw, err = o.Classifier.Classify(ctx, image, "")
 			if err == nil {
-				attempt.Decision = Apply(raw, o.Coverage)
+				attempt.Decision = Apply(raw, o.CoverageByWard[p.Ward])
 				done++
 			}
 		}

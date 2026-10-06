@@ -193,3 +193,42 @@ func TestTheListOnlyEverShowsYourOwnReports(t *testing.T) {
 		t.Errorf("the list leaked someone else's report: %+v", body.Reports)
 	}
 }
+
+// Both endpoints must apply the same rule. A contractor suppressed on the
+// detail screen and printed on the list is suppressed nowhere.
+func TestNeitherEndpointNamesAContractorOnANonRoadReport(t *testing.T) {
+	waste := ReportDetail{
+		ID: "r1", AccountID: "person-1", Status: "enriched",
+		Ward: "R/C", Authority: "BMC",
+		ContractorName: "M/s Example Infracon Pvt. Ltd",
+		WorkCode:       "W-415", RoadName: "S.V. Road", AttrConfidence: "high",
+		Classification: &classify.Decision{
+			Result:  classify.Result{Category: "waste", Subcategory: "illegal dumping"},
+			Outcome: classify.Accepted,
+		},
+	}
+
+	srv, token := detailServer(t, &fakeDetails{
+		byID:  map[string]ReportDetail{"r1": waste},
+		owner: map[string]string{"r1": "person-1"},
+	})
+
+	for _, path := range []string{"/v1/reports/r1", "/v1/reports"} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", path, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		srv.Handler().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: got %d: %s", path, rec.Code, rec.Body.String())
+		}
+		if strings.Contains(rec.Body.String(), "Example Infracon") {
+			t.Errorf("%s named the road contractor on a waste report: %s",
+				path, rec.Body.String())
+		}
+		// The ward is still true and still useful.
+		if !strings.Contains(rec.Body.String(), "R/C") {
+			t.Errorf("%s dropped the ward along with the contract", path)
+		}
+	}
+}

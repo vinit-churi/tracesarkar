@@ -74,6 +74,36 @@ type Decision struct {
 	OverrideReason    string `json:"override_reason,omitempty"`
 	RedactionRequired bool   `json:"redaction_required"`
 	RejectionReason   string `json:"rejection_reason,omitempty"`
+	// SubcategoryKnown records whether the model's subcategory is one the
+	// taxonomy contains. Structured output guarantees a string, not a word
+	// from our vocabulary, and the first two real captures both came back
+	// with phrases the taxonomy has never heard of. The evaluation set is
+	// labelled from the taxonomy, so free text would score as a miss against
+	// ground truth that is actually in agreement.
+	SubcategoryKnown bool `json:"subcategory_known"`
+}
+
+// hazardNamedIn reports whether a subcategory names a known hazard, by exact
+// match or by containing one.
+//
+// Containment, not equality, because this is a safety backstop and the model
+// writes its own phrasing: "uncovered open manhole on the footpath" is an open
+// manhole, and an exact lookup misses it. A backstop that errs towards flagging
+// is the right kind of wrong — hazard recall is the one number held to 99%.
+func hazardNamedIn(subcategory string) (string, bool) {
+	s := strings.ToLower(strings.TrimSpace(subcategory))
+	if s == "" {
+		return "", false
+	}
+	if hazardous[s] {
+		return s, true
+	}
+	for hazard := range hazardous {
+		if strings.Contains(s, hazard) {
+			return hazard, true
+		}
+	}
+	return "", false
 }
 
 // Below this, the model is guessing and the citizen should choose.
@@ -106,12 +136,15 @@ func Apply(r Result, covered Coverage) Decision {
 	// The hazard override comes first: it must survive every other outcome,
 	// because an unreadable photograph of an open manhole is still an open
 	// manhole.
-	if !r.HazardToLife && hazardous[strings.ToLower(strings.TrimSpace(r.Subcategory))] {
-		d.HazardToLife = true
-		d.Overridden = true
-		d.OverrideReason = fmt.Sprintf(
-			"%q is on the known-hazard list, so it is treated as a hazard "+
-				"whatever the classifier concluded", r.Subcategory)
+	if !r.HazardToLife {
+		if hazard, ok := hazardNamedIn(r.Subcategory); ok {
+			d.HazardToLife = true
+			d.Overridden = true
+			d.OverrideReason = fmt.Sprintf(
+				"%q names %q, which is on the known-hazard list, so it is "+
+					"treated as a hazard whatever the classifier concluded",
+				r.Subcategory, hazard)
+		}
 	}
 
 	switch {
@@ -121,6 +154,13 @@ func Apply(r Result, covered Coverage) Decision {
 	case !r.IsCivicIssue:
 		d.Outcome = OutOfScope
 		d.RejectionReason = rejectionFor(r.Category)
+
+	case !KnownSubcategory(r.Category, r.Subcategory) && KnownCategory(r.Category):
+		// The category is routable but the model described the thing in its
+		// own words. Ask, offering the vocabulary the platform can act on —
+		// which is also the vocabulary the evaluation set is labelled in.
+		d.Outcome = NeedsConfirmation
+		d.Alternatives = Subcategories(r.Category)
 
 	case !KnownCategory(r.Category):
 		// Structured output guarantees a string, not a meaningful one. A
@@ -143,6 +183,7 @@ func Apply(r Result, covered Coverage) Decision {
 		d.Outcome = Accepted
 	}
 
+	d.SubcategoryKnown = KnownSubcategory(r.Category, r.Subcategory)
 	return d
 }
 
