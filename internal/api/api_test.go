@@ -186,8 +186,20 @@ func TestTheFieldKitAsksForALandmarkAndNotAGuessedWard(t *testing.T) {
 	if !strings.Contains(body, `placeholder="not sure"`) {
 		t.Error("the ward field does not default to not knowing")
 	}
-	if strings.Contains(body, `ward.value = settings.ward || 'R/C'`) {
+	// The first fix removed one default and left another in the settings
+	// getter, so a capture taken past Dahisar went in as R/C ground truth.
+	// No ward may be filled in from anywhere but the surveyor's own choice.
+	if strings.Contains(body, `|| 'R/C'`) {
 		t.Error("the ward still defaults to a guess")
+	}
+	// Nor may it carry over from the last capture: a walk crosses a ward
+	// boundary without the surveyor noticing, and a remembered ward labels
+	// every capture after the crossing wrongly.
+	if strings.Contains(body, "ts_ward") {
+		t.Error("the ward is remembered between captures")
+	}
+	if !strings.Contains(body, "els('ward').value = ''") {
+		t.Error("the ward is not cleared after a capture is saved")
 	}
 }
 

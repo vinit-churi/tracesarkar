@@ -147,16 +147,14 @@ let position = null, photoFile = null;
 // --- settings -------------------------------------------------------------
 const settings = {
   get token() { return localStorage.getItem('ts_token') || ''; },
-  get ward()  { return localStorage.getItem('ts_ward') || 'R/C'; },
-  save(token, ward) {
-    localStorage.setItem('ts_token', token);
-    localStorage.setItem('ts_ward', ward);
-  }
+  save(token) { localStorage.setItem('ts_token', token); }
 };
 if (!settings.token) els('setup').hidden = false;
 // The ward lives on the capture screen, not in setup: someone surveying
 // Borivali and Dahisar in one afternoon crosses a boundary, and a ward set
 // once at sign-in would label every capture after the crossing wrongly.
+// For the same reason it is never remembered, and it starts empty on every
+// capture: a remembered R/C went in as ground truth for a point past Dahisar.
 
 // Signs in for a session token rather than taking the shared one. A capture
 // filed against the shared identity belongs to nobody: it does not appear in
@@ -179,7 +177,7 @@ els('save-setup').onclick = async () => {
     if (!res.ok) throw new Error(body?.error?.message || 'Could not sign in.');
     token = body.token;
   } catch (e) { note.textContent = e.message; return; }
-  settings.save(token, els('ward').value.trim() || 'R/C');
+  settings.save(token);
   els('setup').hidden = true;
   setStatus('saved');
 };
@@ -304,9 +302,8 @@ async function loadTaxonomy() {
       wards.appendChild(o);
     }
 
-    ward.value = settings.ward || '';
+    ward.value = '';
     ward.oninput = () => {
-      settings.save(settings.token, ward.value.trim());
       els('ward-note').textContent = ward.value === 'outside'
         ? 'Nothing here can be resolved — no boundary, no department, no contract. '
           + 'Useful only as a case the platform must answer honestly.'
@@ -387,7 +384,7 @@ els('capture').onclick = async () => {
         frame_type: (selected('frames', 'frame')[0] || 'close'),
         label: els('label').value.trim().toLowerCase(),
         conditions: selected('conditions', 'cond'),
-        ward_ground_truth: settings.ward === 'outside' ? '' : settings.ward,
+        ward_ground_truth: (w => w === 'outside' ? '' : w)(els('ward').value.trim()),
         landmark: els('where').value.trim(),
         notes: els('notes').value.trim()
       }
@@ -397,6 +394,7 @@ els('capture').onclick = async () => {
   await enqueue(item);
   els('photo').value = ''; els('thumb').style.display = 'none';
   els('notes').value = ''; photoFile = null; refreshCaptureButton();
+  els('ward').value = ''; els('ward').oninput && els('ward').oninput();
   setStatus('queued — uploading');
   flush();
 };
