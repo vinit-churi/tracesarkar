@@ -81,6 +81,12 @@ class Capture {
       },
       'captured_at': capturedAt.toUtc().toIso8601String(),
     };
+    // A person's own words about the photograph. Sent on every capture that
+    // has them, not only field-kit ones: before this, a note typed in the app
+    // rode inside the label block and was dropped whenever there was no label.
+    if (notes != null && notes!.trim().isNotEmpty) {
+      meta['description'] = notes!.trim();
+    }
     if (label != null) {
       meta['label'] = {
         'frame_type': role,
@@ -159,10 +165,12 @@ class ReportDetail {
     this.ward,
     this.authority,
     this.wardBasis,
+    this.wardConfidence,
     this.contractorName,
     this.roadName,
     this.contractBasis,
     this.contractSource,
+    this.contractRetrievedAt,
     this.attributionConfidence,
     this.latitude,
     this.longitude,
@@ -184,10 +192,13 @@ class ReportDetail {
       ward: json['ward'] as String?,
       authority: json['authority'] as String?,
       wardBasis: json['ward_basis'] as String?,
+      wardConfidence: json['ward_confidence'] as String?,
       contractorName: json['contractor_name'] as String?,
       roadName: json['road_name'] as String?,
       contractBasis: json['contract_basis'] as String?,
       contractSource: json['contract_source'] as String?,
+      contractRetrievedAt:
+          DateTime.tryParse((json['contract_retrieved_at'] ?? '') as String),
       attributionConfidence: json['attribution_confidence'] as String?,
       latitude: (json['lat'] as num?)?.toDouble(),
       longitude: (json['lon'] as num?)?.toDouble(),
@@ -209,10 +220,25 @@ class ReportDetail {
   final String? ward;
   final String? authority;
   final String? wardBasis;
+
+  /// How sure jurisdiction is of the ward. Present once jurisdiction has run,
+  /// including when its answer is "none" — a point in no ward we hold.
+  final String? wardConfidence;
   final String? contractorName;
   final String? roadName;
   final String? contractBasis;
   final String? contractSource;
+
+  /// When the source naming the contractor was fetched.
+  final DateTime? contractRetrievedAt;
+
+  /// Whether a contractor may be named on screen. Hard rule 2: a name goes
+  /// out with its source and its retrieval time, or not at all. The server
+  /// already strips unsourced names; this keeps the client honest as well.
+  bool get canNameContractor =>
+      (contractorName ?? '').isNotEmpty &&
+      (contractSource ?? '').isNotEmpty &&
+      contractRetrievedAt != null;
   final String? attributionConfidence;
 
   /// Where the photograph was taken, and how far out that may be.
@@ -231,8 +257,20 @@ class ReportDetail {
   /// What to do about this capture, once the platform knows enough to say.
   final NextStep? nextStep;
 
+  /// Whether the point lies outside every ward boundary the platform holds —
+  /// past Dahisar into Mira-Bhayandar, say. That is a finished answer: the
+  /// ward is missing because there is none to give, not because it is late.
+  bool get outsideWards =>
+      (ward == null || ward!.isEmpty) && wardConfidence == 'none';
+
   /// Whether the platform has finished thinking about this capture.
-  bool get enriched => outcome != null && ward != null;
+  ///
+  /// A missing ward alone does not mean "still working". Jurisdiction can
+  /// finish and answer that we hold no ward here, and treating that as pending
+  /// left a spinner on screen for a day.
+  bool get enriched =>
+      outcome != null &&
+      ((ward != null && ward!.isNotEmpty) || outsideWards);
 
   /// A short line for a list row.
   String get summary {

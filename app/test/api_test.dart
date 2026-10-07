@@ -113,6 +113,29 @@ void main() {
     expect(sampleCapture().toMeta().containsKey('label'), isFalse);
   });
 
+  // The app's "What is in the photograph?" box used to travel only inside the
+  // field kit's label block, which the app never sends — so every note typed
+  // in the app was dropped without a word.
+  test('a note typed in the app reaches the server as the description', () {
+    final c = Capture(
+      bytes: Uint8List.fromList([1, 2, 3]),
+      filename: 'close.jpg',
+      latitude: 19.2094,
+      longitude: 72.8348,
+      accuracyMetres: 6.2,
+      capturedAt: DateTime.utc(2026, 9, 25, 8, 14, 22),
+      notes: 'manhole cover missing outside the bakery',
+    );
+    final meta = c.toMeta();
+    expect(meta['description'], 'manhole cover missing outside the bakery');
+    expect(meta.containsKey('label'), isFalse,
+        reason: 'a note is not a label; labels come from the taxonomy');
+  });
+
+  test('a capture with no note sends no description', () {
+    expect(sampleCapture().toMeta().containsKey('description'), isFalse);
+  });
+
   test('submit posts multipart with the photograph and the bearer token',
       () async {
     late http.BaseRequest seen;

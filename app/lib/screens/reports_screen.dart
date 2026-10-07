@@ -133,13 +133,13 @@ class _ReportRow extends StatelessWidget {
                       [
                         if (report.ward != null && report.ward!.isNotEmpty)
                           '${report.authority ?? 'BMC'} · ${report.ward}',
+                        if (report.outsideWards) 'Outside our wards',
                         if (report.createdAt != null)
                           report.createdAt!.substring(0, 10),
                       ].join(' · '),
                       style: text.bodySmall,
                     ),
-                    if (report.contractorName != null &&
-                        report.contractorName!.isNotEmpty) ...[
+                    if (report.canNameContractor) ...[
                       const SizedBox(height: 2),
                       Text('Under contract', style: text.bodySmall),
                     ],

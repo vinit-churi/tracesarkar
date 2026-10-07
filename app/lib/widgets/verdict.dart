@@ -43,8 +43,7 @@ class VerdictCard extends StatelessWidget {
       );
     }
 
-    final hasContract =
-        report.contractorName != null && report.contractorName!.isNotEmpty;
+    final hasContract = report.canNameContractor;
 
     return Card(
       child: Padding(
@@ -76,17 +75,28 @@ class VerdictCard extends StatelessWidget {
                 note: report.wardBasis,
               ),
             ],
+            if (report.outsideWards) ...[
+              const SizedBox(height: 14),
+              _Statement(
+                label: 'Who looks after this',
+                body: 'Outside the wards we cover',
+                note: report.wardBasis,
+              ),
+            ],
             const SizedBox(height: 12),
-            if (hasContract)
+            // Contract coverage is a statement about a BMC ward's roads. For a
+            // point in no ward we hold there is nothing true to say about it.
+            if (report.outsideWards)
+              const SizedBox.shrink()
+            else if (hasContract)
               _Statement(
                 label: 'This stretch is under contract',
                 body: report.contractorName!,
                 note: [
                   if (report.roadName != null && report.roadName!.isNotEmpty)
                     report.roadName!,
-                  if (report.contractSource != null &&
-                      report.contractSource!.isNotEmpty)
-                    'Source · ${report.contractSource!}',
+                  'Source · ${report.contractSource!} · '
+                      'retrieved ${_day(report.contractRetrievedAt!)}',
                 ].join(' · '),
               )
             else
@@ -108,6 +118,17 @@ class VerdictCard extends StatelessWidget {
       ),
     );
   }
+}
+
+const _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// "5 Oct 2026", in India time — the date a reader in Mumbai would give it.
+String _day(DateTime t) {
+  final ist = t.toUtc().add(const Duration(hours: 5, minutes: 30));
+  return '${ist.day} ${_months[ist.month - 1]} ${ist.year}';
 }
 
 class _Statement extends StatelessWidget {
