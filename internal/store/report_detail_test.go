@@ -17,13 +17,16 @@ import (
 // they are responsible for it, which is an assertion the platform does not get
 // to make (hard rule 3), about a named party (hard rule 2).
 func TestContractIsOnlyShownWhereTheContractGovernsIt(t *testing.T) {
+	retrieved := time.Date(2026, 10, 5, 3, 0, 0, 0, time.UTC)
 	contract := func() ReportDetail {
 		return ReportDetail{
 			Ward: "R/C", Authority: "BMC",
 			ContractorName: "M/s Example Infracon Pvt. Ltd",
 			WorkCode:       "W-415", RoadName: "S.V. Road",
 			DistanceM: 9.4, AttrConfidence: "high",
-			ContractBasis: "The point lies 9.4 m from …",
+			ContractBasis:       "The point lies 9.4 m from …",
+			ContractSource:      "bmc-roads-api",
+			ContractRetrievedAt: &retrieved,
 		}
 	}
 	classified := func(category string) *classify.Decision {
@@ -64,6 +67,26 @@ func TestContractIsOnlyShownWhereTheContractGovernsIt(t *testing.T) {
 			}(),
 		},
 		{
+			// Hard rule 2: a named party is shown with its source and when it
+			// was retrieved, or not at all.
+			name: "a road defect with no source does not",
+			detail: func() ReportDetail {
+				d := contract()
+				d.Classification = classified("road_defect")
+				d.ContractSource = ""
+				return d
+			}(),
+		},
+		{
+			name: "a road defect with no retrieval time does not",
+			detail: func() ReportDetail {
+				d := contract()
+				d.Classification = classified("road_defect")
+				d.ContractRetrievedAt = nil
+				return d
+			}(),
+		},
+		{
 			// Enrichment runs before classification. Until we know what is in
 			// the photograph we cannot know whose contract is relevant, and
 			// naming someone on the strength of not knowing is the worst case.
@@ -83,13 +106,17 @@ func TestContractIsOnlyShownWhereTheContractGovernsIt(t *testing.T) {
 				if got.ContractBasis == "" {
 					t.Error("a named party must keep its basis (hard rule 2)")
 				}
+				if got.ContractSource == "" || got.ContractRetrievedAt == nil {
+					t.Error("a named party must keep its source and retrieval time (hard rule 2)")
+				}
 				return
 			}
 
 			// Nothing that names or points at the contractor survives.
 			if got.ContractorName != "" || got.WorkCode != "" ||
 				got.RoadName != "" || got.ContractBasis != "" ||
-				got.AttrConfidence != "" || got.DistanceM != 0 {
+				got.AttrConfidence != "" || got.DistanceM != 0 ||
+				got.ContractSource != "" || got.ContractRetrievedAt != nil {
 				t.Errorf("contract details leaked to a %s report: %+v",
 					tt.name, got)
 			}

@@ -45,6 +45,10 @@ type ReportDetail struct {
 	ContractBasis  string  `json:"contract_basis,omitempty"`
 	ContractSource string  `json:"contract_source,omitempty"`
 	AttrConfidence string  `json:"attribution_confidence,omitempty"`
+
+	// ContractRetrievedAt is when the source naming the contractor was
+	// fetched. Hard rule 2: no source and retrieval time, no name.
+	ContractRetrievedAt *time.Time `json:"contract_retrieved_at,omitempty"`
 }
 
 // staleAfter is how far the photograph's own timestamp may be from the moment
@@ -107,7 +111,11 @@ func (d ReportDetail) ForCitizen() ReportDetail {
 	// A stale position was not where the photograph was taken, so the contract
 	// matched against it covers the wrong place. Naming its holder would be
 	// worse than naming nobody.
-	if contractGoverns[category] && !d.PositionIsStale() {
+	//
+	// And a name is only ever shown with where it came from and when we
+	// fetched it (hard rule 2). Missing either, the name does not render.
+	sourced := d.ContractSource != "" && d.ContractRetrievedAt != nil
+	if contractGoverns[category] && !d.PositionIsStale() && sourced {
 		return d
 	}
 
@@ -117,6 +125,7 @@ func (d ReportDetail) ForCitizen() ReportDetail {
 	d.DistanceM = 0
 	d.ContractBasis = ""
 	d.ContractSource = ""
+	d.ContractRetrievedAt = nil
 	d.AttrConfidence = ""
 	return d
 }

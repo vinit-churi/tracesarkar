@@ -121,6 +121,8 @@ type ReportEnrichment struct {
 	ContractBasis  string  `json:"contract_basis,omitempty"`
 	ContractSource string  `json:"contract_source,omitempty"`
 	AttrConfidence string  `json:"attribution_confidence,omitempty"`
+
+	ContractRetrievedAt *time.Time `json:"contract_retrieved_at,omitempty"`
 }
 
 // EnrichmentFor returns the latest conclusions about a capture. Missing parts
@@ -143,12 +145,12 @@ func (d *DB) EnrichmentFor(ctx context.Context, reportID string) (ReportEnrichme
 	err = d.pool.QueryRow(ctx, `
 		SELECT confidence, COALESCE(contractor_name,''), COALESCE(work_code,''),
 		       COALESCE(location_name,''), COALESCE(distance_m,0),
-		       COALESCE(basis,''), COALESCE(source_id,'')
+		       COALESCE(basis,''), COALESCE(source_id,''), retrieved_at
 		  FROM report_attribution
 		 WHERE report_id = $1::uuid AND error IS NULL
 		 ORDER BY created_at DESC LIMIT 1`, reportID).Scan(
 		&e.AttrConfidence, &e.ContractorName, &e.WorkCode, &e.LocationName,
-		&e.DistanceM, &e.ContractBasis, &e.ContractSource)
+		&e.DistanceM, &e.ContractBasis, &e.ContractSource, &e.ContractRetrievedAt)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return e, fmt.Errorf("read attribution: %w", err)
 	}
@@ -196,6 +198,7 @@ func (d *DB) ReportDetail(ctx context.Context, id string) (ReportDetail, bool, e
 	out.RoadName, out.DistanceM = e.LocationName, e.DistanceM
 	out.ContractBasis, out.ContractSource = e.ContractBasis, e.ContractSource
 	out.AttrConfidence = e.AttrConfidence
+	out.ContractRetrievedAt = e.ContractRetrievedAt
 
 	out.NextStep = d.nextStep(ctx, out)
 	return out, true, nil
@@ -256,18 +259,19 @@ func (d *DB) ReportsFor(ctx context.Context, accountID string, limit int) ([]Rep
 		       COALESCE(r.location_accuracy_m, 0)::float8,
 		       COALESCE(c.category,''), COALESCE(c.subcategory,''),
 		       COALESCE(c.outcome,''), COALESCE(c.confidence,0)::float8,
-		       COALESCE(j.ward,''), COALESCE(j.authority,''),
+		       COALESCE(j.ward,''), COALESCE(j.authority,''), COALESCE(j.confidence,''),
 		       COALESCE(a.contractor_name,''), COALESCE(a.location_name,''),
-		       COALESCE(a.confidence,'')
+		       COALESCE(a.confidence,''), COALESCE(a.source_id,''), a.retrieved_at
 		  FROM reports r
 		  LEFT JOIN LATERAL (SELECT category, subcategory, outcome, confidence
 		                       FROM classifications
 		                      WHERE report_id = r.id AND error IS NULL
 		                      ORDER BY created_at DESC LIMIT 1) c ON true
-		  LEFT JOIN LATERAL (SELECT ward, authority FROM report_jurisdiction
+		  LEFT JOIN LATERAL (SELECT ward, authority, confidence FROM report_jurisdiction
 		                      WHERE report_id = r.id AND error IS NULL
 		                      ORDER BY created_at DESC LIMIT 1) j ON true
-		  LEFT JOIN LATERAL (SELECT contractor_name, location_name, confidence
+		  LEFT JOIN LATERAL (SELECT contractor_name, location_name, confidence,
+		                            source_id, retrieved_at
 		                       FROM report_attribution
 		                      WHERE report_id = r.id AND error IS NULL
 		                      ORDER BY created_at DESC LIMIT 1) a ON true
@@ -286,8 +290,8 @@ func (d *DB) ReportsFor(ctx context.Context, accountID string, limit int) ([]Rep
 		var conf float64
 		if err := rows.Scan(&d.ID, &d.Status, &d.CreatedAt, &d.Lat, &d.Lon,
 			&d.AccuracyM, &cat, &sub, &outcome, &conf,
-			&d.Ward, &d.Authority, &d.ContractorName, &d.RoadName,
-			&d.AttrConfidence); err != nil {
+			&d.Ward, &d.Authority, &d.WardConfidence, &d.ContractorName, &d.RoadName,
+			&d.AttrConfidence, &d.ContractSource, &d.ContractRetrievedAt); err != nil {
 			return nil, fmt.Errorf("scan report: %w", err)
 		}
 		if outcome != "" {
