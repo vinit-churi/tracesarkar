@@ -87,6 +87,7 @@ type Server struct {
 	token    string
 	account  string
 	maxSize  int64
+	throttle *throttles
 	log      *slog.Logger
 }
 
@@ -127,6 +128,7 @@ func New(opts Options) (*Server, error) {
 		reports:  opts.Reports,
 		media:    opts.Media,
 		accounts: opts.Accounts,
+		throttle: newThrottles(),
 		reviews:  opts.Reviews,
 		wards:    opts.Wards,
 		labels:   opts.Labels,

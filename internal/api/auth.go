@@ -38,6 +38,9 @@ type credentials struct {
 }
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
+	if !s.allowAuthAttempt(w, r) {
+		return
+	}
 	if s.accounts == nil || s.issuer == nil {
 		writeError(w, http.StatusNotImplemented, "accounts are not configured on this server")
 		return
@@ -82,9 +85,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotImplemented, "accounts are not configured on this server")
 		return
 	}
+	if !s.allowAuthAttempt(w, r) {
+		return
+	}
 	var in credentials
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&in); err != nil {
 		writeError(w, http.StatusBadRequest, "the request body is not valid JSON")
+		return
+	}
+
+	// Checked before the password is, and recorded only if it turns out to be
+	// wrong — a correct password must not count against the person.
+	if !s.allowLoginFor(w, in.Email) {
 		return
 	}
 
@@ -99,6 +111,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// apart hands an attacker a list of who is registered here, and on a civic
 	// platform that list is worth something.
 	if errors.Is(err, ErrNoAccount) || !auth.VerifyPassword(account.PasswordHash, in.Password) {
+		// Counted whether or not the address exists. Counting only known
+		// addresses would make the throttle itself the oracle that answering
+		// "email or password is incorrect" exists to deny.
+		s.recordFailedLogin(in.Email)
 		writeError(w, http.StatusUnauthorized, "email or password is incorrect")
 		return
 	}
@@ -107,6 +123,9 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGoogle(w http.ResponseWriter, r *http.Request) {
+	if !s.allowAuthAttempt(w, r) {
+		return
+	}
 	if s.accounts == nil || s.issuer == nil {
 		writeError(w, http.StatusNotImplemented, "accounts are not configured on this server")
 		return
