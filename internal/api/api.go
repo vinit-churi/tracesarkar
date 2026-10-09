@@ -52,7 +52,9 @@ type Options struct {
 	// Labels and Blobs power the labelling surface, which turns captures into
 	// the evaluation set system 3 is measured against. Optional: without them
 	// the API still serves captures.
-	Labels  Labels
+	Labels Labels
+	// Wards powers the only surface served without a sign-in.
+	Wards   WardProfiles
 	Blobs   Blobs
 	Details Details
 	Issuer  *auth.Issuer
@@ -75,6 +77,7 @@ type Server struct {
 	media    Media
 	accounts Accounts
 	reviews  Reviews
+	wards    WardProfiles
 	labels   Labels
 	blobs    Blobs
 	details  Details
@@ -125,6 +128,7 @@ func New(opts Options) (*Server, error) {
 		media:    opts.Media,
 		accounts: opts.Accounts,
 		reviews:  opts.Reviews,
+		wards:    opts.Wards,
 		labels:   opts.Labels,
 		blobs:    opts.Blobs,
 		details:  opts.Details,
@@ -163,6 +167,10 @@ func (s *Server) Handler() http.Handler {
 
 	mux.Handle("GET /v1/reports/{id}/media", s.authenticated(http.HandlerFunc(s.handleReportMedia)))
 
+	// Public on purpose: published facts about offices and obligations, with
+	// nothing a citizen reported on it.
+	mux.HandleFunc("GET /v1/public/ward/{authority}/{ward}", s.handleWardProfile)
+
 	mux.Handle("GET /v1/taxonomy", s.authenticated(http.HandlerFunc(s.handleTaxonomy)))
 	mux.Handle("GET /v1/label/queue", s.authenticated(http.HandlerFunc(s.handleLabelQueue)))
 	mux.Handle("POST /v1/label/{id}", s.authenticated(http.HandlerFunc(s.handleSaveLabel)))
@@ -178,6 +186,10 @@ func (s *Server) Handler() http.Handler {
 		if reviewPage, err := reviewHandler(); err == nil {
 			mux.Handle("GET /review/", reviewPage)
 			mux.Handle("GET /review", http.RedirectHandler("/review/", http.StatusFound))
+		}
+		if page, err := staticPage(wardFS, "ward"); err == nil {
+			mux.Handle("GET /ward/", page)
+			mux.Handle("GET /ward", http.RedirectHandler("/ward/", http.StatusFound))
 		}
 		if page, err := methodologyHandler(); err == nil {
 			// Public on purpose, and the only page that is. A platform that
@@ -295,6 +307,9 @@ var labelFS embed.FS
 //go:embed methodology
 var methodologyFS embed.FS
 
+//go:embed ward
+var wardFS embed.FS
+
 // reviewHandler serves the attribution review page. Personal tier: it exists
 // so a human can put a precision number on the join, and it shows no data of
 // its own — everything comes from the authenticated API.
@@ -304,6 +319,15 @@ func reviewHandler() (http.Handler, error) {
 		return nil, fmt.Errorf("review assets: %w", err)
 	}
 	return http.StripPrefix("/review", http.FileServer(http.FS(sub))), nil
+}
+
+// staticPage serves one embedded directory at its own prefix.
+func staticPage(from embed.FS, name string) (http.Handler, error) {
+	sub, err := fs.Sub(from, name)
+	if err != nil {
+		return nil, fmt.Errorf("%s assets: %w", name, err)
+	}
+	return http.StripPrefix("/"+name, http.FileServer(http.FS(sub))), nil
 }
 
 // methodologyHandler serves the public methodology page.

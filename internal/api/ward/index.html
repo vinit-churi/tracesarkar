@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R/Central ward · who is responsible · TraceSarkar</title>
+<meta name="description" content="Which BMC department owns which civic problem in R/Central ward, how to reach it, and what obliges it — each with its source.">
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --accent-wash:#F5EAF0;
+    --alert:#A33A1F; --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  header{border-bottom:1px solid var(--hairline);padding:14px 16px}
+  header div{max-width:820px;margin:0 auto;display:flex;align-items:baseline;
+             justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:600}.brand span{color:var(--ink-45);font-weight:400}
+  header a{color:var(--ink-45);font-size:13px;text-decoration:none}
+  header a:hover{color:var(--accent)}
+  main{max-width:820px;margin:0 auto;padding:32px 16px 72px}
+  h1{font-size:34px;line-height:1.15;letter-spacing:-.5px;margin:0 0 6px}
+  .sub{color:var(--ink-70);margin:0 0 4px}
+  .asof{font-size:13px;color:var(--ink-45);margin:0 0 32px}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-45);
+     margin:40px 0 14px;padding-top:20px;border-top:1px solid var(--hairline)}
+  .desk{background:var(--surface);border:1px solid var(--hairline);
+        border-radius:12px;padding:18px;margin-bottom:14px}
+  .cat{display:inline-block;background:var(--accent-wash);color:var(--accent);
+       font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
+       padding:3px 9px;border-radius:7px;margin-bottom:10px}
+  .dept{font-size:19px;font-weight:600;margin:0 0 2px}
+  .officer{color:var(--ink-70);margin:0 0 12px}
+  .rows{display:grid;grid-template-columns:120px 1fr;gap:5px 14px;font-size:15px}
+  @media (max-width:560px){.rows{grid-template-columns:1fr;gap:1px 0}
+    .rows dt{color:var(--ink-45);font-size:12px;text-transform:uppercase;margin-top:9px}}
+  dt{color:var(--ink-45);font-size:13px}
+  dd{margin:0;color:var(--ink)}
+  dd a{color:var(--accent)}
+  .clock{background:var(--confirm-wash);border-left:3px solid var(--confirm);
+         border-radius:0 8px 8px 0;padding:11px 13px;margin-top:14px;font-size:15px}
+  .clock b{color:var(--confirm)}
+  .noclock{background:var(--evidence);border-left:3px solid var(--ink-45)}
+  .cite{font-size:12px;color:var(--ink-45);margin-top:5px;line-height:1.45}
+  .src{font-size:12px;color:var(--ink-45);margin-top:12px;
+       padding-top:10px;border-top:1px solid var(--hairline);word-break:break-word}
+  .src a{color:var(--ink-45)}
+  .limits{background:var(--caution-wash);border:1px solid rgba(138,100,16,.25);
+          border-radius:12px;padding:16px 18px}
+  .limits h2{border:none;padding:0;margin:0 0 10px;color:var(--caution)}
+  .limits li{color:var(--caution);margin-bottom:8px}
+  .limits ul{margin:0;padding-left:20px}
+  .num{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:8px}
+  .num div b{display:block;font-size:26px;font-weight:600;letter-spacing:-.4px;
+             font-variant-numeric:tabular-nums}
+  .num div span{font-size:13px;color:var(--ink-45)}
+  .empty{background:var(--evidence);border-radius:12px;padding:18px;color:var(--ink-70)}
+  footer{border-top:1px solid var(--hairline);margin-top:48px;padding-top:20px;
+         font-size:13px;color:var(--ink-45)}
+  footer a{color:var(--accent)}
+  .err{background:#FBEDE8;color:var(--alert);border-radius:8px;padding:11px 13px}
+</style>
+</head>
+<body>
+
+<header><div>
+  <span class="brand">TraceSarkar <span>· Mumbai</span></span>
+  <a href="/methodology/">Methodology</a>
+</div></header>
+
+<main>
+  <h1 id="title">R/Central ward</h1>
+  <p class="sub" id="sub">Brihanmumbai Municipal Corporation · Borivali</p>
+  <p class="asof">
+    Everything below is published by the corporation itself. Each fact carries
+    the document it was read from and the day it was read.
+  </p>
+
+  <div id="out"></div>
+
+  <footer>
+    This page describes offices and obligations.
+    It contains nothing anybody reported — no photographs, no locations, no people.
+    <a href="/methodology/">How this was assembled, and what it does not know</a>.
+  </footer>
+</main>
+
+<script>
+const AUTHORITY = 'BMC', WARD = 'R/C';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PLAIN = {
+  road_defect: 'Roads and potholes',
+  waste: 'Garbage and solid waste',
+  water_drainage: 'Water supply and drains',
+  street_furniture: 'Streetlights and footpaths',
+  structural: 'Buildings and structures',
+  environment: 'Environment',
+};
+
+function desk(d) {
+  const rows = [];
+  const row = (k, v) => { if (v) rows.push('<dt>' + k + '</dt><dd>' + v + '</dd>'); };
+  row('Office', esc(d.office));
+  row('Telephone', d.phone ? '<a href="tel:' + esc(d.phone.replace(/[^0-9+]/g,'')) + '">' + esc(d.phone) + '</a>' : '');
+  row('Email', d.email ? '<a href="mailto:' + esc(d.email) + '">' + esc(d.email) + '</a>' : '');
+  row('Open', esc(d.hours));
+  row('Visiting', esc(d.visiting_hours));
+  row('Above it', esc(d.escalates_to));
+
+  // A deadline is shown only with the document that creates it, and its
+  // absence is stated rather than left blank — no published deadline is a
+  // fact about the obligation, not a gap in the page.
+  const clock = d.deadline_hours
+    ? '<div class="clock"><b>' + d.deadline_hours + ' hours</b> to attend, once the '
+      + 'corporation has been told. The clock starts when a complaint is lodged, '
+      + 'not when the problem began.<div class="cite">' + esc(d.deadline_citation) + '</div></div>'
+    : '<div class="clock noclock">No deadline is published for this. '
+      + 'TraceSarkar will not quote a number it cannot source.</div>';
+
+  return '<div class="desk">'
+    + '<span class="cat">' + esc(PLAIN[d.category] || d.category.replace(/_/g,' ')) + '</span>'
+    + '<p class="dept">' + esc(d.department) + '</p>'
+    + (d.officer ? '<p class="officer">' + esc(d.officer) + '</p>' : '')
+    + '<dl class="rows">' + rows.join('') + '</dl>'
+    + clock
+    + '<div class="src">Read from <a href="' + esc(d.source) + '" rel="nofollow noopener">'
+    + 'the corporation’s own handbook</a> on ' + esc(d.retrieved_at) + '</div>'
+    + '</div>';
+}
+
+(async () => {
+  const out = document.getElementById('out');
+  try {
+    const res = await fetch('/v1/public/ward/' + AUTHORITY + '/' + encodeURIComponent(WARD));
+    if (!res.ok) throw new Error('This ward could not be loaded.');
+    const b = await res.json();
+
+    let html = '<h2>Who is responsible here</h2>';
+    html += b.desks.length
+      ? b.desks.map(desk).join('')
+      : '<div class="empty">No department has been recorded for this ward yet. '
+        + 'TraceSarkar will not guess at a desk.</div>';
+
+    html += '<h2>How much of the road network has a contract behind it</h2>'
+      + '<div class="num">'
+      + '<div><b>' + b.coverage.segments + '</b><span>road works with published geometry</span></div>'
+      + '<div><b>' + b.coverage.km.toFixed(0) + ' km</b><span>of carriageway they cover</span></div>'
+      + '</div>';
+
+    html += '<div class="limits"><h2>What this does not tell you</h2><ul>'
+      + b.limits.map(l => '<li>' + esc(l) + '</li>').join('')
+      + '</ul></div>';
+
+    out.innerHTML = html;
+  } catch (e) {
+    out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+  }
+})();
+</script>
+</body>
+</html>
