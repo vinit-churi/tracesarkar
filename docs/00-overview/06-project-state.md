@@ -243,7 +243,6 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 Carried, not forgotten:
 
-- [ ] **Rate-limit sign-in** — currently the cheapest attack on the platform
 - [ ] **Phone verification before anything publishes** — the gate
       [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) promises
 - [ ] **A real domain** before the public tier. `run.app` and `workers.dev` are fine for now and
