@@ -12,6 +12,11 @@ type Routing struct {
 	Department       string
 	Officer          string
 	Office           string
+	OfficePhone      string
+	OfficeEmail      string
+	OfficeHours      string
+	VisitingHours    string
+	EscalatesTo      string
 	SourceRef        string
 	DeadlineHours    int
 	DeadlineCitation string
@@ -40,12 +45,17 @@ func (d *DB) RoutingFor(ctx context.Context, authority, ward, category string) (
 	var r Routing
 	err := d.pool.QueryRow(ctx, `
 		SELECT department, COALESCE(officer_designation, ''),
-		       COALESCE(pio_address, ''), source_ref
+		       COALESCE(pio_address, ''), COALESCE(office_phone, ''),
+		       COALESCE(office_email, ''), COALESCE(office_hours, ''),
+		       COALESCE(visiting_hours, ''), COALESCE(escalates_to, ''),
+		       source_ref
 		  FROM authority_departments
 		 WHERE authority = $1 AND ward = $2 AND category = $3
 		 ORDER BY effective_from DESC, created_at
 		 LIMIT 1`, authority, ward, category).
-		Scan(&r.Department, &r.Officer, &r.Office, &r.SourceRef)
+		Scan(&r.Department, &r.Officer, &r.Office, &r.OfficePhone,
+			&r.OfficeEmail, &r.OfficeHours, &r.VisitingHours, &r.EscalatesTo,
+			&r.SourceRef)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows") {
 			return Routing{}, false, nil

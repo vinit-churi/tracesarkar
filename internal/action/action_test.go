@@ -147,3 +147,54 @@ func TestADraftWithoutADeadlineDoesNotInventOne(t *testing.T) {
 		t.Errorf("it does not say the deadline is unknown: %q", d.WhatHappensNext)
 	}
 }
+
+// Naming the desk and not saying how to reach it is half an answer. The
+// platform records the post rather than the person — a name has a short shelf
+// life — but the body publishes an office telephone, a role mailbox, the hours
+// it is open and the office above it, all attached to the post and none of it
+// personal.
+func TestTheDraftSaysHowToReachTheDesk(t *testing.T) {
+	f := facts()
+	f.OfficePhone = "022-28946000"
+	f.OfficeEmail = "ae01swm.rc@mcgm.gov.in"
+	f.OfficeHours = "Monday to Friday 8.00 a.m.–12.00 noon"
+	f.VisitingHours = "3.00–5.00 p.m., Monday to Friday"
+	f.EscalatesTo = "Assistant Commissioner, R/Central Ward"
+
+	d := Draft(f)
+
+	var byName = map[string]Channel{}
+	for _, c := range d.Channels {
+		byName[c.Name] = c
+	}
+	if _, ok := byName["The office directly"]; !ok {
+		t.Fatalf("the desk's own contact is not offered: %+v", d.Channels)
+	}
+	how := byName["The office directly"].How
+	for _, want := range []string{"022-28946000", "ae01swm.rc@mcgm.gov.in", "3.00–5.00 p.m."} {
+		if !strings.Contains(how, want) {
+			t.Errorf("the office channel omits %q: %q", want, how)
+		}
+	}
+
+	// The next rung, so a citizen is not left guessing when nothing happens.
+	if !strings.Contains(d.WhatHappensNext, "Assistant Commissioner, R/Central Ward") {
+		t.Error("the draft does not say who is above this desk")
+	}
+}
+
+// A desk with no published contact must not acquire an invented one. The two
+// road rows have not had their handbook re-read for these fields, and a
+// telephone number guessed at is worse than one absent: it is rung, nobody
+// answers, and the citizen concludes the platform is wrong about the rest too.
+func TestNoOfficeContactMeansNoOfficeChannel(t *testing.T) {
+	d := Draft(facts())
+	for _, c := range d.Channels {
+		if c.Name == "The office directly" {
+			t.Errorf("offered an office channel with nothing behind it: %+v", c)
+		}
+	}
+	if d.Channels == nil {
+		t.Error("the authority's own channels should still be listed")
+	}
+}

@@ -31,6 +31,18 @@ type Facts struct {
 	Department string
 	Officer    string
 	Office     string
+	// How to reach the desk, as the authority publishes it: an office
+	// landline, a role mailbox, the hours it is open and the hours a member of
+	// the public may walk in. All attached to the post, none of it an
+	// individual's. Empty where the handbook has not been read for them, and
+	// empty is then shown as nothing rather than guessed at.
+	OfficePhone   string
+	OfficeEmail   string
+	OfficeHours   string
+	VisitingHours string
+	// EscalatesTo is the office this one reports to, so the next rung is
+	// known before it is needed.
+	EscalatesTo string
 
 	// DeadlineHours is zero when no deadline is published — which is the case
 	// for water supply, whose handbook sets timelines for connections and none
@@ -70,7 +82,7 @@ func Draft(f Facts) Next {
 
 	n := Next{
 		Available:        true,
-		Channels:         channelsFor(f.Authority),
+		Channels:         append(officeChannel(f), channelsFor(f.Authority)...),
 		DeadlineHours:    f.DeadlineHours,
 		DeadlineCitation: f.DeadlineCitation,
 	}
@@ -136,10 +148,48 @@ func whatHappensNext(f Facts) string {
 			f.Authority)
 	}
 
+	if f.EscalatesTo != "" {
+		fmt.Fprintf(&b, "If nothing happens, the office above this one is %s.\n\n",
+			f.EscalatesTo)
+	}
+
 	b.WriteString("Keep the complaint reference number. It is what dates the " +
 		"clock and what every later step quotes — an escalation without one is " +
 		"an assertion, and with one it is a record.")
 	return b.String()
+}
+
+// officeChannel is the desk's own published contact, listed first because it
+// is the one addressed to the post responsible rather than to the corporation
+// in general.
+//
+// Nothing is offered when nothing is published. A telephone number guessed at
+// is worse than one absent: it is rung, nobody answers, and the citizen
+// concludes the platform is wrong about everything else too.
+func officeChannel(f Facts) []Channel {
+	if f.OfficePhone == "" && f.OfficeEmail == "" {
+		return nil
+	}
+
+	var parts []string
+	if f.OfficePhone != "" {
+		parts = append(parts, f.OfficePhone)
+	}
+	if f.OfficeEmail != "" {
+		parts = append(parts, f.OfficeEmail)
+	}
+	if f.VisitingHours != "" {
+		parts = append(parts, "in person "+f.VisitingHours)
+	} else if f.OfficeHours != "" {
+		parts = append(parts, "open "+f.OfficeHours)
+	}
+
+	return []Channel{{
+		Name: "The office directly",
+		How: strings.Join(parts, " · ") +
+			". Published by the authority against this post, so it outlives " +
+			"whoever currently holds it.",
+	}}
 }
 
 // channelsFor lists the ways this authority accepts a complaint.

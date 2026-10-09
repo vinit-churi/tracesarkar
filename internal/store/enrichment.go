@@ -240,6 +240,11 @@ func (d *DB) nextStep(ctx context.Context, r ReportDetail) *action.Next {
 		Department:       routing.Department,
 		Officer:          routing.Officer,
 		Office:           routing.Office,
+		OfficePhone:      routing.OfficePhone,
+		OfficeEmail:      routing.OfficeEmail,
+		OfficeHours:      routing.OfficeHours,
+		VisitingHours:    routing.VisitingHours,
+		EscalatesTo:      routing.EscalatesTo,
 		DeadlineHours:    routing.DeadlineHours,
 		DeadlineCitation: routing.DeadlineCitation,
 	})
