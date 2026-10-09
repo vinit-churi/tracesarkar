@@ -32,6 +32,7 @@ Three things are live and answering. Nothing below is aspirational.
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
 | **Label** | `…run.app/label/` | Ground truth for the eval set, two keystrokes a capture |
 | **Methodology** | `…run.app/methodology/` | Public, no sign-in — sources, measurements, limits |
+| **Ward** | `…run.app/ward/` | Public, no sign-in — who owns what in R/C, how to reach them, what binds them |
 | **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 | **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich then classify, so a capture resolves itself |
