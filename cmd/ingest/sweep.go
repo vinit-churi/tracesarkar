@@ -38,6 +38,14 @@ func runSweep(ctx context.Context, args []string) error {
 				return runClassify(ctx, []string{"-limit", strconv.Itoa(*classifyLimit)})
 			},
 		},
+		{
+			// Last, because the category decides which issues a sighting
+			// could belong to.
+			Name: "issues",
+			Run: func(ctx context.Context) error {
+				return runIssues(ctx, []string{"-limit", strconv.Itoa(*enrichLimit)})
+			},
+		},
 	})
 
 	for _, r := range results {

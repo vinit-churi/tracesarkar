@@ -79,7 +79,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | **1** | **Attribution** — point → road → contract → contractor | **Bar met on probes.** Open until real captures confirm it |
 | **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17% |
 | 3 | **Classification** — what is in the photograph | **Next** |
-| 4 | Issues — dedup, corroboration, SLA clock, timeline | Waiting |
+| **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Core built.** A second sighting joins the first; the clock runs from notification; history verifies. Not yet surfaced to a citizen |
 | 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
 | 6 | Public surface — redaction, coarsening, permalink, ward page | Waiting |
 | 7 | Share kit — annotated image, per-language text | Waiting |
