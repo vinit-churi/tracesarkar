@@ -258,3 +258,60 @@ func TestACaptureLabelMustBeInTheTaxonomy(t *testing.T) {
 		})
 	}
 }
+
+// The taxonomy will always be behind the street. A surveyor who finds
+// something it has no word for currently has two bad options: pick a label
+// that is wrong, which puts a false answer in the evaluation set, or skip the
+// photograph, which puts a hole in it.
+//
+// So there is a third: record what you saw, without a label. The capture is
+// kept, the description survives, the case is excluded from scoring, and the
+// descriptions accumulate into a list of what the taxonomy is missing.
+func TestACaptureWithNoFittingLabelKeepsTheDescription(t *testing.T) {
+	reports := &fakeReports{}
+	srv := newTestServer(t, reports, &fakeBlobs{})
+
+	meta := `{"location":{"lat":19.23,"lon":72.84,"accuracy_m":6},` +
+		`"captured_at":"2026-10-12T09:00:00Z",` +
+		`"label":{"frame_type":"close","label":"","notes":"manhole cover cracked through, hole about a foot wide",` +
+		`"landmark":"Chandavarkar Road"}}`
+	req := captureRequest(t, meta, map[string][]byte{"close": []byte("jpegbytes")})
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("the capture was rejected: %d %s", rec.Code, rec.Body.String())
+	}
+	if len(reports.labels) != 1 {
+		t.Fatalf("the description was thrown away: %+v", reports.labels)
+	}
+	got := reports.labels[0]
+	if got.Label != "" {
+		t.Errorf("a label was invented: %q", got.Label)
+	}
+	if !strings.Contains(got.Notes, "cracked through") {
+		t.Errorf("the description did not survive: %q", got.Notes)
+	}
+	if got.Landmark != "Chandavarkar Road" {
+		t.Errorf("the landmark did not survive: %q", got.Landmark)
+	}
+}
+
+// Nothing is recorded when there is nothing to record. An empty label with no
+// description is not a judgement and must not occupy a row.
+func TestAnEmptyLabelWithNothingToSayIsNotRecorded(t *testing.T) {
+	reports := &fakeReports{}
+	srv := newTestServer(t, reports, &fakeBlobs{})
+
+	meta := `{"location":{"lat":19.23,"lon":72.84,"accuracy_m":6},` +
+		`"captured_at":"2026-10-12T09:00:00Z","label":{"frame_type":"close","label":""}}`
+	req := captureRequest(t, meta, map[string][]byte{"close": []byte("jpegbytes")})
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if len(reports.labels) != 0 {
+		t.Errorf("an empty judgement was recorded: %+v", reports.labels)
+	}
+}

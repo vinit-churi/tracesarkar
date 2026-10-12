@@ -115,6 +115,7 @@ const confidenceFloor = 0.65
 var hazardous = map[string]bool{
 	"open manhole":          true,
 	"missing manhole cover": true,
+	"damaged manhole cover": true,
 	"live wire":             true,
 	"exposed electrical":    true,
 	"collapsed wall":        true,

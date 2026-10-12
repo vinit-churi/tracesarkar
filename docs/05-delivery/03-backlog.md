@@ -79,9 +79,21 @@ Specification: [Phase 0](07-phase-0-instruments.md). Tier: personal.
 
 ### Collection — the exit criteria
 
-- [ ] `[D]` 500 labelled road-defect photographs through P4 (day, night, rain, motion blur, varying
-      severity), plus 100 hazard and 100 non-civic photographs
-- [ ] `[D]` 200-point jurisdiction golden set for R/S, including boundary and adversarial cases
+> **Revised 12 October 2026.** These were written assuming dedicated fieldwork. The maintainer has
+> a job and produces about two photographs a week, at which rate 500 takes **4.8 years** — so the
+> targets were not a plan, they were a block. They are now the v0.1 *exit*, not a gate on anybody
+> using the platform, and the set accretes from use rather than from one person walking.
+> See [D114](../00-overview/05-decision-log.md).
+
+- [ ] `[D]` **A first measurement on whatever is labelled**, reported as a range rather than a
+      figure, re-run whenever the set grows. Already running: 5 cases on 12 October 2026 — category
+      5/5, subcategory 4/5, no hazards missed. At that size it says only that nothing is
+      catastrophically broken, which is the question that matters before a handful of people try it
+- [ ] `[D]` 500 labelled road-defect photographs (day, night, rain, motion blur, varying severity),
+      plus 100 hazard and 100 non-civic — the v0.1 exit, accrued from use
+- [ ] `[D]` 200-point jurisdiction golden set for R/C, including boundary and adversarial cases.
+      Unlike the classification set this one *is* place-bound: it needs a ward boundary to be
+      scored against
 - [ ] `[D]` **≥ 20 R/S contract documents through P3**, DLP extracted verbatim with page numbers,
       work sites geocoded by hand — for roads outside BMC's CC programme
 - [ ] `[D]` R/S gazetteer: road names and aliases, landmarks, nakas, junctions

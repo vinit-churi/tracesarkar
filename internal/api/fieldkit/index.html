@@ -108,6 +108,9 @@
          autocomplete="off" spellcheck="false">
   <datalist id="labels"></datalist>
   <p class="muted" id="label-hint"></p>
+  <p class="muted">Nothing fits? Leave it blank and write what you saw in the
+     notes below. The photograph is kept and the description tells us what the
+     list is missing — better than forcing a label that is wrong.</p>
 
   <label>Conditions</label>
   <div class="chips" id="conditions">
@@ -279,7 +282,8 @@ async function loadTaxonomy() {
       label.style.borderColor = known ? '' : 'var(--alert)';
       els('label-hint').textContent = known
         ? (HINTS[v] || (hazards.has(v) ? 'Treated as a hazard.' : ''))
-        : 'Not one of the labels — pick from the list or this will not be recorded.';
+        : 'Not one of the labels. Clear it and describe it in the notes instead '
+          + '— a wrong label is worse than none.';
     };
     label.oninput();
 

@@ -13,6 +13,10 @@ import (
 var taxonomy = map[string][]string{
 	"road_defect": {
 		"pothole", "crack", "subsidence", "missing manhole cover", "open manhole",
+		// A cover cracked through is neither missing nor open, and without it
+		// a surveyor standing over one has to choose a label that is wrong or
+		// skip the photograph. Both spoil the evaluation set.
+		"damaged manhole cover",
 		"damaged speed breaker", "utility-dig damage", "missing/faded markings",
 	},
 	"waste": {

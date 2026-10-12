@@ -49,7 +49,9 @@ Every "out" item is v0.2 or later and is listed in the [roadmap](01-roadmap.md).
 - **One ward** makes the boundary data problem tractable: one polygon to verify, one road inventory
   to obtain, one gazetteer to build.
 - **One category** makes the classification eval set achievable: 500 labelled pothole/road-defect
-  photos, not 5,000 across nine categories.
+  photos, not 5,000 across nine categories. **Amended 12 October 2026:** the 500 is the exit, not a
+  gate — it accrues from people using the platform, and the classification set is not place-bound,
+  so it grows wherever anybody photographs anything.
 - **One authority** makes the department mapping, SLA, and PIO research a day's work rather than a
   quarter's.
 - **Manual contracts** removes the hardest engineering problem (work-site geocoding) from the

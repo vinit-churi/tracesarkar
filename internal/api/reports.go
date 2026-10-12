@@ -185,7 +185,14 @@ func (s *Server) handlePostReport(w http.ResponseWriter, r *http.Request) {
 				"report_id", reportID, "label", meta.Label.Label)
 			label = ""
 		}
-		if label != "" {
+		// Recorded when there is a label, and also when there is not but the
+		// surveyor wrote down what they saw. The taxonomy will always be
+		// behind the street, and somebody standing over something it has no
+		// word for should not have to choose between a wrong answer and
+		// losing the observation.
+		described := strings.TrimSpace(meta.Label.Notes) != "" ||
+			strings.TrimSpace(meta.Label.Landmark) != ""
+		if label != "" || described {
 			if err := s.reports.SaveReportLabel(r.Context(), ReportLabel{
 				ReportID:        reportID,
 				FrameType:       meta.Label.FrameType,

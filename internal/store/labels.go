@@ -55,7 +55,10 @@ func (d *DB) UnlabelledReports(ctx context.Context, accountID string, limit int)
 		  LEFT JOIN report_jurisdiction j ON j.report_id = r.id
 		 WHERE r.account_id::text = $1
 		   AND NOT EXISTS (
-		    SELECT 1 FROM report_labels l WHERE l.report_id = r.id)
+		    -- A row with no label is a description waiting for one, not a
+		    -- judgement already made. It stays in the queue.
+		    SELECT 1 FROM report_labels l
+		     WHERE l.report_id = r.id AND l.label <> '')
 		 ORDER BY r.captured_at
 		 LIMIT $2`, accountID, limit)
 	if err != nil {

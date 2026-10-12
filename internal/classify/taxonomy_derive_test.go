@@ -79,3 +79,32 @@ func TestEveryTaxonomyHazardIsReachable(t *testing.T) {
 	}
 	t.Logf("%d hazardous subcategories are labellable", reachable)
 }
+
+// A manhole cover that is cracked through is neither missing nor open, and
+// until it was listed a surveyor standing over one had to choose a label that
+// was wrong or skip the photograph. Both poison the evaluation set — the first
+// with a bad answer, the second with a hole in it.
+func TestADamagedManholeCoverIsLabellableAndHazardous(t *testing.T) {
+	if got := CategoryOf("damaged manhole cover"); got != "road_defect" {
+		t.Errorf("CategoryOf = %q, want road_defect", got)
+	}
+	// The hazard is the same whichever way the cover failed: a foot or a
+	// wheel goes in.
+	if !IsHazard("damaged manhole cover") {
+		t.Error("a cover with a hole in it is not treated as a hazard")
+	}
+}
+
+// Every hazardous subcategory must be one a person can actually choose. A
+// hazard the taxonomy knows and the picker does not is a hazard that never
+// reaches the evaluation set, and hazard recall is the figure held to 99%.
+func TestEveryHazardIsInTheTaxonomy(t *testing.T) {
+	for _, h := range Hazards() {
+		if CategoryOf(h) == "" {
+			t.Errorf("%q is treated as a hazard but belongs to no category", h)
+		}
+	}
+	if len(Hazards()) < 8 {
+		t.Errorf("only %d labellable hazards", len(Hazards()))
+	}
+}

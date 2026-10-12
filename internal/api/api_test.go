@@ -232,7 +232,37 @@ func TestTheFieldKitFiltersRatherThanScrolls(t *testing.T) {
 	if !strings.Contains(body, "KNOWN_LABELS") {
 		t.Error("a typed label is never checked against the taxonomy")
 	}
-	if !strings.Contains(body, "will not be recorded") {
+	// It must say the typed value is not usable, and say what to do instead —
+	// a warning with no way out gets worked around by forcing a label.
+	if !strings.Contains(body, "Not one of the labels") {
 		t.Error("nothing tells the surveyor their label is unusable")
+	}
+	if !strings.Contains(body, "describe it in the notes instead") {
+		t.Error("nothing offers a way out other than forcing a label")
+	}
+}
+
+// The field kit works wherever somebody is standing. What is bounded is what
+// the platform can answer, not where a photograph may be taken — and a
+// photograph's label is ground truth for the classifier regardless of which
+// corporation the ground belongs to.
+func TestTheFieldKitOffersTheNoFittingLabelPath(t *testing.T) {
+	srv, err := New(Options{
+		Reports: &fakeReports{}, Media: &fakeBlobs{},
+		Token: "test-token", Account: "field-kit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	body := rec.Body.String()
+
+	if !strings.Contains(body, "Nothing fits?") {
+		t.Error("there is no way to record something the taxonomy has no word for")
+	}
+	// And it must say why, or a surveyor will force a label to get past it.
+	if !strings.Contains(body, "better than forcing a label that is wrong") {
+		t.Error("nothing explains why a blank label beats a wrong one")
 	}
 }
