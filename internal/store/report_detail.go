@@ -33,6 +33,11 @@ type ReportDetail struct {
 	// ExifTakenAt is when the image says it was taken, where it says so.
 	ExifTakenAt *time.Time `json:"exif_taken_at,omitempty"`
 
+	// Issue is the problem this capture is a sighting of, with how many others
+	// have seen it and where the clock stands. Absent until classification has
+	// run, because the category decides which issue it belongs to.
+	Issue *IssueSummary `json:"issue,omitempty"`
+
 	// NextStep is what to do about this capture. Absent until the platform
 	// knows the category and the ward, because a next step addressed to the
 	// wrong desk is worse than none.
@@ -81,6 +86,15 @@ func (d ReportDetail) PositionIsStale() bool {
 		gap = -gap
 	}
 	return gap > staleAfter
+}
+
+// IssueSummary is the problem behind a capture, as its reporter sees it.
+type IssueSummary struct {
+	IssueID    string     `json:"issue_id"`
+	Status     string     `json:"status"`
+	Sightings  int        `json:"sightings"`
+	Reference  string     `json:"reference,omitempty"`
+	NotifiedAt *time.Time `json:"notified_at,omitempty"`
 }
 
 // contractGoverns is the set of categories a road works contract actually

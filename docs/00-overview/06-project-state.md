@@ -79,7 +79,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | **1** | **Attribution** — point → road → contract → contractor | **Bar met on probes.** Open until real captures confirm it |
 | **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17% |
 | 3 | **Classification** — what is in the photograph | **Next** |
-| **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Core built.** A second sighting joins the first; the clock runs from notification; history verifies. Not yet surfaced to a citizen |
+| **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built and surfaced.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies. Remaining: the public issue page, which needs system 6's redaction first |
 | 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
 | 6 | Public surface — redaction, coarsening, permalink, ward page | Waiting |
 | 7 | Share kit — annotated image, per-language text | Waiting |
@@ -238,8 +238,10 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
       a heap of household waste at a tree base — both readings defensible. Whatever is decided sets
       the ceiling on measurable subcategory accuracy
 
-- [ ] **System 4 — issues and the SLA clock.** Then: finishing accounts, the public surface, the
-      share kit, the operator console
+- [ ] **System 5 — finish accounts.** Password reset, email verification, token revocation. Phone
+      OTP is the publication gate and is only needed before anything becomes public
+- [ ] **System 6 — the public surface.** Redaction of faces and plates, coordinate coarsening, the
+      issue permalink. This is what gates a public issue page, not system 4
 
 Carried, not forgotten:
 

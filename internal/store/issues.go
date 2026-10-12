@@ -247,3 +247,107 @@ func (d *DB) UnattachedReports(ctx context.Context, limit int) ([]Unattached, er
 	}
 	return out, rows.Err()
 }
+
+// IssueView is an issue as the person who reported it sees it.
+type IssueView struct {
+	IssueID    string
+	Category   string
+	Status     string
+	Sightings  int
+	NotifiedAt *time.Time
+	Reference  string
+	FirstSeen  time.Time
+	LastSeen   time.Time
+}
+
+// IssueForReport returns the issue a capture is a sighting of, if it has
+// become one yet.
+func (d *DB) IssueForReport(ctx context.Context, reportID string) (IssueView, bool, error) {
+	var v IssueView
+	err := d.pool.QueryRow(ctx, `
+		SELECT i.id::text, i.category, i.status,
+		       (SELECT count(*) FROM issue_reports r WHERE r.issue_id = i.id),
+		       i.notified_at, COALESCE(i.reference,''), i.first_seen_at, i.last_seen_at
+		  FROM issues i
+		  JOIN issue_reports ir ON ir.issue_id = i.id
+		 WHERE ir.report_id = $1::uuid`, reportID).
+		Scan(&v.IssueID, &v.Category, &v.Status, &v.Sightings,
+			&v.NotifiedAt, &v.Reference, &v.FirstSeen, &v.LastSeen)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return IssueView{}, false, nil
+	}
+	if err != nil {
+		return IssueView{}, false, fmt.Errorf("issue for report: %w", err)
+	}
+	return v, true, nil
+}
+
+// ErrAlreadyNotified is returned when an issue has already been lodged.
+var ErrAlreadyNotified = errors.New("already notified")
+
+// RecordNotified marks that the authority has been told, which is the only
+// thing that starts a clock.
+//
+// The first notification wins. A second one is refused rather than overwriting
+// the first, because moving the start would move the deadline — a platform
+// whose clock can be restarted by re-submitting is one whose deadlines mean
+// nothing, and the earlier lodging is the one the obligation runs from.
+func (d *DB) RecordNotified(ctx context.Context, issueID, reference, actor string, at time.Time) error {
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("record notified: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var existing *time.Time
+	if err := tx.QueryRow(ctx,
+		`SELECT notified_at FROM issues WHERE id = $1::uuid FOR UPDATE`, issueID).
+		Scan(&existing); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("read issue: %w", err)
+	}
+	if existing != nil {
+		return ErrAlreadyNotified
+	}
+
+	if _, err := tx.Exec(ctx,
+		`UPDATE issues SET notified_at = $2, reference = NULLIF($3,'') WHERE id = $1::uuid`,
+		issueID, at, reference); err != nil {
+		return fmt.Errorf("set notified: %w", err)
+	}
+
+	detail := "complaint lodged"
+	if reference != "" {
+		detail = "complaint lodged, reference " + reference
+	}
+	if err := appendEventTx(ctx, tx, issueID, issue.Event{
+		Kind: "notified", At: at, Detail: detail, Actor: actor,
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("record notified: %w", err)
+	}
+	return nil
+}
+
+// ReporterOf reports whether an account has a sighting in an issue.
+//
+// Only somebody who photographed it may say it has been lodged. The reference
+// dates a legal clock, so it is not something a passer-by gets to assert about
+// another person's report.
+func (d *DB) ReporterOf(ctx context.Context, issueID, accountID string) (bool, error) {
+	var n int
+	err := d.pool.QueryRow(ctx, `
+		SELECT count(*) FROM issue_reports ir
+		  JOIN reports r ON r.id = ir.report_id
+		 WHERE ir.issue_id = $1::uuid AND r.account_id::text = $2`,
+		issueID, accountID).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("reporter of: %w", err)
+	}
+	return n > 0, nil
+}

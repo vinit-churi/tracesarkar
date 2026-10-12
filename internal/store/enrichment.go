@@ -200,6 +200,12 @@ func (d *DB) ReportDetail(ctx context.Context, id string) (ReportDetail, bool, e
 	out.AttrConfidence = e.AttrConfidence
 	out.ContractRetrievedAt = e.ContractRetrievedAt
 
+	if v, found, err := d.IssueForReport(ctx, id); err == nil && found {
+		out.Issue = &IssueSummary{
+			IssueID: v.IssueID, Status: v.Status, Sightings: v.Sightings,
+			Reference: v.Reference, NotifiedAt: v.NotifiedAt,
+		}
+	}
 	out.NextStep = d.nextStep(ctx, out)
 	return out, true, nil
 }

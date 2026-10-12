@@ -54,7 +54,9 @@ type Options struct {
 	// the API still serves captures.
 	Labels Labels
 	// Wards powers the only surface served without a sign-in.
-	Wards   WardProfiles
+	Wards WardProfiles
+	// Issues powers corroboration and the SLA clock.
+	Issues  Issues
 	Blobs   Blobs
 	Details Details
 	Issuer  *auth.Issuer
@@ -78,6 +80,7 @@ type Server struct {
 	accounts Accounts
 	reviews  Reviews
 	wards    WardProfiles
+	issues   Issues
 	labels   Labels
 	blobs    Blobs
 	details  Details
@@ -131,6 +134,7 @@ func New(opts Options) (*Server, error) {
 		throttle: newThrottles(),
 		reviews:  opts.Reviews,
 		wards:    opts.Wards,
+		issues:   opts.Issues,
 		labels:   opts.Labels,
 		blobs:    opts.Blobs,
 		details:  opts.Details,
@@ -168,6 +172,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /v1/reports/{id}", s.authenticated(http.HandlerFunc(s.handleReportDetail)))
 
 	mux.Handle("GET /v1/reports/{id}/media", s.authenticated(http.HandlerFunc(s.handleReportMedia)))
+	mux.Handle("POST /v1/issues/{id}/lodged", s.authenticated(http.HandlerFunc(s.handleLodged)))
 
 	// Public on purpose: published facts about offices and obligations, with
 	// nothing a citizen reported on it.

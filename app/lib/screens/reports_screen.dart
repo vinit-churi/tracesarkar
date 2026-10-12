@@ -184,6 +184,19 @@ class _ReportScreenState extends State<ReportScreen> {
     _load();
   }
 
+  /// Records that the authority has been told. The only thing that starts a
+  /// deadline — nothing the platform does on its own ever will.
+  Future<void> _recordLodged(String reference) async {
+    final issue = _report?.issue;
+    if (issue == null) return;
+    try {
+      await widget.client.lodged(issue.issueId, reference, widget.session.token);
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
   Future<void> _load() async {
     try {
       final r = await widget.client.report(widget.reportId, widget.session.token);
@@ -228,6 +241,13 @@ class _ReportScreenState extends State<ReportScreen> {
                     report: _report!, photo: _photo, failed: _photoFailed),
                 const SizedBox(height: 16),
                 VerdictCard(report: _report!),
+                if (_report!.issue != null) ...[
+                  const SizedBox(height: 16),
+                  _IssueCard(
+                    issue: _report!.issue!,
+                    onLodged: _recordLodged,
+                  ),
+                ],
                 if (_report!.nextStep != null) ...[
                   const SizedBox(height: 16),
                   _NextStepCard(step: _report!.nextStep!),
@@ -410,5 +430,146 @@ class _NextStepCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+
+/// The problem behind this capture: how many people have seen it, and where
+/// the clock stands.
+///
+/// The clock is the point of the card. It runs from the moment the authority
+/// is told and from nothing else, so before that it says plainly that nothing
+/// is running and offers the one thing that would start it.
+class _IssueCard extends StatefulWidget {
+  const _IssueCard({required this.issue, required this.onLodged});
+
+  final IssueSummary issue;
+  final Future<void> Function(String reference) onLodged;
+
+  @override
+  State<_IssueCard> createState() => _IssueCardState();
+}
+
+class _IssueCardState extends State<_IssueCard> {
+  final _reference = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _reference.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final issue = widget.issue;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Tokens.surface,
+        borderRadius: BorderRadius.circular(Tokens.cardRadius),
+        border: Border.all(color: Tokens.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('The problem', style: text.titleMedium),
+
+          // Said only when it is true. "1 people have reported this" claims a
+          // company the issue does not have.
+          if (issue.sightings > 1) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.groups_outlined, size: 18, color: Tokens.confirm),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${issue.sightings} people have reported this. '
+                    'They are recorded as one problem seen several times, '
+                    'not as separate complaints.',
+                    style: text.bodyLarge?.copyWith(color: Tokens.confirm),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 12),
+          if (!issue.lodged) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Tokens.evidence,
+                borderRadius: BorderRadius.circular(Tokens.chipRadius),
+              ),
+              child: Text(
+                'Nothing is running yet. The deadline begins when you lodge '
+                'the complaint with the authority — photographing it here '
+                'tells them nothing.',
+                style: text.bodyLarge?.copyWith(color: Tokens.ink70),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _reference,
+              decoration: const InputDecoration(
+                labelText: 'Complaint reference, once you have lodged it',
+                hintText: 'MARG-2026-…',
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: _sending
+                  ? null
+                  : () async {
+                      setState(() => _sending = true);
+                      await widget.onLodged(_reference.text.trim());
+                      if (mounted) setState(() => _sending = false);
+                    },
+              child: const Text('I have lodged it'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'This records when you told them. It does not send anything.',
+              style: text.bodySmall,
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Tokens.cautionWash,
+                borderRadius: BorderRadius.circular(Tokens.chipRadius),
+                border: Border.all(color: Tokens.caution.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Lodged on ${_day(issue.notifiedAt!)}. The clock runs from '
+                    'then.',
+                    style: text.bodyLarge?.copyWith(color: Tokens.caution),
+                  ),
+                  if (issue.reference != null && issue.reference!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text('Reference ${issue.reference}',
+                        style: text.bodySmall?.copyWith(color: Tokens.caution)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _day(DateTime d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec'];
+    final l = d.toLocal();
+    return '${l.day} ${months[l.month - 1]}';
   }
 }

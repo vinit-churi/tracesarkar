@@ -158,6 +158,7 @@ func serve(ctx context.Context, args []string) error {
 		Reviews:        db,
 		Labels:         db,
 		Wards:          db,
+		Issues:         db,
 		Blobs:          blobs,
 		Details:        db,
 		Issuer:         issuer,

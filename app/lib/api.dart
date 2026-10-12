@@ -152,6 +152,42 @@ class NextStep {
   final String? deadlineCitation;
 }
 
+/// The problem a capture is a sighting of.
+///
+/// [sightings] above one is the thing that separates this from a platform that
+/// collects complaints: the same pothole photographed twice is one problem
+/// seen twice, not two problems.
+class IssueSummary {
+  IssueSummary({
+    required this.issueId,
+    required this.status,
+    required this.sightings,
+    this.reference,
+    this.notifiedAt,
+  });
+
+  factory IssueSummary.fromJson(Map<String, dynamic> j) => IssueSummary(
+        issueId: (j['issue_id'] ?? '') as String,
+        status: (j['status'] ?? '') as String,
+        sightings: (j['sightings'] as num?)?.toInt() ?? 1,
+        reference: j['reference'] as String?,
+        notifiedAt: j['notified_at'] == null
+            ? null
+            : DateTime.tryParse(j['notified_at'] as String),
+      );
+
+  final String issueId;
+  final String status;
+  final int sightings;
+  final String? reference;
+
+  /// When the authority was told. Null means no clock is running — nothing
+  /// the platform does starts one.
+  final DateTime? notifiedAt;
+
+  bool get lodged => notifiedAt != null;
+}
+
 class ReportDetail {
   ReportDetail({
     required this.id,
@@ -176,6 +212,7 @@ class ReportDetail {
     this.longitude,
     this.accuracyMetres,
     this.nextStep,
+    this.issue,
   });
 
   factory ReportDetail.fromJson(Map<String, dynamic> json) {
@@ -206,6 +243,9 @@ class ReportDetail {
       nextStep: json['next_step'] == null
           ? null
           : NextStep.fromJson(json['next_step'] as Map<String, dynamic>),
+      issue: json['issue'] == null
+          ? null
+          : IssueSummary.fromJson(json['issue'] as Map<String, dynamic>),
     );
   }
 
@@ -256,6 +296,9 @@ class ReportDetail {
 
   /// What to do about this capture, once the platform knows enough to say.
   final NextStep? nextStep;
+
+  /// The problem behind this capture, once it has become one.
+  final IssueSummary? issue;
 
   /// Whether the point lies outside every ward boundary the platform holds —
   /// past Dahisar into Mira-Bhayandar, say. That is a finished answer: the
@@ -359,6 +402,20 @@ class ApiClient {
     );
     final decoded = _decode(response);
     return ReportDetail.fromJson(decoded['report'] as Map<String, dynamic>);
+  }
+
+  /// Records that the authority has been told, which is the only thing that
+  /// starts a deadline.
+  Future<void> lodged(String issueId, String reference, String token) async {
+    final response = await _client.post(
+      _url('/v1/issues/$issueId/lodged'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'reference': reference}),
+    );
+    _decode(response);
   }
 
   /// Reads one capture's photograph.
