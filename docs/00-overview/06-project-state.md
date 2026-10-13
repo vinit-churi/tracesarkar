@@ -33,6 +33,7 @@ Three things are live and answering. Nothing below is aspirational.
 | **Label** | `…run.app/label/` | Ground truth for the eval set, two keystrokes a capture |
 | **Methodology** | `…run.app/methodology/` | Public, no sign-in — sources, measurements, limits |
 | **Ward** | `…run.app/ward/` | Public, no sign-in — who owns what in R/C, how to reach them, what binds them |
+| **Issue** | `…run.app/issue/{id}` | Public, no sign-in — one problem: what, roughly where, how many sightings, whether it was lodged |
 | **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 | **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich then classify, so a capture resolves itself |
@@ -81,7 +82,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | 3 | **Classification** — what is in the photograph | **Built, measurement running.** Six categories, versioned prompt, guardrails. `ingest eval` scores whatever is labelled and re-runs as the set grows; 5 cases on 12 Oct — category 5/5, subcategory 4/5, no hazards missed. The ≥90% bar accrues from use ([D114](05-decision-log.md)) |
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built and surfaced.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies. Remaining: the public issue page, which needs system 6's redaction first |
 | 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
-| 6 | Public surface — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. Remaining: the issue permalink, the adversarial set — five captures measured no recall because none contains a face ([D127](05-decision-log.md)) — and a public-sized derivative: the redacted copies run 302 KB to 2.4 MB against a stated 150 KB budget at 2G, because they are currently sized for the classifier that reads them |
+| **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). Remaining: the adversarial set, which is the gate — five captures measured no recall because none contains a face ([D127](05-decision-log.md)) |
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 

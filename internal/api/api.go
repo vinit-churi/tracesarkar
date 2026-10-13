@@ -56,11 +56,14 @@ type Options struct {
 	// Wards powers the only surface served without a sign-in.
 	Wards WardProfiles
 	// Issues powers corroboration and the SLA clock.
-	Issues  Issues
-	Blobs   Blobs
-	Details Details
-	Issuer  *auth.Issuer
-	Google  *auth.GoogleVerifier
+	Issues Issues
+	// PublicIssues powers the issue permalink, the second surface served
+	// without a sign-in.
+	PublicIssues PublicIssues
+	Blobs        Blobs
+	Details      Details
+	Issuer       *auth.Issuer
+	Google       *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -75,23 +78,24 @@ type Options struct {
 
 // Server is the HTTP surface.
 type Server struct {
-	reports  Reports
-	media    Media
-	accounts Accounts
-	reviews  Reviews
-	wards    WardProfiles
-	issues   Issues
-	labels   Labels
-	blobs    Blobs
-	details  Details
-	issuer   *auth.Issuer
-	google   *auth.GoogleVerifier
-	origins  []string
-	token    string
-	account  string
-	maxSize  int64
-	throttle *throttles
-	log      *slog.Logger
+	reports      Reports
+	media        Media
+	accounts     Accounts
+	reviews      Reviews
+	wards        WardProfiles
+	issues       Issues
+	publicIssues PublicIssues
+	labels       Labels
+	blobs        Blobs
+	details      Details
+	issuer       *auth.Issuer
+	google       *auth.GoogleVerifier
+	origins      []string
+	token        string
+	account      string
+	maxSize      int64
+	throttle     *throttles
+	log          *slog.Logger
 }
 
 // contextKey is unexported so nothing outside this package can collide with it.
@@ -128,23 +132,24 @@ func New(opts Options) (*Server, error) {
 		log = slog.Default()
 	}
 	return &Server{
-		reports:  opts.Reports,
-		media:    opts.Media,
-		accounts: opts.Accounts,
-		throttle: newThrottles(),
-		reviews:  opts.Reviews,
-		wards:    opts.Wards,
-		issues:   opts.Issues,
-		labels:   opts.Labels,
-		blobs:    opts.Blobs,
-		details:  opts.Details,
-		issuer:   opts.Issuer,
-		google:   opts.Google,
-		origins:  opts.AllowedOrigins,
-		token:    opts.Token,
-		account:  opts.Account,
-		maxSize:  size,
-		log:      log,
+		reports:      opts.Reports,
+		media:        opts.Media,
+		accounts:     opts.Accounts,
+		throttle:     newThrottles(),
+		reviews:      opts.Reviews,
+		wards:        opts.Wards,
+		issues:       opts.Issues,
+		publicIssues: opts.PublicIssues,
+		labels:       opts.Labels,
+		blobs:        opts.Blobs,
+		details:      opts.Details,
+		issuer:       opts.Issuer,
+		google:       opts.Google,
+		origins:      opts.AllowedOrigins,
+		token:        opts.Token,
+		account:      opts.Account,
+		maxSize:      size,
+		log:          log,
 	}, nil
 }
 
@@ -177,6 +182,8 @@ func (s *Server) Handler() http.Handler {
 	// Public on purpose: published facts about offices and obligations, with
 	// nothing a citizen reported on it.
 	mux.HandleFunc("GET /v1/public/ward/{authority}/{ward}", s.handleWardProfile)
+	mux.HandleFunc("GET /v1/public/issue/{id}", s.handlePublicIssue)
+	mux.HandleFunc("GET /v1/public/issue/{id}/image", s.handlePublicIssueImage)
 
 	mux.Handle("GET /v1/taxonomy", s.authenticated(http.HandlerFunc(s.handleTaxonomy)))
 	mux.Handle("GET /v1/label/queue", s.authenticated(http.HandlerFunc(s.handleLabelQueue)))
@@ -197,6 +204,14 @@ func (s *Server) Handler() http.Handler {
 		if page, err := staticPage(wardFS, "ward"); err == nil {
 			mux.Handle("GET /ward/", page)
 			mux.Handle("GET /ward", http.RedirectHandler("/ward/", http.StatusFound))
+		}
+		// The issue permalink carries an id in its path, so it cannot be a
+		// plain file server: every id serves the same page, which reads the id
+		// back and asks the public endpoint for it. Nothing about the issue is
+		// in the HTML, so the page itself discloses nothing.
+		if page, err := issuePage(); err == nil {
+			mux.Handle("GET /issue/{id}", page)
+			mux.Handle("GET /issue/{id}/", page)
 		}
 		if page, err := methodologyHandler(); err == nil {
 			// Public on purpose, and the only page that is. A platform that
@@ -317,6 +332,9 @@ var methodologyFS embed.FS
 //go:embed ward
 var wardFS embed.FS
 
+//go:embed issue
+var issueFS embed.FS
+
 // reviewHandler serves the attribution review page. Personal tier: it exists
 // so a human can put a precision number on the join, and it shows no data of
 // its own — everything comes from the authenticated API.
@@ -335,6 +353,20 @@ func staticPage(from embed.FS, name string) (http.Handler, error) {
 		return nil, fmt.Errorf("%s assets: %w", name, err)
 	}
 	return http.StripPrefix("/"+name, http.FileServer(http.FS(sub))), nil
+}
+
+// issuePage serves the issue permalink shell for any id.
+func issuePage() (http.Handler, error) {
+	body, err := issueFS.ReadFile("issue/index.html")
+	if err != nil {
+		return nil, fmt.Errorf("issue page: %w", err)
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=600")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(body)
+	}), nil
 }
 
 // methodologyHandler serves the public methodology page.

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A civic issue · TraceSarkar</title>
+<meta name="description" content="One civic problem in the Mumbai Metropolitan Region: what it is, roughly where, how many residents have reported it, and whether the authority has been told.">
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --accent-wash:#F5EAF0;
+    --alert:#A33A1F; --alert-wash:#FAEDE9;
+    --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  header{border-bottom:1px solid var(--hairline);padding:14px 16px}
+  header div{max-width:720px;margin:0 auto;display:flex;align-items:baseline;
+             justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:600}.brand span{color:var(--ink-45);font-weight:400}
+  header a{color:var(--ink-45);font-size:13px;text-decoration:none}
+  header a:hover{color:var(--accent)}
+  main{max-width:720px;margin:0 auto;padding:28px 16px 72px}
+  h1{font-size:32px;line-height:1.15;letter-spacing:-.5px;margin:0 0 6px}
+  .where{color:var(--ink-70);margin:0 0 16px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-45);
+     margin:34px 0 12px;padding-top:18px;border-top:1px solid var(--hairline)}
+  .chip{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.4px;
+        text-transform:uppercase;padding:4px 10px;border-radius:7px;margin-bottom:14px}
+  .chip-open{background:var(--alert-wash);color:var(--alert)}
+  .chip-claimed{background:var(--caution-wash);color:var(--caution)}
+  .chip-confirmed{background:var(--confirm-wash);color:var(--confirm)}
+  .chip-reopened{background:var(--accent-wash);color:var(--accent)}
+  .card{background:var(--surface);border:1px solid var(--hairline);
+        border-radius:12px;padding:18px;margin-bottom:14px}
+  figure{margin:0 0 14px}
+  /* A phone photograph is portrait, and at full column width it pushes
+     everything that explains it below the fold. Letterboxed instead, with the
+     ground showing while it loads so the page does not jump. */
+  figure img{width:100%;max-height:62vh;object-fit:contain;display:block;
+             border-radius:12px;border:1px solid var(--hairline);
+             background:var(--evidence);min-height:180px}
+  figcaption{font-size:12px;color:var(--ink-45);margin-top:7px;line-height:1.45}
+  .withheld{background:var(--evidence);border:1px dashed var(--ink-45);border-radius:12px;
+            padding:26px 18px;text-align:center;color:var(--ink-70);font-size:15px}
+  .share{display:block;width:100%;border:0;border-radius:11px;padding:15px;
+         background:var(--accent);color:#fff;font-size:17px;font-weight:600;
+         font-family:inherit;cursor:pointer;margin:4px 0 6px}
+  .share:hover{filter:brightness(1.08)}
+  .share:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .sharenote{font-size:13px;color:var(--ink-45);text-align:center;margin:0 0 4px}
+  .rows{display:grid;grid-template-columns:150px 1fr;gap:5px 14px;font-size:15px}
+  @media (max-width:560px){.rows{grid-template-columns:1fr;gap:1px 0}
+    .rows dt{color:var(--ink-45);font-size:12px;text-transform:uppercase;margin-top:9px}}
+  dt{color:var(--ink-45);font-size:13px}
+  dd{margin:0;color:var(--ink)}
+  .clock{background:var(--confirm-wash);border-left:3px solid var(--confirm);
+         border-radius:0 8px 8px 0;padding:12px 14px;font-size:15px}
+  .clock.running{background:var(--caution-wash);border-left-color:var(--caution)}
+  .clock.none{background:var(--evidence);border-left-color:var(--ink-45)}
+  .cite{font-size:12px;color:var(--ink-45);margin-top:6px;line-height:1.45}
+  .corrob{background:var(--accent-wash);border-radius:12px;padding:14px 16px;
+          color:var(--accent);font-size:15px;margin-bottom:14px}
+  .corrob b{font-size:19px}
+  ol.hist{list-style:none;margin:0;padding:0}
+  ol.hist li{display:grid;grid-template-columns:11px 1fr;gap:12px;padding-bottom:16px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);
+       margin-top:7px;position:relative}
+  ol.hist li:not(:last-child) .dot::after{content:"";position:absolute;left:3.5px;top:11px;
+       width:1px;height:calc(100% + 10px);background:var(--hairline)}
+  .ev-kind{font-weight:600;text-transform:capitalize}
+  .ev-when{color:var(--ink-45);font-size:13px}
+  .ev-detail{color:var(--ink-70);font-size:15px;margin-top:2px}
+  .ev-hash{font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+           color:var(--ink-45);word-break:break-all;margin-top:3px}
+  .limits{background:var(--caution-wash);border:1px solid rgba(138,100,16,.25);
+          border-radius:12px;padding:16px 18px;margin-top:10px}
+  .limits h2{border:none;padding:0;margin:0 0 10px;color:var(--caution)}
+  .limits li{color:var(--caution);margin-bottom:8px}
+  .limits ul{margin:0;padding-left:20px;font-size:15px}
+  footer{max-width:720px;margin:0 auto;padding:0 16px 56px;
+         font-size:13px;color:var(--ink-45);line-height:1.6}
+  footer a{color:var(--ink-45)}
+  .msg{padding:48px 0;text-align:center;color:var(--ink-45)}
+</style>
+</head>
+<body>
+<header><div>
+  <div class="brand">TraceSarkar <span>· civic issue</span></div>
+  <a href="/methodology/">How this is put together</a>
+</div></header>
+
+<main id="main"><p class="msg">Loading…</p></main>
+
+<footer id="foot" hidden>
+  <p>This page states what was reported and what the public record says. It does not say that
+  anybody did anything wrong, and nothing here has been filed with any authority by TraceSarkar —
+  a complaint exists only if a person lodged it themselves.</p>
+  <p>The position is a grid cell about 111 metres across, never the place a report was sent from.
+  Faces and number plates are obscured before any photograph on this page exists.
+  <a href="/methodology/">Sources and limits</a>.</p>
+</footer>
+
+<script>
+const E = (t, c, x) => { const n = document.createElement(t);
+  if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
+
+function idFromPath() {
+  const parts = location.pathname.split("/").filter(Boolean);
+  return parts[1] || "";
+}
+
+const CHIP = {
+  open: "chip-open", claimed_resolved: "chip-claimed",
+  citizen_confirmed: "chip-confirmed", reopened: "chip-reopened",
+};
+
+function title(d) {
+  const sub = (d.subcategory || "").replace(/_/g, " ");
+  const cat = (d.category || "civic problem").replace(/_/g, " ");
+  return sub ? sub.charAt(0).toUpperCase() + sub.slice(1) : cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+
+function render(d) {
+  const m = document.getElementById("main");
+  m.replaceChildren();
+
+  const chip = E("span", "chip " + (CHIP[d.status] || "chip-open"), d.status_label);
+  m.append(chip, E("h1", null, title(d)));
+
+  const ward = [d.ward, d.authority].filter(Boolean).join(" ward · ");
+  m.append(E("p", "where", ward ? "Reported in " + ward : "Reported in the Mumbai region"));
+
+  // The photograph, or why there is none.
+  const fig = E("figure");
+  if (d.image) {
+    const img = E("img");
+    img.src = d.image;
+    img.alt = "The reported " + title(d).toLowerCase() + ", with faces and number plates obscured";
+    img.loading = "lazy";
+    fig.append(img, E("figcaption", null, d.image_note || ""));
+  } else {
+    fig.append(E("div", "withheld", d.image_withheld || "No photograph is published for this issue."));
+  }
+  m.append(fig);
+
+  // Share is the primary action on an issue, not an icon in a corner.
+  const btn = E("button", "share", "Copy the link to this issue");
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      btn.textContent = "Link copied";
+    } catch {
+      btn.textContent = location.href;
+      const r = document.createRange();
+      r.selectNodeContents(btn);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+    setTimeout(() => { btn.textContent = "Copy the link to this issue"; }, 4000);
+  });
+  m.append(btn, E("p", "sharenote", "Sharing is what moves a civic problem. Send it on."));
+
+  if (d.corroboration) {
+    const c = E("div", "corrob");
+    c.append(E("b", null, d.corroboration.sightings + " residents"),
+             document.createTextNode(" have reported this. " + d.corroboration.note));
+    m.append(c);
+  }
+
+  // Where, stated as a cell.
+  m.append(E("h2", null, "Where"));
+  const where = E("div", "card");
+  const wl = E("dl", "rows");
+  wl.append(E("dt", null, "Approximate position"),
+            E("dd", null, d.at.lat.toFixed(3) + ", " + d.at.lon.toFixed(3)));
+  wl.append(E("dt", null, "Cell width"),
+            E("dd", null, "about " + Math.round(d.at.cell_metres) + " m"));
+  where.append(wl, E("p", "cite", d.at.note));
+  m.append(where);
+
+  // Whether the authority has been told, and what follows from that.
+  m.append(E("h2", null, "Has the authority been told?"));
+  const l = d.lodged || {};
+  if (l.state !== "lodged") {
+    const box = E("div", "clock none");
+    box.append(E("div", null, "Not yet lodged, so no deadline is running."));
+    box.append(E("p", "cite", l.note || ""));
+    m.append(box);
+  } else {
+    const running = l.deadline_state === "running" || l.deadline_state === "elapsed";
+    const box = E("div", "clock" + (running ? " running" : ""));
+    box.append(E("div", null, "A resident recorded lodging this on " + l.on + "."));
+    if (l.deadline_says) {
+      box.append(E("div", null, l.deadline_says));
+      box.append(E("p", "cite", l.deadline_hours + " hours · " + l.deadline_citation));
+    } else {
+      box.append(E("p", "cite",
+        "No deadline is shown: none is published for this kind of problem, " +
+        "or the document that sets one is not yet recorded."));
+    }
+    m.append(box);
+  }
+
+  // The history, with its chain.
+  m.append(E("h2", null, "History"));
+  const hist = E("ol", "hist");
+  (d.history || []).forEach(ev => {
+    const li = E("li");
+    li.append(E("span", "dot"));
+    const body = E("div");
+    body.append(E("span", "ev-kind", ev.kind.replace(/_/g, " ")),
+                document.createTextNode(" "),
+                E("span", "ev-when", "· " + ev.on));
+    if (ev.detail) body.append(E("div", "ev-detail", ev.detail));
+    body.append(E("div", "ev-hash", ev.hash));
+    li.append(body);
+    hist.append(li);
+  });
+  m.append(hist);
+  m.append(E("p", "cite",
+    "Each entry carries the hash of the one before it, so an entry that was " +
+    "changed or removed later can be detected from the end of the chain."));
+
+  // What this page cannot tell you.
+  const lim = E("div", "limits");
+  lim.append(E("h2", null, "What this page does not tell you"));
+  const ul = E("ul");
+  [
+    "Who reported it. That is never published.",
+    "Exactly where it is. The position is a cell, not a point.",
+    "Whether anybody is at fault. This page states what was reported and what the record says.",
+    d.image ? null : "What it looks like, in this case.",
+  ].filter(Boolean).forEach(t => ul.append(E("li", null, t)));
+  lim.append(ul);
+  m.append(lim);
+
+  document.title = title(d) + " · " + (d.ward ? d.ward + " ward · " : "") + "TraceSarkar";
+  document.getElementById("foot").hidden = false;
+}
+
+async function load() {
+  const id = idFromPath();
+  const m = document.getElementById("main");
+  if (!id) { m.replaceChildren(E("p", "msg", "No issue named in this link.")); return; }
+  try {
+    const res = await fetch("/v1/public/issue/" + encodeURIComponent(id));
+    if (res.status === 404) {
+      m.replaceChildren(E("p", "msg", "There is no issue at this link."));
+      return;
+    }
+    if (!res.ok) throw new Error("status " + res.status);
+    render(await res.json());
+  } catch (err) {
+    m.replaceChildren(E("p", "msg", "This issue could not be loaded just now. Try again shortly."));
+  }
+}
+load();
+</script>
+</body>
+</html>
