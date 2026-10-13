@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated: 29 September 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 13 October 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
 
 ---
@@ -41,17 +41,17 @@ Three things are live and answering. Nothing below is aspirational.
 
 | | |
 |---|---|
-| Road works archived | 4,683 |
-| Observed changes | 4,762 |
-| Raw documents archived | 274 |
-| Road segments in PostGIS | 2,405 · **779 km** of carriageway |
+| Road works archived | 4,878 |
+| Observed changes | 12,062 |
+| Raw documents archived | 540 |
+| Road segments in PostGIS | 2,404 · **778 km** of carriageway |
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
 | Department mappings | 4 · road defects, waste, water supply — all sourced |
 | Routable categories | 3 of 6 · `road_defect`, `waste`, `water_drainage` |
 | Legal constants | 5 · two pothole clocks, a penalty, two waste clocks |
-| Government resolutions watched | 248 |
-| Captures stored | 6 |
+| Government resolutions watched | 461 |
+| Captures stored | 11 · **5 are real**; the other 6 are test fixtures from live runs |
 | Attribution verdicts by a human | 50 |
 
 ### The numbers that were measured, not assumed
@@ -65,7 +65,7 @@ Three things are live and answering. Nothing below is aspirational.
 
 ### Tests
 
-14 Go packages passing, 22 Flutter tests. Live tests gated behind `TRACESARKAR_LIVE=1`.
+22 Go packages passing, 22 Flutter tests. Live tests gated behind `TRACESARKAR_LIVE=1`.
 
 ---
 
@@ -78,10 +78,10 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 |---|---|---|
 | **1** | **Attribution** — point → road → contract → contractor | **Bar met on probes.** Open until real captures confirm it |
 | **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17% |
-| 3 | **Classification** — what is in the photograph | **Next** |
+| 3 | **Classification** — what is in the photograph | **Built, measurement running.** Six categories, versioned prompt, guardrails. `ingest eval` scores whatever is labelled and re-runs as the set grows; 5 cases on 12 Oct — category 5/5, subcategory 4/5, no hazards missed. The ≥90% bar accrues from use ([D114](05-decision-log.md)) |
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built and surfaced.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies. Remaining: the public issue page, which needs system 6's redaction first |
 | 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
-| 6 | Public surface — redaction, coarsening, permalink, ward page | **Started.** Coarsening built; the ward page is live. A public image is structurally impossible without a redaction record, so the detector's absence is safe rather than leaky. Remaining: the detector itself, and the issue permalink |
+| 6 | Public surface — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. Remaining: the issue permalink, and the adversarial set — five captures measured no recall because none contains a face ([D127](05-decision-log.md)) |
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 

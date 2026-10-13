@@ -55,3 +55,31 @@ detector improvement can trigger a re-run over the corpus.
   reflections, plates at angle, night conditions, and Indian plate formats specifically.
 - The archival original retains faces and plates. Access to it is break-glass, logged, and
   justified — see [security and privacy](../03-architecture/11-security-and-privacy.md).
+
+## What was built, 13 October 2026
+
+The server-side tier exists; the on-device tier does not. Both detectors run in the Go process with
+no network egress, which keeps the seam this ADR anticipated smaller than expected — no ONNX
+runtime and no sidecar.
+
+| | What runs | Licence |
+|---|---|---|
+| Faces | pigo's Pico cascade, embedded in the binary, scanned upright and about eighteen degrees either way | MIT |
+| Plates | An edge-density localiser written here: blur, Sobel-x, close the runs, label, filter by aspect and fill | — |
+
+Three things this ADR said, now enforced rather than intended:
+
+- **Held rather than published on any doubt.** A photograph checked for faces but not plates is
+  treated as unchecked, and the classifier seeing people where the detector found no face holds it.
+- **A record, not a flag.** `report_media` carries the tool, the time, the output object and the
+  verdict (migration 0025), so a detector improvement re-scans by matching the tool string. A CHECK
+  constraint refuses a published verdict with no output object.
+- **The permissive-licence review** this ADR required: pigo is MIT, vendored at
+  `internal/redact/cascade/` with its licence beside it.
+
+**The adversarial set is still outstanding, and it is the gate.** Run over every stored capture on
+13 October, the detector reached a verdict on all five real ones and produced four false positives
+on litter and pavement — the harmless direction. It measured no recall at all, because none of the
+five contains a face or a plate. Faces at distance, partial occlusion, reflections, night, and
+Indian plate formats at angle remain unmeasured, and no public image should exist until they are
+not.
