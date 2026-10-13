@@ -75,6 +75,14 @@ watch: ## Archive newly published Government Resolutions (Phase 0 P2)
 all-collect: ## Snapshot and watch, exactly as the scheduled job does
 	go run ./cmd/ingest all
 
+.PHONY: sweep
+sweep: ## Turn stored captures into answers: enrich, redact, classify, issues
+	go run ./cmd/ingest sweep
+
+.PHONY: redact
+redact: ## Obscure faces and plates in stored captures, and record what it did
+	go run ./cmd/ingest redact
+
 .PHONY: status
 status: ## Per-endpoint collection health
 	go run ./cmd/ingest status

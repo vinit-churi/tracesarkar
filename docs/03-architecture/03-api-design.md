@@ -301,6 +301,20 @@ small. And it gives third-party clients a path in for free.
 
 Read-only, coarsened, aggressively cached.
 
+**Built as of 13 October 2026** — these three are live and serve without a sign-in:
+
+```http
+GET /v1/public/ward/{authority}/{ward}    # desks, contacts, deadlines, each with its source
+GET /v1/public/issue/{id}                 # one issue: coarsened cell, history without actors
+GET /v1/public/issue/{id}/image           # the redacted copy, fitted to the 150 KB budget
+```
+
+The issue endpoints go through `publish.Derive`, which coarsens the position and refuses to name
+an image without a completed redaction record. The history type the public path can hold has no
+actor field at all, and the complaint reference is read but never rendered.
+
+The rest of this section is design, not code:
+
 ```http
 GET /v1/public/issues?ward=R/S&category=road_defect&since=2026-01-01&format=geojson
 GET /v1/public/wards/{code}/stats?range=90d

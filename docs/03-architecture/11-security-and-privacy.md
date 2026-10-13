@@ -64,6 +64,15 @@ capture ──▶ archival original (private, encrypted, access-controlled)
 - The archival original is retained because it may be needed as evidence in a filing, under strict
   access control and audit logging.
 
+**Built, 13 October 2026.** The server-side tier runs: faces on an embedded Pico cascade, plates
+on an edge-density localiser, both inside the Go process with no network egress. Redaction runs
+*before* classification in the sweep, so the third-party vision model reads the redacted copy and
+never the original. A photograph whose detectors cannot account for themselves is held: the
+verdict, the tool, the time and the output object are recorded on `report_media` (migration
+0025), and a CHECK constraint refuses a published verdict with no output object. The on-device
+tier does not exist. **The adversarial set this rule depends on does not exist either, and it is
+the gate** — see [ADR 0008](../04-adr/0008-redaction-approach.md).
+
 ---
 
 ## 3. Location privacy

@@ -70,6 +70,9 @@ over 2,405 road works). Everything else lands per the roadmap.
 | App | `https://tracesarkar-app.infoyantra.workers.dev` |
 | Android | `https://tracesarkar-app.infoyantra.workers.dev/download/` |
 | API | `https://tracesarkar-api-mlkwom573a-el.a.run.app` |
+| Methodology | `…run.app/methodology/` — public: sources, measurements, limits |
+| Ward | `…run.app/ward/` — public: who owns what in R/C and what binds them |
+| Issue | `…run.app/issue/{id}` — public: one problem, coarsened and redacted |
 | Label | `…run.app/label/` — ground truth for the classifier's eval set |
 | Review | `…run.app/review/` — attribution verdicts |
 
@@ -84,13 +87,17 @@ Start at [project state](docs/00-overview/06-project-state.md) §2 for what exis
 | [`docs/04-adr/`](docs/04-adr/) | Architecture Decision Records — why Go, why Postgres+PostGIS, why H3, why this AI stack |
 | [`docs/05-delivery/`](docs/05-delivery/) | Roadmap, MVP definition, backlog, metrics, risk register, go-to-market, scaling beyond one ward |
 | [`docs/06-operations/`](docs/06-operations/) | Runbook, moderation policy, legal review checklist, cost model, releasing the app |
-| [`cmd/`](cmd/) | `ingest` (collect, enrich, classify, sweep, review) and `api` |
+| [`cmd/`](cmd/) | `ingest` (collect, enrich, redact, classify, sweep, issues, eval, review) and `api` |
 | [`internal/attribute/`](internal/attribute/) | Point to road to contract, with the confidence gate that asks rather than guesses |
 | [`internal/jurisdiction/`](internal/jurisdiction/) | Ward, department and the edge-distance gate |
 | [`internal/classify/`](internal/classify/) | Taxonomy, versioned prompts, the guardrails, the eval harness |
 | [`internal/roads/`](internal/roads/) | BMC geometry into PostGIS segments |
 | [`internal/sweep/`](internal/sweep/) | Runs the stages that turn a stored capture into an answer |
-| [`internal/`](internal/) | Also: api, archive, store, config, sources, works, ingest, notify, auth |
+| [`internal/issue/`](internal/issue/) | Dedup and merge, the SLA clock, the hash-chained timeline |
+| [`internal/redact/`](internal/redact/) | Face and plate detection, the mosaic, and the gate that holds an image when a detector cannot account for itself |
+| [`internal/publish/`](internal/publish/) | What a public surface may show: coarsened position, the redaction gate, the 150 KB image budget |
+| [`internal/action/`](internal/action/) | The next step a report earns — the right instrument, drafted and unsent |
+| [`internal/`](internal/) | Also: api, archive, store, config, sources, works, ingest, notify, auth, exif, ratelimit |
 | [`app/`](app/README.md) | The Flutter client — Android and web from one codebase: sign in, capture, send |
 | [`docs/templates/`](docs/templates/) | RTI application, NGT original application, Lokayukta complaint, consumer complaint templates |
 
@@ -132,11 +139,12 @@ producing real usage. See [`docs/05-delivery/01-roadmap.md`](docs/05-delivery/01
 
 | | |
 |---|---|
-| **Stage** | Phase 0 — collecting the record; no public surface yet |
-| **Region** | Mumbai Metropolitan Region (Greater Mumbai first) |
-| **Backend** | Go. `cmd/ingest` runs the collectors; PostgreSQL 16 and S3-compatible storage |
-| **Where things stand** | [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md) |
-| **Docs last reviewed** | 2026-09-23 |
+| **Stage** | Six of v1's eight systems built and deployed. Three public pages, no public launch |
+| **Region** | Mumbai Metropolitan Region — BMC R/C ward, Borivali, first |
+| **Backend** | Go. `cmd/ingest` collects and resolves, `cmd/api` serves; PostgreSQL 18 + PostGIS, Cloudflare R2 |
+| **Where things stand** | [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md) — read this first, on any machine |
+| **Gating everything** | The adversarial redaction set. Five real captures measured no recall, because not one contains a face |
+| **Docs last reviewed** | 2026-10-13 |
 
 ---
 

@@ -107,14 +107,17 @@ Two of these are already partly built and are listed at their real state, not at
 
 ### Where each one stands today
 
+**[Project state §3](../00-overview/06-project-state.md) is the live reading.** This table is a
+summary of it, as of 13 October 2026:
+
 | System | State |
 |---|---|
-| 1 Attribution | **Not started — this is the current system.** The works data it joins against is already collected twice a day |
-| 2 Jurisdiction | Not started |
-| 3 Classification | Not started |
-| 4 Issues | Not started. Capture, storage and retry-safety are built and are its foundation |
-| 5 Accounts | **Partly built.** Email/password, Google, sessions and forgery resistance work. Missing: rate limiting, reset, email verification, revocation, phone OTP |
-| 6 Public surface | Not started |
+| 1 Attribution | **Bar met on probes.** 50 of 50 human verdicts right, zero wrong-contractor matches. Open until real captures confirm it |
+| 2 Jurisdiction | **Bar met.** 98.17% over 2,404 road works, against a ≥ 95% bar |
+| 3 Classification | **Built, measuring.** The eval re-runs on whatever is labelled rather than waiting for a round number ([D114](../00-overview/05-decision-log.md)) |
+| 4 Issues | **Built and surfaced.** Dedup, corroboration, the clock, the hash chain |
+| 5 Accounts | **Partly built.** Email/password, Google, sessions, forgery resistance and rate limiting work. Missing: reset, email verification, revocation, phone OTP |
+| 6 Public surface | **Built.** Redaction, coarsening, the ward page and the issue permalink. The adversarial set is outstanding and is the gate |
 | 7 Share kit | Not started |
 | 8 Operator console | Not started |
 
@@ -155,7 +158,8 @@ Legal and compliance, from
 - [ ] Consent scopes separable (`report_processing`, `public_display`, `notifications`)
 - [ ] Data-principal rights endpoints live
 - [ ] Redaction verified against an adversarial set
-- [ ] Public coarsening enforced at the serialisation layer, with a test
+- [x] Public coarsening enforced at the serialisation layer, with a test — `publish.Derive`,
+      and removing the gate turns tests red
 - [ ] Grievance officer named and published
 - [ ] Takedown and right-of-reply workflows documented and reachable
 - [ ] Correction log public

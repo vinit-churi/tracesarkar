@@ -137,7 +137,11 @@ Specification: [v0.1 MVP](02-milestone-v0-mvp.md). Tier: public, R/S ward only.
 - [ ] `[E]` Phone OTP auth; hashed storage with pepper; rate limits
 - [ ] `[E]` Open `POST /v1/reports` to the public: idempotency, durable-then-async
 - [ ] `[E]` Worker framework: job queue, retries, idempotent stages, stage versioning
-- [ ] `[E]` Redaction pipeline (server-side first) + adversarial test set
+- [x] `[E]` Redaction pipeline, server-side — `internal/redact`, migration 0025
+- [ ] `[E]` **Adversarial redaction set** — faces at distance, occlusion, reflections, night,
+      Indian plates at angle. Five real captures measured no recall because not one contains a
+      face ([D127](../00-overview/05-decision-log.md)). **This is the gate before any public
+      image is promoted**
 - [ ] `[E]` Classification call with structured output + prompt file + eval harness over the P4 set
 - [ ] `[E]` Jurisdiction resolver + confidence model + golden-file tests over the P4 golden set
 - [ ] `[E]` Disambiguation question flow (photo options, not dropdowns)

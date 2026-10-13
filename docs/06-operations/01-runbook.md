@@ -162,8 +162,15 @@ not, it is split into two deploys (expand, then contract).
 
 ### The sweep job
 
-`tracesarkar-sweep` runs `ingest sweep` every ten minutes: enrich, then classify. It is what makes a
-capture resolve itself instead of waiting for someone to run a command.
+`tracesarkar-sweep` runs `ingest sweep` every ten minutes: **enrich, redact, classify, issues**.
+It is what makes a capture resolve itself instead of waiting for someone to run a command.
+
+The order matters and is not an implementation detail. Classification is a third-party API, and
+ADR 0008 says an un-redacted photograph of an identifiable person must not reach one — so the
+mosaic is applied first and the classifier reads that copy
+([D128](../00-overview/05-decision-log.md)). The redacted copy is written for *every* capture, not
+only publishable ones, so a held photograph still produces an answer for the person who reported
+it; holding withholds the picture from the public, not from them.
 
 ```bash
 gcloud run jobs execute tracesarkar-sweep --region asia-south1 --wait   # run it now
@@ -176,6 +183,8 @@ A failed run means one of two things, and the log line says which:
 |---|---|
 | `classify: all N captures in this pass failed` | The provider is down, the key has expired, or the model name has been retired. Check `CLASSIFY_*` in the `tracesarkar-env` secret |
 | A single `classification failed` warning, job green | One unreadable photograph. It is retried up to five times and then left alone ([D087](../00-overview/05-decision-log.md)) |
+| `redact: scanned N photographs and reached no verdict on any of them` | The cascade would not load, or every object failed to download. The binary embeds its own cascade, so this is almost always R2 credentials |
+| A single `redaction failed` error, job green | One photograph that will not decode. Retried up to five times, then left alone — and an undecodable photograph cannot be classified either, so nothing downstream is waiting on it |
 
 Stages are independent: a classification outage does not stop jurisdiction resolving, and anything
 missed is picked up by the next run.
@@ -269,6 +278,18 @@ tsctl dsr erase --account <id> --confirm
 
 Erasure removes personal data and public linkage; anonymised issue aggregates are retained, and
 records under legal hold are exempt. The plan output shows exactly which is which.
+
+**`tsctl` does not exist yet.** Until it does, an erasure is carried out by hand and has two
+halves that are easy to get wrong by doing only the first:
+
+1. `DELETE FROM reports WHERE ...` — the cascade takes `report_media`, `classifications`,
+   `report_attribution`, `report_jurisdiction` and `issue_reports` with it. Migration 0024
+   deliberately permits this; 0023 did not, which made an issue undeletable
+   ([D119](../00-overview/05-decision-log.md)).
+2. **Delete the objects.** Removing the row leaves the photograph in the bucket, and the archive
+   is the evidentiary record — so it is also the copy that has to go. Both the original
+   (`media/…`) and the redacted copy (`derivative/…`). `archive.Delete` does this and treats an
+   object that is already gone as success. Verify with a HEAD afterwards; do not assume.
 
 ---
 

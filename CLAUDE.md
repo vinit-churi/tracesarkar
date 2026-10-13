@@ -14,9 +14,7 @@ Read [`README.md`](README.md) first, then
 [`docs/00-overview/01-vision.md`](docs/00-overview/01-vision.md) and
 [`docs/03-architecture/01-system-overview.md`](docs/03-architecture/01-system-overview.md).
 
-**Current state: Phase 0 in progress.** The collectors are built and running (`cmd/ingest`,
-`internal/{config,archive,store,sources,works,ingest,notify}`); everything else is still
-documentation and design. Check before referencing code that may not exist yet.
+**Current state: six of v1's eight systems are built and deployed.** Attribution, jurisdiction, classification, issues, redaction and the public surface all run in production; accounts are partly built; the share kit and operator console have not started. `cmd/{ingest,api}` and `internal/*` are real code with tests — but check before referencing anything specific, because the docs describe more than exists.
 
 **Start every session with
 [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md)** — the current

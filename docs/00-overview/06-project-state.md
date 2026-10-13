@@ -20,9 +20,9 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 2. What we have, as of 1 October 2026
+## 2. What we have, as of 13 October 2026
 
-Three things are live and answering. Nothing below is aspirational.
+Eleven things are live and answering. Nothing below is aspirational.
 
 | | Where | State |
 |---|---|---|
@@ -36,7 +36,7 @@ Three things are live and answering. Nothing below is aspirational.
 | **Issue** | `…run.app/issue/{id}` | Public, no sign-in — one problem: what, roughly where, how many sightings, whether it was lodged |
 | **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
-| **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich then classify, so a capture resolves itself |
+| **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich, redact, classify, issues. A capture resolves itself |
 
 ### In the database
 
@@ -52,7 +52,10 @@ Three things are live and answering. Nothing below is aspirational.
 | Routable categories | 3 of 6 · `road_defect`, `waste`, `water_drainage` |
 | Legal constants | 5 · two pothole clocks, a penalty, two waste clocks |
 | Government resolutions watched | 461 |
-| Captures stored | 11 · **5 are real**; the other 6 are test fixtures from live runs |
+| Captures stored | 5 · all real. Six synthetic rows were deleted on 13 Oct ([D129](05-decision-log.md)) |
+| — redacted, with a verdict recorded | 5 of 5 |
+| Issues formed | 2 |
+| Captures labelled for the eval set | 5 |
 | Attribution verdicts by a human | 50 |
 
 ### The numbers that were measured, not assumed
@@ -60,9 +63,12 @@ Three things are live and answering. Nothing below is aspirational.
 | Measurement | Result |
 |---|---|
 | **Attribution precision** | 50 of 50 judged right by a human. Honest floor **≥ 92.9%** (95% Wilson). **Zero** wrong-contractor matches, ever |
-| **Jurisdiction accuracy** | **98.17%** over 2,405 road works. Bar was ≥ 95% |
+| **Jurisdiction accuracy** | **98.17%** over 2,404 road works. Bar was ≥ 95% |
 | **Contract coverage, Borivali** | **~43–57%** of carriageway. Best where it matters: secondary 77%, tertiary 69% |
 | **Questions the citizen would face** | 0.7% of points |
+| **Classification** | 5 labelled cases on 12 Oct — category 5/5, subcategory 4/5, no hazard missed |
+| **Redaction** | Verdict on 5 of 5, 0.5–1.3 s each, 4 false positives. **Recall unmeasured**: none of the five contains a face or a plate ([D127](05-decision-log.md)) |
+| **Public image budget** | 2.5 MB → 135 KB and 1.7 MB → 127 KB on the two live issues, against a 150 KB budget |
 
 ### Tests
 
@@ -80,8 +86,8 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | **1** | **Attribution** — point → road → contract → contractor | **Bar met on probes.** Open until real captures confirm it |
 | **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17% |
 | 3 | **Classification** — what is in the photograph | **Built, measurement running.** Six categories, versioned prompt, guardrails. `ingest eval` scores whatever is labelled and re-runs as the set grows; 5 cases on 12 Oct — category 5/5, subcategory 4/5, no hazards missed. The ≥90% bar accrues from use ([D114](05-decision-log.md)) |
-| **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built and surfaced.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies. Remaining: the public issue page, which needs system 6's redaction first |
-| 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
+| **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built, surfaced, and now public.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies, and is readable at `/issue/{id}` without the actor |
+| 5 | Accounts — OTP, rate limits, reset, revocation | **Partly built.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)) work. Missing: reset, email verification, revocation, phone OTP |
 | **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). Remaining: the adversarial set, which is the gate — five captures measured no recall because none contains a face ([D127](05-decision-log.md)) |
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
@@ -187,13 +193,93 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 
 ---
 
-## 8. Next actions
+## 8. Picking this up on another machine
 
-### Yours, next week
+Everything the project needs is in the repository except the secrets, which are deliberately not.
+
+### What you have to bring
+
+Neither of these is in git, and nothing runs without them:
+
+| File | What it is | Where to get it |
+|---|---|---|
+| `.env` | Database URL, R2 keys, `API_TOKEN`, `AUTH_SECRET`, `CLASSIFY_*`, `GOOGLE_CLIENT_ID` | Copy it across from the other machine, or rebuild it from `.env.example` and the Cloud Run `tracesarkar-env` secret |
+| `ca.pem` | Aiven's certificate for the Postgres connection | Download again from the Aiven console; `POSTGRES_CA_PATH` points at it |
+
+Also not in git and not reproducible: `app/android/tracesarkar-release.jks`. **Losing it means no
+further update can be installed over an existing APK** — back it up somewhere that is not a laptop.
+
+### Then
+
+```bash
+make test          # 22 Go packages, offline, no credentials needed
+make migrate       # applies anything newer than the deployed schema (0025 is current)
+make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
+make api           # serves the API, the field kit, and every public page on :8080
+make test-live     # the tests that touch the real bucket and database
+```
+
+`make test` passing with no `.env` present is the quickest check that a clone is sound.
+
+### Where the code actually is
+
+| Want to change | Look in |
+|---|---|
+| Point → road → contract | `internal/attribute/` |
+| Ward, department, the confidence gate | `internal/jurisdiction/` |
+| What is in a photograph | `internal/classify/` — prompts are versioned files, not literals |
+| Dedup, the clock, the hash chain | `internal/issue/` |
+| Faces, plates, the mosaic, the hold | `internal/redact/` |
+| What a public surface may show | `internal/publish/` |
+| The next step a report earns | `internal/action/` |
+| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit}/` |
+| SQL | `internal/store/` — hand-written, no ORM. Migrations are forward-only and numbered |
+
+### What is deployed, and how
+
+Three Cloud Run resources in `asia-south1`, all from this repository:
+
+- `tracesarkar-api` — the API and every page, `maxScale=3`
+- `tracesarkar-collector` — twice daily, alerts on failure
+- `tracesarkar-sweep` — every ten minutes
+
+The Flutter client is a Cloudflare Worker; the APK is published to R2 on a version tag. Deployment
+detail is in [the runbook §2](../06-operations/01-runbook.md).
+
+**The archive bucket is private and must stay that way.** It holds photographs taken by people who
+did not agree to publish them. It was briefly public and was closed; the public page serves the
+*redacted copy* through the API, never a bucket URL, so that the gate sits in front of every read.
+
+---
+
+## 9. Next actions
+
+### The one thing that gates everything else
+
+- [ ] **Build the adversarial redaction set.** Faces at distance, partial occlusion, reflections,
+      night, and Indian plate formats at angle. ADR 0008 has required it from the start and it is
+      now the only thing standing between the platform and a public image anyone can see. The five
+      real captures measured *nothing* about recall, because not one of them contains a face or a
+      plate ([D127](05-decision-log.md)). The detector's precision is poor and in the harmless
+      direction; its recall is simply unknown.
+
+### Next in the code
+
+- [ ] **System 7, the share kit** — the annotated image and the text, generated per language from
+      the fact set. It depends on the redacted derivative, which now exists. Never translated from
+      English: that produces garbage for hashtags and legal terms
+- [ ] **Finish system 5** — password reset, email verification, token revocation. Throttling is
+      done ([D113](05-decision-log.md)); the rest is not
+- [ ] **System 8, the operator console** — collection health is currently read from logs
+
+### Yours, in the field
 
 - [ ] **Photograph more than potholes.** Garbage, overflowing bins, illegal dumping, blocked
       drains, waterlogging and burst pipes all route now, and the eval set is far more useful
-      across three categories than one
+      across three categories than one. Anywhere, not only Borivali — a label is ground truth
+      wherever the photograph was taken ([D115](05-decision-log.md))
+- [ ] **Photograph people and vehicles too, deliberately**, for the adversarial set above. That is
+      the one kind of capture the walk is not producing and the one the detector needs
 - [ ] **Label as you go.** Open `…run.app/label/` on a laptop and work through the walk's captures:
       a number for the category, a number for what it is, `s` to skip. Skip anything you cannot
       read from the photograph alone — a guess becomes a wrong answer the classifier is marked
@@ -202,6 +288,8 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
       record what reference number comes back and in what form. The whole escalation ladder hangs
       off that reference, and nothing in the product can be designed properly until we have seen
       one ([D085](05-decision-log.md))
+
+### Yours, on paper
 
 - [ ] **Buy the guidelines-and-circulars booklet** at Municipal Head Office. BMC's own tenders say
       it is held at the Dy. Ch. Eng. (Roads)(Planning) offices and may be purchased. No 30-day
@@ -213,146 +301,13 @@ Phase 0 exits when: 30 days of unbroken snapshots · 500 labelled photos and 200
 - [ ] **Record the registration number** in the RTI file when you get it. The 30-day clock starts
       on receipt
 
-### Yours, whenever
+### Housekeeping that is overdue
 
+- [ ] **Register the Android OAuth client** — package `org.tracesarkar.app`, SHA-1
+      `30:A3:36:B2:D5:03:17:66:4A:90:9C:80:22:36:47:4E:7D:CD:BB:D2`. Google sign-in on the APK does
+      not work until this exists
+- [ ] **Back up `app/android/tracesarkar-release.jks`** somewhere that is not a laptop. It cannot
+      be regenerated, and losing it means no update can ever be installed over an existing APK
 - [ ] **Narrow what CI holds:** an R2 token scoped to the `tracesarkar` bucket, and a database user
       limited to our tables rather than `avnadmin`. The repository is public. Then rotate both
 - [ ] **Revoke the temporary Dokploy API key** — that host is dead and the key is in a transcript
-- [ ] **Register an Android OAuth client** in Google Cloud so the Google button works on the phone
-      as well as the web: package `org.tracesarkar.app`, SHA-1
-      `30:A3:36:B2:D5:03:17:66:4A:90:9C:80:22:36:47:4E:7D:CD:BB:D2`
-      ([how and why](../06-operations/05-releasing-the-app.md))
-- [ ] **Add the GitHub secrets and variables** the Android workflow needs, listed in the same file.
-      Until they exist, a version tag fails the build rather than publishing an unsigned APK
-- [ ] **Back up `app/android/tracesarkar-release.jks`** somewhere off this machine. It is not in
-      the repository and cannot be regenerated; losing it strands every install
-- [ ] Read §6 and confirm or reverse each decision
-- [ ] Decide whether to tell BMC that its health-department map layer exposes patient records
-- [ ] Send written terms requests to MCGM, CPCB, MahaRERA and IITM. Nothing collected reaches a
-      public surface until those land
-- [ ] Optional: set `NOTIFY_WEBHOOK_URL` so change alerts reach you rather than the logs
-
-### Mine, in order
-
-- [ ] **Decide what separates `uncollected garbage` from `illegal dumping`** before labelling at
-      volume. The first eval run scored 1 of 2 on subcategory, and the miss was that distinction on
-      a heap of household waste at a tree base — both readings defensible. Whatever is decided sets
-      the ceiling on measurable subcategory accuracy
-
-- [ ] **System 5 — finish accounts.** Password reset, email verification, token revocation. Phone
-      OTP is the publication gate and is only needed before anything becomes public
-- [ ] **System 6 — the public surface.** Redaction of faces and plates, coordinate coarsening, the
-      issue permalink. This is what gates a public issue page, not system 4
-
-Carried, not forgotten:
-
-- [ ] **Phone verification before anything publishes** — the gate
-      [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) promises
-- [ ] **A real domain** before the public tier. `run.app` and `workers.dev` are fine for now and
-      wrong for a civic platform asking to be trusted
-- [ ] Runner hardening: advisory lock per ingester, circuit breaker, metrics
-
-Full task list: [backlog](../05-delivery/03-backlog.md).
-
----
-
-## 9. Open questions that matter now
-
-**Widening beyond R/C** has its own file now:
-[scaling beyond one ward](../05-delivery/09-scaling-beyond-one-ward.md). The short of it: the Bombay
-High Court's pothole order already binds every corporation, council and collector in Maharashtra,
-and three Acts cover all 317 urban bodies — so most of the legal layer is statewide already and the
-binding constraint is a boundary dataset, not per-body research.
-
-
-| # | Question | Why now |
-|---|---|---|
-| Q2 | What is the Maharashtra RTI fee? | Blocks RTI generation; your first RTI settles it |
-| Q27, Q32 | Terms for BMC's APIs, ArcGIS layers and MahaRERA | Blocks anything from them going public |
-| Q28 | Orders in the pothole PIL after Nov 2025 | Every pothole deadline and compensation figure rests on that order |
-| Q34 | Second geography: Pune or an MMR corporation? | Decided at the end of Phase 3 |
-| Q35 | Partner with Pothole Reporter, or compete? | Decided by the end of Phase 1 |
-
-All of them: [open questions](../01-research/07-open-questions.md).
-
----
-
-## 10. Where to look
-
-| For | Read |
-|---|---|
-| The rules that are never broken | [`CLAUDE.md`](../../CLAUDE.md) |
-| Why the project exists | [Vision](01-vision.md) |
-| The whole plan | [Roadmap](../05-delivery/01-roadmap.md) |
-| What to build next | [Phase 0](../05-delivery/07-phase-0-instruments.md), then the [backlog](../05-delivery/03-backlog.md) |
-| What public data exists | [August audit](../01-research/08-data-availability-audit.md), [September exploration](../01-research/09-vertical-exploration.md) |
-| Every feature ever considered | [Feature catalog](../02-product/02-feature-catalog.md) and series [K](../02-product/13-data-unlocked-features.md), [U](../02-product/14-civic-utility-features.md) |
-| What was decided and why | [Decision log](05-decision-log.md) |
-| Every screen | [Screen spec](../02-product/11-screen-spec.md) |
-
----
-
-## 11. Resuming on another device
-
-```sh
-git clone git@github.com:vinit-churi/tracesarkar.git   # or: git pull
-cd tracesarkar
-cp .env.example .env        # fill in from your password manager
-# copy ca.pem across too; both files are gitignored and never leave your machine
-make test                   # offline tests
-make status                 # what has been collected so far
-```
-
-**The two files you must carry across yourself:** `.env` and `ca.pem`. They hold the R2 keys and
-the database password, so they are not in the repository and never will be.
-
-### Everyday commands
-
-```sh
-make status     # what has been collected, per endpoint, and recent runs
-make changes    # what changed in BMC's published data
-make snapshot   # collect now, rather than waiting for the schedule
-make test       # offline tests
-make test-live  # tests that touch the real bucket and database
-
-go run ./cmd/ingest wards                      # reload ward boundaries
-go run ./cmd/ingest roads --ward R/C           # project road geometry into PostGIS
-go run ./cmd/ingest review --count 50          # queue attribution answers to judge
-```
-
-Most of these need the environment exported first, because the API and the tools read secrets from
-the environment rather than the file:
-
-```sh
-set -a && . ./.env && set +a
-```
-
-### Deploying
-
-```sh
-# API -> Cloud Run
-IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/tracesarkar-api:$(git rev-parse --short HEAD)"
-gcloud builds submit --config deploy/cloudrun/api.cloudbuild.yaml --substitutions "_IMAGE=$IMAGE" --region asia-south1
-gcloud run deploy tracesarkar-api --image "$IMAGE" --region asia-south1
-
-# App -> Cloudflare Workers. API_BASE and GOOGLE_CLIENT_ID are read from .env,
-# so neither is retyped from memory — a wrong API_BASE compiles a client that
-# talks to nothing and says nothing.
-make app-deploy
-
-# Android -> a signed APK on the download page
-git tag v0.1.1 && git push origin v0.1.1
-```
-
-Deploys are explicit, not push-to-main ([ADR 0019](../04-adr/0019-api-on-cloud-run.md)). The
-Android build is the exception: it fires on a version tag, because the thing that makes it
-reproducible — the signing key — lives in CI, not here. See
-[releasing the app](../06-operations/05-releasing-the-app.md).
-
-### Capturing on your phone
-
-Open **`https://tracesarkar-app.infoyantra.workers.dev`**, sign in, allow location, photograph. No
-install, no token. The field kit at the API's `/` still works and queues offline, but the app is
-the easier path now.
-
-Then start a session with: *"Read `docs/00-overview/06-project-state.md` and continue from §8."*

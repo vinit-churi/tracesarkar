@@ -83,9 +83,9 @@ POST /v1/reports  (multipart: images + metadata)
    └─▶ 5. return 202 with report_id + optimistic estimate
 
 worker: enrich_report
-   ├─▶ redact (faces, plates) → public derivative → S3
-   ├─▶ classify (VLM, structured output)          [retryable, idempotent]
    ├─▶ locate (PostGIS + overrides)               [retryable, idempotent]
+   ├─▶ redact (faces, plates) → redacted copy → S3  ◀── before any third party sees the image
+   ├─▶ classify (VLM, structured output)          [retryable, idempotent, reads the redacted copy]
    ├─▶ dedupe → attach to existing issue OR create issue
    ├─▶ attribute (contract match)                 [retryable, may defer]
    ├─▶ contextualise (weather, news, history)     [best-effort]
