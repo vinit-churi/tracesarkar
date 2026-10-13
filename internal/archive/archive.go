@@ -116,6 +116,29 @@ func (c *Client) Exists(ctx context.Context, key string) (bool, error) {
 	}
 }
 
+// Delete removes an object.
+//
+// It exists because the DPDP Act gives a person the right to have their data
+// erased, and deleting the database row leaves the photograph itself sitting
+// in the bucket — the archive is the evidentiary record, so it is also the
+// copy that has to go. Deleting what is already gone is success: an erasure
+// that fails because it was already carried out is not a failure.
+func (c *Client) Delete(ctx context.Context, key string) error {
+	req, err := c.newRequest(ctx, http.MethodDelete, key, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("archive: delete %s: %w", key, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode/100 == 2 {
+		return nil
+	}
+	return fmt.Errorf("archive: delete %s: %w", key, statusError(resp))
+}
+
 // Get reads an object back.
 func (c *Client) Get(ctx context.Context, key string) ([]byte, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, key, nil)

@@ -81,19 +81,25 @@ func (d *DB) MediaToRedact(ctx context.Context, limit int) ([]RedactionTarget, e
 // ErrMediaGone reports that the photograph was deleted while being scanned.
 var ErrMediaGone = errors.New("media row no longer exists")
 
-// RecordRedaction writes what the scan did. A held verdict stores no output
-// key: the database refuses a published verdict without one, so the two cases
-// cannot be confused by a later reader.
+// RecordRedaction writes what the scan did.
+//
+// The output key is recorded whatever the verdict, because a redacted copy is
+// written for every capture: the classifier reads that copy rather than the
+// original, so an un-redacted photograph never leaves the machine. The verdict
+// is what decides publication, and `publish.Derive` requires it — the existence
+// of a redacted object says the mosaic ran, not that it may be shown.
 func (d *DB) RecordRedaction(ctx context.Context, mediaID string, r RedactionResult) error {
 	verdict := "held"
-	var outputKey *string
 	if r.Published {
 		verdict = "published"
-		if r.OutputKey == "" {
+	}
+	if r.OutputKey == "" {
+		if r.Published {
 			return fmt.Errorf("record redaction for %s: published with no output object", mediaID)
 		}
-		outputKey = &r.OutputKey
+		return fmt.Errorf("record redaction for %s: no redacted copy was written", mediaID)
 	}
+	outputKey := &r.OutputKey
 
 	tag, err := d.pool.Exec(ctx, `
 		UPDATE report_media SET

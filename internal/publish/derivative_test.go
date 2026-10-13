@@ -49,7 +49,7 @@ func TestAClassifierSayingNoPeopleIsNotARedaction(t *testing.T) {
 func TestARedactedImageIsPublished(t *testing.T) {
 	r := &Redaction{
 		RanAt: time.Now().UTC(), Tool: "test-redactor",
-		OutputKey: "public/r1/redacted.jpg", Regions: 2,
+		OutputKey: "public/r1/redacted.jpg", Regions: 2, Published: true,
 	}
 	d := Derive(capture(), r)
 
@@ -68,9 +68,15 @@ func TestARedactedImageIsPublished(t *testing.T) {
 // A redaction that produced nothing is not a redaction.
 func TestAnIncompleteRedactionPublishesNoImage(t *testing.T) {
 	for _, r := range []*Redaction{
-		{RanAt: time.Now(), Tool: "t"},                    // no output
-		{Tool: "t", OutputKey: "public/r1/x.jpg"},         // never ran
-		{RanAt: time.Now(), OutputKey: "public/r1/x.jpg"}, // no tool recorded
+		{RanAt: time.Now(), Tool: "t", Published: true},                    // no output
+		{Tool: "t", OutputKey: "public/r1/x.jpg", Published: true},         // never ran
+		{RanAt: time.Now(), OutputKey: "public/r1/x.jpg", Published: true}, // no tool recorded
+		{
+			// Everything ran, everything is recorded, and the scan itself
+			// said no. A redacted copy exists for the platform's own use;
+			// that is not the same as permission to show it.
+			RanAt: time.Now(), Tool: "t", OutputKey: "public/r1/x.jpg",
+		},
 	} {
 		if d := Derive(capture(), r); d.ImageKey != "" {
 			t.Errorf("published on an incomplete redaction: %+v", r)

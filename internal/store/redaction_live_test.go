@@ -61,12 +61,14 @@ func TestLiveRedactionTargetsAreThePhotographsNothingHasLookedAt(t *testing.T) {
 		t.Fatal("target carries no archive key; there would be nothing to fetch")
 	}
 
-	// A held verdict stores no output object, and takes the photograph out of
-	// the queue: holding is a decision, not a deferral.
+	// Holding takes the photograph out of the queue — it is a decision, not a
+	// deferral — and still records where the redacted copy went, because that
+	// copy is what the classifier reads.
 	if err := db.RecordRedaction(ctx, target.MediaID, store.RedactionResult{
-		RanAt:  time.Now().UTC(),
-		Tool:   "pigo-1.4.6/facefinder+edge-density-1",
-		Reason: "people were seen in this photograph but no face was found to obscure",
+		RanAt:     time.Now().UTC(),
+		Tool:      "pigo-1.4.6/facefinder+edge-density-1",
+		OutputKey: "derivative/" + reportID + "/held.jpg",
+		Reason:    "people were seen in this photograph but no face was found to obscure",
 	}); err != nil {
 		t.Fatalf("RecordRedaction (held): %v", err)
 	}
@@ -92,20 +94,22 @@ func TestLiveRedactionTargetsAreThePhotographsNothingHasLookedAt(t *testing.T) {
 	if verdict != "held" {
 		t.Fatalf("verdict = %q, want held", verdict)
 	}
-	if outputKey != nil {
-		t.Fatalf("a held photograph has an output key: %q", *outputKey)
+	if outputKey == nil {
+		t.Fatal("a held photograph has no redacted copy; the classifier would have to read the original")
 	}
 	if reason == "" {
 		t.Fatal("held with no reason recorded; nothing could explain the gap to a reporter")
 	}
 }
 
-func TestLiveRecordRedactionRefusesToPublishWithoutAnOutputObject(t *testing.T) {
+func TestLiveRecordRedactionRefusesAnyVerdictWithoutAnOutputObject(t *testing.T) {
 	_, _, db := liveDB(t)
-	err := db.RecordRedaction(context.Background(), "00000000-0000-0000-0000-000000000000",
-		store.RedactionResult{RanAt: time.Now(), Tool: "t", Published: true})
-	if err == nil {
-		t.Fatal("a published verdict with no output object was accepted")
+	for _, published := range []bool{true, false} {
+		err := db.RecordRedaction(context.Background(), "00000000-0000-0000-0000-000000000000",
+			store.RedactionResult{RanAt: time.Now(), Tool: "t", Published: published})
+		if err == nil {
+			t.Fatalf("a verdict with no output object was accepted (published=%v)", published)
+		}
 	}
 }
 

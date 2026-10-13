@@ -167,16 +167,19 @@ func redactOne(
 		Reason:    verdict.Reason,
 	}
 
-	if verdict.Publish {
-		key := derivativeKey(t)
-		if err := blobs.Put(ctx, key, encoded.Bytes(), "image/jpeg"); err != nil {
-			return redact.Verdict{}, 0, fmt.Errorf("store derivative: %w", err)
-		}
-		// Recorded only after the object exists. The other order would leave a
-		// record claiming an output object that was never written, which is
-		// exactly the claim the record exists to make checkable.
-		result.OutputKey = key
+	// Stored whatever the verdict, because this copy is what the classifier
+	// reads: ADR 0008 says an un-redacted photograph of an identifiable person
+	// must not go to a third party, and classification is a third party. A held
+	// verdict means the copy may not be shown to the public, not that it may
+	// not be used.
+	key := derivativeKey(t)
+	if err := blobs.Put(ctx, key, encoded.Bytes(), "image/jpeg"); err != nil {
+		return redact.Verdict{}, 0, fmt.Errorf("store redacted copy: %w", err)
 	}
+	// Recorded only after the object exists. The other order would leave a
+	// record claiming an output object that was never written, which is exactly
+	// the claim the record exists to make checkable.
+	result.OutputKey = key
 
 	if err := db.RecordRedaction(ctx, t.MediaID, result); err != nil {
 		if errors.Is(err, store.ErrMediaGone) {

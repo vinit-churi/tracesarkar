@@ -96,16 +96,24 @@ const MaxClassifyAttempts = 5
 // UnclassifiedReports returns captures that have never been classified
 // successfully and have not exhausted their attempts, oldest first — a capture
 // is never lost, so the queue drains forwards.
+//
+// It returns the *redacted* copy, and a capture that has not been through
+// redaction is not offered at all. Classification is a third party, and ADR
+// 0008 says an un-redacted photograph of an identifiable person must not reach
+// one. The verdict is deliberately not filtered on: a held photograph still has
+// a redacted copy, and the hold withholds it from the public rather than from
+// the reporter who is waiting for an answer.
 func (d *DB) UnclassifiedReports(ctx context.Context, limit int) ([]PendingCapture, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 25
 	}
 	rows, err := d.pool.Query(ctx, `
-		SELECT r.id::text, m.archive_key, COALESCE(j.ward, '')
+		SELECT r.id::text, m.redaction_output_key, COALESCE(j.ward, '')
 		  FROM reports r
 		  JOIN LATERAL (
-		    SELECT archive_key FROM report_media
-		     WHERE report_id = r.id ORDER BY created_at LIMIT 1
+		    SELECT redaction_output_key FROM report_media
+		     WHERE report_id = r.id AND redaction_output_key IS NOT NULL
+		     ORDER BY created_at LIMIT 1
 		  ) m ON true
 		  LEFT JOIN report_jurisdiction j ON j.report_id = r.id
 		 WHERE NOT EXISTS (

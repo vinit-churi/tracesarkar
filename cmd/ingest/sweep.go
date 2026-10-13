@@ -33,6 +33,19 @@ func runSweep(ctx context.Context, args []string) error {
 			},
 		},
 		{
+			// Before classification, not after. Classification is a third
+			// party, and ADR 0008 says an un-redacted photograph of an
+			// identifiable person must not reach one — so the mosaic is
+			// applied first and the classifier reads that copy. A held
+			// verdict withholds the picture from the public, not from the
+			// reporter: the redacted copy is written either way, so an
+			// answer still comes back.
+			Name: "redact",
+			Run: func(ctx context.Context) error {
+				return runRedact(ctx, []string{"--limit", strconv.Itoa(*classifyLimit)})
+			},
+		},
+		{
 			Name: "classify",
 			Run: func(ctx context.Context) error {
 				return runClassify(ctx, []string{"-limit", strconv.Itoa(*classifyLimit)})

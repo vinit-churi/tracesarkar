@@ -24,12 +24,19 @@ type Redaction struct {
 	Tool      string
 	OutputKey string
 	Regions   int
+
+	// Published is the scan's own verdict. A redacted copy is written for
+	// every capture, because the platform classifies that copy rather than the
+	// original, so the existence of an output object says only that the mosaic
+	// ran — not that what it produced may be shown to anybody.
+	Published bool
 }
 
 // complete reports whether a redaction actually happened. A record missing any
 // of its parts describes an intention, not an act.
 func (r *Redaction) complete() bool {
-	return r != nil && !r.RanAt.IsZero() && r.Tool != "" && r.OutputKey != ""
+	return r != nil && r.Published &&
+		!r.RanAt.IsZero() && r.Tool != "" && r.OutputKey != ""
 }
 
 // Derivative is what a public surface may show.
@@ -74,8 +81,9 @@ func Derive(c Capture, r *Redaction) Derivative {
 
 	if !r.complete() {
 		d.Withheld = "The photograph is not shown: it has not been through " +
-			"redaction, and no image is published before faces and number " +
-			"plates have been obscured."
+			"redaction, or the scan could not account for what it found, and " +
+			"no image is published before faces and number plates have been " +
+			"obscured."
 		return d
 	}
 	d.ImageKey = r.OutputKey
