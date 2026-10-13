@@ -81,7 +81,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | 3 | **Classification** — what is in the photograph | **Next** |
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built and surfaced.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies. Remaining: the public issue page, which needs system 6's redaction first |
 | 5 | Accounts — OTP, rate limits, reset, revocation | Partly built |
-| 6 | Public surface — redaction, coarsening, permalink, ward page | Waiting |
+| 6 | Public surface — redaction, coarsening, permalink, ward page | **Started.** Coarsening built; the ward page is live. A public image is structurally impossible without a redaction record, so the detector's absence is safe rather than leaky. Remaining: the detector itself, and the issue permalink |
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 
