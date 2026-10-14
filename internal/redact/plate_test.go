@@ -66,6 +66,44 @@ func TestPlatesFindsAPlateLikePatch(t *testing.T) {
 	}
 }
 
+// A plate photographed from two metres away fills far more of the frame than
+// one photographed from ten, and both are ordinary captures. The localiser
+// closes gaps between character strokes with a constant in pixels, so a plate
+// large enough for those gaps to exceed it came back as a row of separate
+// strokes and was dropped by the shape filter — the clearest plate in the set
+// was the one it could not see.
+func TestPlatesFindsAPlateWhateverSizeItIsInTheFrame(t *testing.T) {
+	// Same plate, same proportions, four sizes. 4:1, which is the single-row
+	// Indian format.
+	for _, size := range []struct {
+		name string
+		w, h int
+	}{
+		{name: "far away", w: 70, h: 18},
+		{name: "across the road", w: 140, h: 35},
+		{name: "a few steps away", w: 280, h: 70},
+		{name: "filling the frame", w: 560, h: 140},
+	} {
+		t.Run(size.name, func(t *testing.T) {
+			img := noisyWall(1200, 900, 3)
+			want := image.Rect(300, 400, 300+size.w, 400+size.h)
+			drawPlate(img, want, 8)
+
+			got, err := NewPlates().Detect(context.Background(), img)
+			if err != nil {
+				t.Fatalf("Detect: %v", err)
+			}
+			for _, r := range got {
+				if r.Rect.Intersect(want).Dx() >= want.Dx()/2 {
+					return
+				}
+			}
+			t.Fatalf("a %dx%d plate at %v was not covered by any of %d regions: %v",
+				size.w, size.h, want, len(got), got)
+		})
+	}
+}
+
 func TestPlatesFindsNothingOnAPlainWall(t *testing.T) {
 	got, err := NewPlates().Detect(context.Background(), noisyWall(400, 300, 2))
 	if err != nil {

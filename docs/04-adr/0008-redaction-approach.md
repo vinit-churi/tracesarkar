@@ -83,3 +83,34 @@ on litter and pavement — the harmless direction. It measured no recall at all,
 five contains a face or a plate. Faces at distance, partial occlusion, reflections, night, and
 Indian plate formats at angle remain unmeasured, and no public image should exist until they are
 not.
+
+## The set, 14 October 2026
+
+The set this ADR required now exists as a surface rather than as a requirement: `/truth/`, where
+the person who took a photograph drags a box around every face and every number plate in it, marks
+the conditions that make it hard from a fixed vocabulary, and says whether anybody is visible at
+all. The judgement is stored in fractions of the image (migration 0026), so it survives the
+photograph being resized, and `ingest redact-eval` runs both detectors over the originals and
+scores them against it.
+
+Three rules the harness keeps:
+
+- **Recall is destroyed pixels, not box overlap.** A face counts as covered when 95% of it is gone,
+  by any region, whatever kind the detector thought it was finding ([D133](../00-overview/05-decision-log.md)).
+- **A figure with nothing behind it is withheld.** Recall over a set containing no face prints as a
+  dash, not as 100%.
+- **The headline is a count.** How many faces and plates would have reached a public image, given
+  what the gate would have decided about that photograph.
+
+**The set is still empty of positives, and that is still the gate.** Nothing in the five stored
+captures contains a face or a plate, so the field walk owes this the one kind of photograph it has
+not been producing: people and vehicles, deliberately, at distance, at night, partly occluded, and
+Indian plates at an angle.
+
+**What one annotated photograph already bought.** The first run found the plate localiser blind to
+any plate large in the frame — it closes gaps between character strokes with a constant in pixels,
+and a plate two metres away has gaps wider than that constant. It found a plate across the road and
+missed the legible one. The pass now runs at full size, half and quarter; the tool string is
+`edge-density-2`, and `ingest redact --rescan` re-scanned every stored capture so the corpus is not
+left holding the old answer ([D134](../00-overview/05-decision-log.md)).
+

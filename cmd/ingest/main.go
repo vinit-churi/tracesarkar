@@ -76,6 +76,8 @@ func main() {
 		err = runWards(ctx, os.Args[min(2, len(os.Args)):])
 	case "redact":
 		err = runRedact(ctx, os.Args[min(2, len(os.Args)):])
+	case "redact-eval":
+		err = runRedactEval(ctx, os.Args[min(2, len(os.Args)):])
 	case "review":
 		err = runReview(ctx, os.Args[min(2, len(os.Args)):])
 	case "all":
@@ -108,6 +110,7 @@ func usage() {
   ingest wards               fetch and load BMC ward boundaries
   ingest review [--count n]  queue attribution answers for a human verdict
   ingest redact [--out dir]  obscure faces and plates, and record what it did
+  ingest redact-eval         score the detectors against photographs marked up by hand
   ingest all                 snapshot, then watch — one nightly invocation
 
 Configuration comes from .env or the environment:

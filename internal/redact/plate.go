@@ -10,7 +10,14 @@ import (
 // requires exists; every one of them trades a mosaic square on a patch of road
 // against a readable number plate, so each errs towards the square.
 const (
-	plateTool = "edge-density-1"
+	// The version is part of the record. A photograph is re-scanned by matching
+	// the tool string its record names, so a change in what the localiser finds
+	// has to change the string — otherwise the corpus keeps the old answer and
+	// nothing says which captures were scanned by which detector.
+	//
+	// 2: runs over a scale pyramid. Version 1 measured in pixels at one scale
+	// and so missed any plate large in the frame, which is the legible kind.
+	plateTool = "edge-density-2"
 
 	// A plate presents as a tight horizontal run of strong vertical edges. The
 	// shape filters below are in working-copy pixels.
@@ -60,33 +67,60 @@ func NewPlates() *Plates { return &Plates{} }
 func (p *Plates) Kind() Kind   { return Plate }
 func (p *Plates) Tool() string { return plateTool }
 
+// scales is the pyramid the localiser runs over, as further reductions of the
+// working copy.
+//
+// Everything below measures in pixels — how far apart two character strokes may
+// be and still be one piece of lettering, how wide a plate must be to be a
+// plate. Those constants only mean anything at one size, and a plate's size in
+// the frame is whatever the distance to it happened to be: a registration
+// number two metres away fills ten times the pixels of the same plate across
+// the road. Measured at one scale, the detector found the distant plate and was
+// blind to the near one, which is the wrong way round — the near one is legible.
+//
+// So the same pass runs at full size, half and quarter, and a plate is found at
+// whichever scale happens to suit it.
+var scales = []int{1, 2, 4}
+
 func (p *Plates) Detect(ctx context.Context, img image.Image) ([]Region, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	work, factor := shrink(img)
+	origin := img.Bounds().Min
+
+	var out []Region
+	for _, step := range scales {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		out = append(out, p.detectAt(reduce(work, step), factor*step, origin)...)
+	}
+
+	out = merge(out)
+	sort.Slice(out, func(i, j int) bool { return out[i].Score > out[j].Score })
+	if len(out) > maxPlateRegions {
+		out = out[:maxPlateRegions]
+	}
+	return out, nil
+}
+
+// detectAt is one pass of the localiser over one copy of the photograph.
+func (p *Plates) detectAt(work *image.NRGBA, factor int, origin image.Point) []Region {
 	b := work.Bounds()
 	w, h := b.Dx(), b.Dy()
 	if w < minPlateWidth || h < minPlateHeight {
-		return nil, nil
+		return nil
 	}
 
 	// Blur before differentiating. Sobel on raw pixels turns sensor noise and
 	// road texture into edges everywhere, and the plate's own contrast is far
 	// too strong to be lost to a 3x3 average.
 	gray := blur3(grayOf(work), w, h)
-
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
 	mask := verticalEdges(gray, w, h)
 	closeRuns(mask, w, h)
 
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	origin := img.Bounds().Min
 	var out []Region
 	for _, c := range components(mask, w, h) {
 		if !plausiblePlate(c.box) {
@@ -102,13 +136,58 @@ func (p *Plates) Detect(ctx context.Context, img image.Image) ([]Region, error) 
 			Score: fill,
 		})
 	}
-
-	sort.Slice(out, func(i, j int) bool { return out[i].Score > out[j].Score })
-	if len(out) > maxPlateRegions {
-		out = out[:maxPlateRegions]
-	}
-	return out, nil
+	return out
 }
+
+// reduce averages the working copy down by an integer factor. Averaging rather
+// than sampling, because a plate's lettering is exactly the high-frequency
+// detail that dropping pixels would turn into noise.
+func reduce(src *image.NRGBA, factor int) *image.NRGBA {
+	if factor <= 1 {
+		return src
+	}
+	b := src.Bounds()
+	w, h := max(b.Dx()/factor, 1), max(b.Dy()/factor, 1)
+	out := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			cell := image.Rect(
+				b.Min.X+x*factor, b.Min.Y+y*factor,
+				b.Min.X+(x+1)*factor, b.Min.Y+(y+1)*factor,
+			).Intersect(b)
+			out.SetNRGBA(x, y, meanAt(src, cell))
+		}
+	}
+	return out
+}
+
+// merge folds away the same plate found at more than one scale. The larger box
+// wins: between two regions covering the same thing, the one that destroys more
+// of it is the safer answer.
+func merge(in []Region) []Region {
+	var out []Region
+	for _, r := range in {
+		replaced := false
+		keep := true
+		for i := range out {
+			if !out[i].Rect.Overlaps(r.Rect) {
+				continue
+			}
+			if area(r.Rect) > area(out[i].Rect) {
+				out[i] = r
+				replaced = true
+			}
+			keep = false
+			break
+		}
+		if keep && !replaced {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+func area(r image.Rectangle) int { return r.Dx() * r.Dy() }
 
 // plausiblePlate rejects shapes no number plate has. It is the cheapest filter
 // available and it runs before anything measures density.

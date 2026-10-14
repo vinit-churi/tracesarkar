@@ -53,6 +53,9 @@ type Options struct {
 	// the evaluation set system 3 is measured against. Optional: without them
 	// the API still serves captures.
 	Labels Labels
+	// Truth powers the annotation surface the redaction detector is graded
+	// against. Optional, like labelling.
+	Truth Truth
 	// Wards powers the only surface served without a sign-in.
 	Wards WardProfiles
 	// Issues powers corroboration and the SLA clock.
@@ -86,6 +89,7 @@ type Server struct {
 	issues       Issues
 	publicIssues PublicIssues
 	labels       Labels
+	truth        Truth
 	blobs        Blobs
 	details      Details
 	issuer       *auth.Issuer
@@ -141,6 +145,7 @@ func New(opts Options) (*Server, error) {
 		issues:       opts.Issues,
 		publicIssues: opts.PublicIssues,
 		labels:       opts.Labels,
+		truth:        opts.Truth,
 		blobs:        opts.Blobs,
 		details:      opts.Details,
 		issuer:       opts.Issuer,
@@ -189,6 +194,13 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /v1/label/queue", s.authenticated(http.HandlerFunc(s.handleLabelQueue)))
 	mux.Handle("POST /v1/label/{id}", s.authenticated(http.HandlerFunc(s.handleSaveLabel)))
 
+	// The adversarial redaction set: a photograph marked up by hand is the only
+	// thing that can say whether the detector finds a face it has not been
+	// shown before (ADR 0008).
+	mux.Handle("GET /v1/redaction/truth/queue", s.authenticated(http.HandlerFunc(s.handleTruthQueue)))
+	mux.Handle("POST /v1/redaction/truth/{id}", s.authenticated(http.HandlerFunc(s.handleSaveTruth)))
+	mux.Handle("GET /v1/media/{id}", s.authenticated(http.HandlerFunc(s.handleMedia)))
+
 	mux.Handle("GET /v1/review/attribution", s.authenticated(http.HandlerFunc(s.handleReviewQueue)))
 	mux.Handle("POST /v1/review/attribution/{id}", s.authenticated(http.HandlerFunc(s.handleReviewVerdict)))
 
@@ -223,6 +235,13 @@ func (s *Server) Handler() http.Handler {
 		if labelPage, err := labelHandler(); err == nil {
 			mux.Handle("GET /label/", labelPage)
 			mux.Handle("GET /label", http.RedirectHandler("/label/", http.StatusFound))
+		}
+		// Where the adversarial redaction set is built. Signed-in only, and it
+		// shows un-redacted originals, so it serves them to nobody but the
+		// account that captured them.
+		if page, err := staticPage(truthFS, "truth"); err == nil {
+			mux.Handle("GET /truth/", page)
+			mux.Handle("GET /truth", http.RedirectHandler("/truth/", http.StatusFound))
 		}
 	} else {
 		s.log.Warn("field kit unavailable", "error", err.Error())
@@ -334,6 +353,9 @@ var wardFS embed.FS
 
 //go:embed issue
 var issueFS embed.FS
+
+//go:embed truth
+var truthFS embed.FS
 
 // reviewHandler serves the attribution review page. Personal tier: it exists
 // so a human can put a precision number on the join, and it shows no data of

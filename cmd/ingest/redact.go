@@ -36,6 +36,8 @@ func runRedact(ctx context.Context, args []string) error {
 	limit := fs.Int("limit", 50, "how many photographs to scan")
 	out := fs.String("out", "", "also write each scanned photograph to this directory, for inspection")
 	dry := fs.Bool("dry", false, "scan and report without writing anything")
+	rescan := fs.Bool("rescan", false,
+		"re-scan photographs whose record names an older detector, rather than new ones")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -60,12 +62,19 @@ func runRedact(ctx context.Context, args []string) error {
 	}
 	scanner := redact.NewScanner(faces, redact.NewPlates())
 
+	// A photograph already scanned is re-scanned only when the detector that
+	// looked at it is not the detector running now. The record names the tool
+	// for exactly this (ADR 0008), and matching on it means an improvement
+	// reaches the corpus without re-scanning everything every time.
 	targets, err := db.MediaToRedact(ctx, *limit)
+	if *rescan {
+		targets, err = db.MediaScannedByAnotherTool(ctx, scanner.Tools(), *limit)
+	}
 	if err != nil {
 		return err
 	}
 	if len(targets) == 0 {
-		slog.Info("nothing to redact")
+		slog.Info("nothing to redact", "rescan", *rescan, "tool", scanner.Tools())
 		return nil
 	}
 

@@ -97,6 +97,24 @@ GET    /v1/reports?mine=true     # own reports, keyset paginated
 DELETE /v1/reports/{id}          # withdraw own report (soft; audited)
 ```
 
+**Built as of 14 October 2026** — the surfaces that record ground truth. All signed in, all scoped
+to the account that took the photograph; another account's capture answers `404`, never `403`,
+because a `403` confirms it exists.
+
+```http
+GET  /v1/label/queue              # own captures with no label yet
+POST /v1/label/{report_id}        # one human judgement for the classifier's eval set
+GET  /v1/redaction/truth/queue    # own photographs nobody has marked up, plus the condition vocabulary
+POST /v1/redaction/truth/{media_id}  # every face and plate in it, in fractions of the image
+GET  /v1/media/{media_id}         # the archival original, to the account that took it
+```
+
+`/v1/media/{id}` serves the un-redacted original, which is what the detector reads and what a face
+is still in. It is addressed by media id rather than report id, because ground truth belongs to the
+photograph that was marked up rather than to whichever of a report's photographs happens to be
+first, and it is sent with `Cache-Control: private` so no shared cache keeps a copy. The report a
+judgement is filed against is read from the photograph's own row, never from the request body.
+
 ### Issues
 
 ```http

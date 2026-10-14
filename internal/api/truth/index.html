@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mark up faces and plates</title>
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --accent-wash:#F5EAF0; --alert:#A33A1F; --alert-wash:#FBEDE8;
+    --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+    --face:#1F6A4D; --plate:#8A6410;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+         gap:16px;padding:14px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+  h1{font-size:17px;margin:0;font-weight:600}
+  .tally{font-size:13px;color:var(--ink-45);font-variant-numeric:tabular-nums}
+  .tally b{color:var(--ink)}
+  main{max-width:1180px;margin:0 auto;padding:16px;
+       display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .shot{background:#000;border:1px solid var(--hairline);border-radius:12px;
+        overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:320px}
+  .frame{position:relative;display:inline-block;line-height:0;max-width:100%}
+  .frame img{max-width:100%;max-height:72vh;display:block}
+  .layer{position:absolute;inset:0;cursor:crosshair;touch-action:none}
+  .box{position:absolute;border:2px solid var(--face);background:rgba(31,106,77,.18)}
+  .box.plate{border-color:var(--plate);background:rgba(138,100,16,.2)}
+  .box b{position:absolute;top:-1px;left:-1px;background:var(--face);color:#fff;
+         font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;padding:0 5px;
+         letter-spacing:.3px}
+  .box.plate b{background:var(--plate)}
+  .box i{position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;
+         background:var(--ink);color:#fff;font:13px/20px sans-serif;font-style:normal;
+         text-align:center;cursor:pointer}
+  .draft{position:absolute;border:2px dashed #fff;background:rgba(255,255,255,.14)}
+  .meta{font-size:12px;color:var(--ink-45);margin-top:8px;font-variant-numeric:tabular-nums}
+  .panel{background:var(--surface);border:1px solid var(--hairline);
+         border-radius:12px;padding:14px;margin-bottom:12px}
+  .step{font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+        color:var(--ink-45);margin:0 0 10px}
+  .kinds{display:flex;gap:8px;margin-bottom:10px}
+  .kinds button{flex:1;padding:9px;border:1px solid var(--hairline);border-radius:10px;
+                background:var(--surface);font:inherit;font-size:15px;cursor:pointer}
+  .kinds button.on{border-color:var(--ink);background:var(--evidence);font-weight:600}
+  .kinds button[data-kind=face].on{border-color:var(--face);color:var(--face)}
+  .kinds button[data-kind=plate].on{border-color:var(--plate);color:var(--plate)}
+  kbd{background:var(--evidence);border:1px solid var(--hairline);border-radius:6px;
+      padding:1px 5px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--hairline);border-radius:999px;background:var(--surface);
+        padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .chip.on{background:var(--accent-wash);border-color:var(--accent);color:var(--accent);font-weight:600}
+  .people{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:10px 0 0}
+  textarea{width:100%;margin-top:8px;padding:9px;border:1px solid var(--hairline);
+           border-radius:8px;font:inherit;font-size:14px;resize:vertical;min-height:54px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .actions button{padding:10px 13px;border:1px solid var(--hairline);border-radius:10px;
+                  background:var(--surface);font:inherit;font-size:14px;cursor:pointer}
+  .actions button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
+  .note{font-size:12px;color:var(--ink-45);margin-top:12px;line-height:1.45}
+  .warn{background:var(--caution-wash);color:var(--caution);border-radius:8px;
+        padding:9px 11px;font-size:13px;line-height:1.45}
+  .signin{max-width:360px;margin:60px auto;padding:0 16px}
+  .signin input{width:100%;padding:10px;margin-top:8px;border:1px solid var(--hairline);
+                border-radius:8px;font:inherit}
+  .signin button{width:100%;padding:11px;background:var(--ink);color:var(--paper);
+                 border:none;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+  .err{background:var(--alert-wash);color:var(--alert);border-radius:8px;
+       padding:9px 11px;margin-top:10px;font-size:14px}
+  .empty{text-align:center;padding:80px 16px;color:var(--ink-70)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;
+         background:var(--ink);color:var(--paper);padding:9px 14px;border-radius:10px;
+         font-size:14px;opacity:0;transition:opacity .15s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mark up faces and plates</h1>
+  <div class="tally" id="tally">…</div>
+</header>
+
+<div class="signin" id="signin" hidden>
+  <p>Sign in with the account that owns these captures.</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username">
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+  <button style="margin-top:12px" id="signinBtn">Sign in</button>
+  <div id="signinErr"></div>
+  <p class="note">These are un-redacted originals. They are served only to the
+     account that captured them, and only here.</p>
+</div>
+
+<main id="app" hidden>
+  <div>
+    <div class="shot">
+      <div class="frame" id="frame">
+        <img id="shot" alt="The capture being marked up">
+        <div class="layer" id="layer"></div>
+      </div>
+    </div>
+    <div class="meta" id="shotMeta"></div>
+    <p class="note">
+      <b>Drag a box around every face and every number plate you can see</b>,
+      tight to the thing itself rather than the vehicle or the person around it —
+      including the ones at the edge of the frame, the ones out of focus, and the
+      ones you only recognise because you were there. The detector is graded
+      against what a person can see, so a face you leave unmarked is a face it
+      gets away with missing.<br>
+      If there is nothing to mark, say so — <kbd>n</kbd>. A photograph with
+      nothing in it is the only thing that can measure a false alarm.
+    </p>
+  </div>
+
+  <div>
+    <div class="panel">
+      <p class="step">What are you marking</p>
+      <div class="kinds">
+        <button data-kind="face" class="on">Face <kbd>f</kbd></button>
+        <button data-kind="plate">Plate <kbd>p</kbd></button>
+      </div>
+      <div class="tally" id="boxTally"></div>
+      <label class="people">
+        <input type="checkbox" id="people">
+        <span>Somebody is visible in this photograph<br>
+          <small style="color:var(--ink-45)">Tick this for a person with no markable face —
+          photographed from behind, or too far to box. It is what makes the
+          platform hold the image rather than publish it.</small></span>
+      </label>
+    </div>
+
+    <div class="panel">
+      <p class="step">What makes it hard</p>
+      <div class="chips" id="conditions"></div>
+      <textarea id="notes" placeholder="Anything worth knowing later (optional)"></textarea>
+    </div>
+
+    <div class="panel">
+      <div class="actions">
+        <button class="primary" id="saveBtn">Save <kbd>⏎</kbd></button>
+        <button id="nothingBtn">Nothing here <kbd>n</kbd></button>
+        <button id="undoBtn">Undo box <kbd>u</kbd></button>
+        <button id="skipBtn">Skip <kbd>s</kbd></button>
+      </div>
+      <div id="err"></div>
+      <p class="warn" style="margin-top:12px">Skip anything you cannot judge from
+        the photograph alone. Ground truth you guessed at is worse than no
+        ground truth: it becomes a number somebody trusts.</p>
+    </div>
+  </div>
+</main>
+
+<div class="empty" id="empty" hidden>
+  <p>Nothing left to mark up.</p>
+  <p class="tally" id="finalTally"></p>
+  <p class="note" style="max-width:520px;margin:12px auto">Score the detectors
+     against what you recorded with <code>make redact-eval</code>.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = location.origin;
+// A separate key from the labelling page: the two surfaces are different jobs
+// and signing out of one should not sign you out of the other.
+let token = localStorage.getItem('ts.truth.token') || '';
+let queue = [], current = null, boxes = [], kind = 'face';
+let conditions = [], chosen = new Set(), done = 0, skipped = 0;
+
+const $ = id => document.getElementById(id);
+
+function showSignIn(message) {
+  $('app').hidden = true; $('empty').hidden = true; $('signin').hidden = false;
+  if (message) $('signinErr').innerHTML = '<div class="err">' + message + '</div>';
+}
+
+$('signinBtn').onclick = async () => {
+  $('signinErr').innerHTML = '';
+  try {
+    const res = await fetch(API + '/v1/auth/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: $('email').value.trim(), password: $('password').value})
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not sign in.');
+    token = body.token;
+    localStorage.setItem('ts.truth.token', token);
+    $('signin').hidden = true;
+    load();
+  } catch (e) { showSignIn(e.message); }
+};
+
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text; t.classList.add('on');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('on'), 1200);
+}
+
+function tally() {
+  $('tally').innerHTML = '<b>' + done + '</b> marked up · <b>' + queue.length +
+    '</b> left' + (skipped ? ' · ' + skipped + ' skipped' : '');
+}
+
+function boxTally() {
+  const f = boxes.filter(b => b.kind === 'face').length;
+  const p = boxes.filter(b => b.kind === 'plate').length;
+  $('boxTally').innerHTML = '<b>' + f + '</b> face' + (f === 1 ? '' : 's') +
+    ' · <b>' + p + '</b> plate' + (p === 1 ? '' : 's');
+}
+
+async function load() {
+  if (!token) return showSignIn();
+  const res = await fetch(API + '/v1/redaction/truth/queue',
+    {headers: {Authorization: 'Bearer ' + token}});
+  if (res.status === 401) {
+    token = ''; localStorage.removeItem('ts.truth.token');
+    return showSignIn('That session has expired. Sign in again.');
+  }
+  const body = await res.json();
+  if (!res.ok) {
+    $('err').innerHTML = '<div class="err">' +
+      (body?.error?.message || 'Could not load the queue.') + '</div>';
+    return;
+  }
+  queue = body.items || [];
+  // The vocabulary comes from the server. A condition invented here would be
+  // refused, and a condition misspelled here would split its own row in the
+  // breakdown it was meant to inform.
+  conditions = body.conditions || [];
+  $('signin').hidden = true;
+  renderConditions();
+  next();
+}
+
+function renderConditions() {
+  const box = $('conditions');
+  box.innerHTML = '';
+  conditions.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (chosen.has(c) ? ' on' : '');
+    b.textContent = c.replace(/-/g, ' ');
+    b.onclick = () => {
+      chosen.has(c) ? chosen.delete(c) : chosen.add(c);
+      renderConditions();
+    };
+    box.appendChild(b);
+  });
+}
+
+// The photograph is fetched with the token rather than placed in an <img src>
+// the browser would request unauthenticated — the archive is private, and this
+// is the original, with the faces still in it.
+async function showPhoto(item) {
+  const img = $('shot');
+  img.removeAttribute('src');
+  const res = await fetch(API + item.media_url, {headers: {Authorization: 'Bearer ' + token}});
+  if (!res.ok) { img.alt = 'That photograph could not be loaded.'; return; }
+  const blob = await res.blob();
+  if (img._url) URL.revokeObjectURL(img._url);
+  img._url = URL.createObjectURL(blob);
+  img.src = img._url;
+}
+
+function next() {
+  boxes = []; chosen = new Set(); kind = 'face';
+  $('people').checked = false; $('notes').value = ''; $('err').innerHTML = '';
+  setKind('face'); renderBoxes(); renderConditions(); tally();
+
+  if (!queue.length) {
+    $('app').hidden = true; $('empty').hidden = false;
+    $('finalTally').innerHTML = '<b>' + done + '</b> marked up this session' +
+      (skipped ? ' · ' + skipped + ' skipped' : '');
+    return;
+  }
+  $('app').hidden = false; $('empty').hidden = true;
+  current = queue[0];
+  showPhoto(current);
+  const when = new Date(current.captured_at);
+  $('shotMeta').textContent = when.toLocaleString() + ' · ' + current.report_id.slice(0, 8);
+}
+
+function setKind(k) {
+  kind = k;
+  document.querySelectorAll('.kinds button').forEach(b =>
+    b.classList.toggle('on', b.dataset.kind === k));
+}
+document.querySelectorAll('.kinds button').forEach(b =>
+  b.onclick = () => setKind(b.dataset.kind));
+
+function renderBoxes() {
+  const layer = $('layer');
+  layer.innerHTML = '';
+  boxes.forEach((b, i) => {
+    const el = document.createElement('div');
+    el.className = 'box' + (b.kind === 'plate' ? ' plate' : '');
+    el.style.left = (b.min_x * 100) + '%';
+    el.style.top = (b.min_y * 100) + '%';
+    el.style.width = ((b.max_x - b.min_x) * 100) + '%';
+    el.style.height = ((b.max_y - b.min_y) * 100) + '%';
+    el.innerHTML = '<b>' + b.kind + '</b><i>×</i>';
+    el.querySelector('i').onclick = e => {
+      e.stopPropagation();
+      boxes.splice(i, 1); renderBoxes(); boxTally();
+    };
+    layer.appendChild(el);
+  });
+  boxTally();
+}
+
+// Boxes are recorded in fractions of the photograph, not pixels: the image here
+// is scaled to fit a browser window and the detector reads the original.
+const layer = $('layer');
+let draft = null, start = null;
+
+function at(e) {
+  const r = layer.getBoundingClientRect();
+  return {
+    x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
+    y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))
+  };
+}
+
+layer.addEventListener('pointerdown', e => {
+  if (e.target !== layer) return;
+  layer.setPointerCapture(e.pointerId);
+  start = at(e);
+  draft = document.createElement('div');
+  draft.className = 'draft';
+  layer.appendChild(draft);
+});
+
+layer.addEventListener('pointermove', e => {
+  if (!draft) return;
+  const p = at(e);
+  draft.style.left = (Math.min(start.x, p.x) * 100) + '%';
+  draft.style.top = (Math.min(start.y, p.y) * 100) + '%';
+  draft.style.width = (Math.abs(p.x - start.x) * 100) + '%';
+  draft.style.height = (Math.abs(p.y - start.y) * 100) + '%';
+});
+
+layer.addEventListener('pointerup', e => {
+  if (!draft) return;
+  const p = at(e);
+  draft.remove(); draft = null;
+  const b = {
+    kind: kind,
+    min_x: Math.min(start.x, p.x), min_y: Math.min(start.y, p.y),
+    max_x: Math.max(start.x, p.x), max_y: Math.max(start.y, p.y)
+  };
+  // A click rather than a drag is not a box. Dropping it quietly is better
+  // than storing a box with no area, which nothing downstream can score.
+  if (b.max_x - b.min_x < 0.008 || b.max_y - b.min_y < 0.008) return;
+  boxes.push(b);
+  // A face box means a person is present, so the tick follows rather than
+  // having to be remembered. The server refuses the contradiction anyway.
+  if (b.kind === 'face') $('people').checked = true;
+  renderBoxes();
+});
+
+async function save() {
+  const item = current;
+  if (!item) return;
+  if (boxes.some(b => b.kind === 'face') && !$('people').checked) {
+    $('people').checked = true;
+  }
+  $('err').innerHTML = '';
+  try {
+    const res = await fetch(API + '/v1/redaction/truth/' + item.media_id, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + token},
+      body: JSON.stringify({
+        boxes: boxes,
+        people_present: $('people').checked,
+        conditions: Array.from(chosen),
+        notes: $('notes').value.trim()
+      })
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not save that.');
+    done++;
+    queue.shift();
+    toast(body.faces + ' face' + (body.faces === 1 ? '' : 's') + ', ' +
+          body.plates + ' plate' + (body.plates === 1 ? '' : 's') + ' recorded');
+    next();
+  } catch (e) {
+    $('err').innerHTML = '<div class="err">' + e.message + '</div>';
+  }
+}
+
+$('saveBtn').onclick = save;
+$('nothingBtn').onclick = () => {
+  boxes = []; $('people').checked = false; renderBoxes(); save();
+};
+$('undoBtn').onclick = () => { boxes.pop(); renderBoxes(); };
+$('skipBtn').onclick = () => { skipped++; queue.shift(); next(); };
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'f') setKind('face');
+  else if (e.key === 'p') setKind('plate');
+  else if (e.key === 'u' || e.key === 'Backspace') { boxes.pop(); renderBoxes(); }
+  else if (e.key === 'n') $('nothingBtn').click();
+  else if (e.key === 's') $('skipBtn').click();
+  else if (e.key === 'Enter') save();
+});
+
+load();
+</script>
+</body>
+</html>

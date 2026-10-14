@@ -1,6 +1,6 @@
 # Project state
 
-**Last updated: 13 October 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 14 October 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
 
 ---
@@ -20,9 +20,9 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 2. What we have, as of 13 October 2026
+## 2. What we have, as of 14 October 2026
 
-Eleven things are live and answering. Nothing below is aspirational.
+Twelve things are live and answering. Nothing below is aspirational.
 
 | | Where | State |
 |---|---|---|
@@ -34,6 +34,7 @@ Eleven things are live and answering. Nothing below is aspirational.
 | **Methodology** | `…run.app/methodology/` | Public, no sign-in — sources, measurements, limits |
 | **Ward** | `…run.app/ward/` | Public, no sign-in — who owns what in R/C, how to reach them, what binds them |
 | **Issue** | `…run.app/issue/{id}` | Public, no sign-in — one problem: what, roughly where, how many sightings, whether it was lodged |
+| **Mark up** | `…run.app/truth/` | Drag a box round every face and plate, so the detector can be graded. Signed-in only |
 | **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 | **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich, redact, classify, issues. A capture resolves itself |
@@ -56,6 +57,7 @@ Eleven things are live and answering. Nothing below is aspirational.
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
+| Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
 
 ### The numbers that were measured, not assumed
@@ -67,7 +69,7 @@ Eleven things are live and answering. Nothing below is aspirational.
 | **Contract coverage, Borivali** | **~43–57%** of carriageway. Best where it matters: secondary 77%, tertiary 69% |
 | **Questions the citizen would face** | 0.7% of points |
 | **Classification** | 5 labelled cases on 12 Oct — category 5/5, subcategory 4/5, no hazard missed |
-| **Redaction** | Verdict on 5 of 5, 0.5–1.3 s each, 4 false positives. **Recall unmeasured**: none of the five contains a face or a plate ([D127](05-decision-log.md)) |
+| **Redaction** | Verdict on 5 of 5, 0.5–0.9 s each on the re-scan, 4 false positives. **Recall still unmeasured**: none of the five contains a face or a plate ([D127](05-decision-log.md)). The harness that will measure it exists — `/truth/` and `make redact-eval` — and found a real defect on its first run ([D134](05-decision-log.md)) |
 | **Public image budget** | 2.5 MB → 135 KB and 1.7 MB → 127 KB on the two live issues, against a 150 KB budget |
 
 ### Tests
@@ -88,7 +90,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | 3 | **Classification** — what is in the photograph | **Built, measurement running.** Six categories, versioned prompt, guardrails. `ingest eval` scores whatever is labelled and re-runs as the set grows; 5 cases on 12 Oct — category 5/5, subcategory 4/5, no hazards missed. The ≥90% bar accrues from use ([D114](05-decision-log.md)) |
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built, surfaced, and now public.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies, and is readable at `/issue/{id}` without the actor |
 | 5 | Accounts — OTP, rate limits, reset, revocation | **Partly built.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)) work. Missing: reset, email verification, revocation, phone OTP |
-| **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). Remaining: the adversarial set, which is the gate — five captures measured no recall because none contains a face ([D127](05-decision-log.md)) |
+| **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). The detector is now gradable: `/truth/` records what a person can see in a photograph and `make redact-eval` scores both detectors against it ([D132](05-decision-log.md), [D133](05-decision-log.md)). Remaining, and still the gate: photographs with faces and plates in them. Five captures measured no recall because none contains either ([D127](05-decision-log.md)) |
 | 7 | Share kit — annotated image, per-language text | Waiting |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 
@@ -230,6 +232,7 @@ make test-live     # the tests that touch the real bucket and database
 | What is in a photograph | `internal/classify/` — prompts are versioned files, not literals |
 | Dedup, the clock, the hash chain | `internal/issue/` |
 | Faces, plates, the mosaic, the hold | `internal/redact/` |
+| Grading the detector against marked-up photographs | `internal/redact/eval.go`, `cmd/ingest/redact_eval.go` |
 | What a public surface may show | `internal/publish/` |
 | The next step a report earns | `internal/action/` |
 | HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit}/` |
@@ -256,12 +259,17 @@ did not agree to publish them. It was briefly public and was closed; the public 
 
 ### The one thing that gates everything else
 
-- [ ] **Build the adversarial redaction set.** Faces at distance, partial occlusion, reflections,
-      night, and Indian plate formats at angle. ADR 0008 has required it from the start and it is
-      now the only thing standing between the platform and a public image anyone can see. The five
-      real captures measured *nothing* about recall, because not one of them contains a face or a
-      plate ([D127](05-decision-log.md)). The detector's precision is poor and in the harmless
-      direction; its recall is simply unknown.
+- [ ] **Fill the adversarial redaction set.** The machinery is built: `/truth/` to drag a box round
+      every face and plate in a photograph, and `make redact-eval` to score the detectors against
+      what you recorded ([D132](05-decision-log.md), [D133](05-decision-log.md)). What it has no
+      supply of is photographs. Nothing in the five stored captures contains a face or a plate, so
+      recall is still unmeasured and no public image should exist until it is not.
+      **What the set needs:** faces at distance, in profile, partly occluded, at night, backlit, in
+      a crowd; plates at an angle, on two-wheelers, the yellow commercial ones, hand-painted, and
+      half-hidden behind another vehicle. Mark them up the same evening — the conditions are what
+      explain a miss, and they are hard to remember a week later.
+      One annotated photograph was already enough to find the localiser blind to any plate large in
+      the frame ([D134](05-decision-log.md)), which is what the set is for.
 
 ### Next in the code
 
@@ -278,8 +286,9 @@ did not agree to publish them. It was briefly public and was closed; the public 
       drains, waterlogging and burst pipes all route now, and the eval set is far more useful
       across three categories than one. Anywhere, not only Borivali — a label is ground truth
       wherever the photograph was taken ([D115](05-decision-log.md))
-- [ ] **Photograph people and vehicles too, deliberately**, for the adversarial set above. That is
-      the one kind of capture the walk is not producing and the one the detector needs
+- [ ] **Photograph people and vehicles too, deliberately**, for the adversarial set above — then
+      open `…run.app/truth/` and drag a box round every face and plate in them. That is the one
+      kind of capture the walk is not producing and the one the detector needs
 - [ ] **Label as you go.** Open `…run.app/label/` on a laptop and work through the walk's captures:
       a number for the category, a number for what it is, `s` to skip. Skip anything you cannot
       read from the photograph alone — a guess becomes a wrong answer the classifier is marked

@@ -189,6 +189,21 @@ A failed run means one of two things, and the log line says which:
 Stages are independent: a classification outage does not stop jurisdiction resolving, and anything
 missed is picked up by the next run.
 
+### Rolling out a better detector
+
+The redaction record names the tool that scanned each photograph, which is how an improvement
+reaches captures already scanned. A change in what a detector *finds* must change its tool string —
+otherwise the record no longer says which detector saw which capture, and nothing can be re-scanned.
+
+```bash
+make redact-eval                     # score the detectors against what /truth/ recorded
+go run ./cmd/ingest redact --rescan  # re-scan everything whose record names an older detector
+```
+
+`--rescan` is idempotent: a second run finds nothing, because the records now name the detector
+that is running. It re-writes the redacted derivative and the verdict, so a photograph the old
+detector published may be held by the new one, which is the right way round.
+
 ---
 
 ## 3. Backup and restore
@@ -283,7 +298,9 @@ records under legal hold are exempt. The plan output shows exactly which is whic
 halves that are easy to get wrong by doing only the first:
 
 1. `DELETE FROM reports WHERE ...` — the cascade takes `report_media`, `classifications`,
-   `report_attribution`, `report_jurisdiction` and `issue_reports` with it. Migration 0024
+   `report_attribution`, `report_jurisdiction`, `issue_reports` and `redaction_truth` with it —
+   the last of those holds where the faces were in that person's photograph, which is a description
+   of them and goes with it. Migration 0024
    deliberately permits this; 0023 did not, which made an issue undeletable
    ([D119](../00-overview/05-decision-log.md)).
 2. **Delete the objects.** Removing the row leaves the photograph in the bucket, and the archive

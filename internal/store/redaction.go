@@ -78,6 +78,47 @@ func (d *DB) MediaToRedact(ctx context.Context, limit int) ([]RedactionTarget, e
 	return out, nil
 }
 
+// MediaScannedByAnotherTool returns photographs whose redaction record names a
+// different detector from the one running now, oldest first.
+//
+// This is how a detector improvement reaches the corpus. ADR 0008 says a
+// record naming the tool exists so that a better detector can re-scan what an
+// earlier one looked at; without this query that is a promise rather than a
+// path, and the first capture ever scanned keeps its first answer forever.
+func (d *DB) MediaScannedByAnotherTool(ctx context.Context, tool string, limit int) ([]RedactionTarget, error) {
+	rows, err := d.pool.Query(ctx, `
+		SELECT m.id::text, m.report_id::text, m.archive_key,
+		       COALESCE(m.content_type, ''),
+		       COALESCE((SELECT c.people_present FROM classifications c
+		                  WHERE c.report_id = m.report_id
+		                    AND c.people_present IS NOT NULL
+		                  ORDER BY c.created_at DESC LIMIT 1), false),
+		       m.redaction_attempts
+		FROM report_media m
+		WHERE m.redaction_verdict IS NOT NULL
+		  AND m.redaction_tool IS DISTINCT FROM $1
+		ORDER BY m.created_at
+		LIMIT $2`, tool, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list media scanned by another tool: %w", err)
+	}
+	defer rows.Close()
+
+	var out []RedactionTarget
+	for rows.Next() {
+		var t RedactionTarget
+		if err := rows.Scan(&t.MediaID, &t.ReportID, &t.ArchiveKey,
+			&t.ContentType, &t.PeoplePresent, &t.Attempts); err != nil {
+			return nil, fmt.Errorf("scan media for re-scanning: %w", err)
+		}
+		out = append(out, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read media for re-scanning: %w", err)
+	}
+	return out, nil
+}
+
 // ErrMediaGone reports that the photograph was deleted while being scanned.
 var ErrMediaGone = errors.New("media row no longer exists")
 

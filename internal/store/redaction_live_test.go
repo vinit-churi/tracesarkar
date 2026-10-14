@@ -123,3 +123,81 @@ func TestLiveRecordRedactionOnAVanishedRowSaysSo(t *testing.T) {
 		t.Fatalf("err = %v, want ErrMediaGone — a deleted photograph must not look like success", err)
 	}
 }
+
+// A better detector has to reach the photographs an earlier one looked at.
+// ADR 0008 says the record names the tool so that it can; this is the query
+// that makes that true rather than intended.
+func TestLiveAPhotographScannedByAnOlderDetectorIsOfferedAgain(t *testing.T) {
+	ctx, pool, db := liveDB(t)
+	account := testAccount(t, ctx, db)
+	t.Cleanup(func() {
+		c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_, _ = pool.Exec(c, `DELETE FROM report_media WHERE report_id IN
+			(SELECT id FROM reports WHERE account_id = $1)`, account)
+		_, _ = pool.Exec(c, `DELETE FROM reports WHERE account_id = $1`, account)
+		_, _ = pool.Exec(c, `DELETE FROM accounts WHERE id = $1`, account)
+	})
+
+	stamp := time.Now().UTC()
+	reportID, _, err := db.SaveReport(ctx, store.NewReport{
+		AccountID: account, Lat: 19.2094, Lon: 72.8348, AccuracyM: 6,
+		CapturedAt: stamp, Idempotency: "rescan-" + stamp.Format("150405.000000000"),
+	})
+	if err != nil {
+		t.Fatalf("SaveReport: %v", err)
+	}
+	digest := sha256.Sum256([]byte("rescan-test-" + reportID))
+	if err := db.AddReportMedia(ctx, store.NewMedia{
+		ReportID: reportID, Role: "close", ArchiveKey: "media/" + reportID + "/x",
+		ContentType: "image/jpeg", Bytes: 1234, SHA256: hex.EncodeToString(digest[:]),
+		CapturedAt: &stamp,
+	}); err != nil {
+		t.Fatalf("AddReportMedia: %v", err)
+	}
+
+	var mediaID string
+	targets, err := db.MediaToRedact(ctx, 500)
+	if err != nil {
+		t.Fatalf("MediaToRedact: %v", err)
+	}
+	for _, tg := range targets {
+		if tg.ReportID == reportID {
+			mediaID = tg.MediaID
+		}
+	}
+	if mediaID == "" {
+		t.Fatal("the new photograph was not offered for redaction")
+	}
+
+	const old = "pigo-1.4.6/facefinder+edge-density-1"
+	if err := db.RecordRedaction(ctx, mediaID, store.RedactionResult{
+		RanAt: time.Now().UTC(), Tool: old,
+		OutputKey: "derivative/" + reportID + "/x.jpg", Published: true,
+	}); err != nil {
+		t.Fatalf("RecordRedaction: %v", err)
+	}
+
+	offered := func(t *testing.T, tool string) bool {
+		t.Helper()
+		again, err := db.MediaScannedByAnotherTool(ctx, tool, 500)
+		if err != nil {
+			t.Fatalf("MediaScannedByAnotherTool: %v", err)
+		}
+		for _, tg := range again {
+			if tg.MediaID == mediaID {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !offered(t, "pigo-1.4.6/facefinder+edge-density-2") {
+		t.Error("a photograph scanned by the old detector was not offered to the new one")
+	}
+	// And the same detector does not re-scan its own work, which would make
+	// every pass over the corpus a full pass.
+	if offered(t, old) {
+		t.Error("a photograph was offered to the detector that already scanned it")
+	}
+}

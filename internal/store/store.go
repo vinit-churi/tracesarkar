@@ -92,17 +92,17 @@ func Connect(ctx context.Context, connString, caPath string) (*pgxpool.Pool, err
 	cfg, err := pgxpool.ParseConfig(withTLS)
 	if err != nil {
 		// The connection string carries a password; never echo it.
-		return nil, fmt.Errorf("parse postgres configuration: %w", redact(err))
+		return nil, fmt.Errorf("parse postgres configuration: %w", hidePassword(err))
 	}
 	cfg.MaxConns = 4
 	cfg.MaxConnLifetime = 30 * time.Minute
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("connect: %w", redact(err))
+		return nil, fmt.Errorf("connect: %w", hidePassword(err))
 	}
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("ping: %w", redact(err))
+		return nil, fmt.Errorf("ping: %w", hidePassword(err))
 	}
 	return pool, nil
 }
@@ -167,10 +167,12 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) ([]Migration, error) {
 	return ran, nil
 }
 
-// redact strips anything that looks like a password from an error.
+// hidePassword strips anything that looks like a password from an error.
+// Named for what it does rather than "redact", which in this repository means
+// obscuring a face in a photograph.
 var passwordPattern = regexp.MustCompile(`(?i)(password=)[^\s&]+|(://[^:/@]+):[^@]+@`)
 
-func redact(err error) error {
+func hidePassword(err error) error {
 	if err == nil {
 		return nil
 	}

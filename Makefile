@@ -83,6 +83,10 @@ sweep: ## Turn stored captures into answers: enrich, redact, classify, issues
 redact: ## Obscure faces and plates in stored captures, and record what it did
 	go run ./cmd/ingest redact
 
+.PHONY: redact-eval
+redact-eval: ## Score the face and plate detectors against photographs marked up at /truth/
+	go run ./cmd/ingest redact-eval
+
 .PHONY: status
 status: ## Per-endpoint collection health
 	go run ./cmd/ingest status

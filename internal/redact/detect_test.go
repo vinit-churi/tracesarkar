@@ -213,3 +213,24 @@ func TestFacesScansAnImageWhoseBoundsDoNotStartAtTheOrigin(t *testing.T) {
 		}
 	}
 }
+
+// A detector improvement reaches the photographs already scanned by matching
+// the tool string their record names, so the scanner has to be able to say
+// what that string will be before it scans anything.
+func TestAScannerCanNameItsToolsBeforeItRuns(t *testing.T) {
+	s := NewScanner(
+		fake{kind: Face, tool: "fake-face"},
+		fake{kind: Plate, tool: "fake-plate"},
+	)
+
+	if got := s.Tools(); got != "fake-face+fake-plate" {
+		t.Errorf("Tools() = %q, want the detectors it holds", got)
+	}
+
+	// And it must match what the scan itself records, or a re-scan would look
+	// for a string nothing was ever stored under.
+	scan := s.Scan(context.Background(), image.NewNRGBA(image.Rect(0, 0, 10, 10)))
+	if scan.Tools() != s.Tools() {
+		t.Errorf("the scanner names %q and the scan records %q", s.Tools(), scan.Tools())
+	}
+}

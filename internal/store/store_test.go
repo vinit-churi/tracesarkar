@@ -91,7 +91,7 @@ func TestApplyTLSFailsWhenCAFileIsMissing(t *testing.T) {
 }
 
 func TestRedactRemovesPasswordFromErrors(t *testing.T) {
-	err := redact(errorString("failed to connect to postgres://avnadmin:sup3rs3cret@host:19839/db"))
+	err := hidePassword(errorString("failed to connect to postgres://avnadmin:sup3rs3cret@host:19839/db"))
 	if strings.Contains(err.Error(), "sup3rs3cret") {
 		t.Fatalf("password survived redaction: %v", err)
 	}

@@ -74,6 +74,7 @@ over 2,405 road works). Everything else lands per the roadmap.
 | Ward | `…run.app/ward/` — public: who owns what in R/C and what binds them |
 | Issue | `…run.app/issue/{id}` — public: one problem, coarsened and redacted |
 | Label | `…run.app/label/` — ground truth for the classifier's eval set |
+| Mark up | `…run.app/truth/` — ground truth for the face and plate detectors |
 | Review | `…run.app/review/` — attribution verdicts |
 
 Start at [project state](docs/00-overview/06-project-state.md) §2 for what exists today.
@@ -94,7 +95,7 @@ Start at [project state](docs/00-overview/06-project-state.md) §2 for what exis
 | [`internal/roads/`](internal/roads/) | BMC geometry into PostGIS segments |
 | [`internal/sweep/`](internal/sweep/) | Runs the stages that turn a stored capture into an answer |
 | [`internal/issue/`](internal/issue/) | Dedup and merge, the SLA clock, the hash-chained timeline |
-| [`internal/redact/`](internal/redact/) | Face and plate detection, the mosaic, and the gate that holds an image when a detector cannot account for itself |
+| [`internal/redact/`](internal/redact/) | Face and plate detection, the mosaic, the gate that holds an image when a detector cannot account for itself, and the scorer that grades the detectors against photographs marked up by hand |
 | [`internal/publish/`](internal/publish/) | What a public surface may show: coarsened position, the redaction gate, the 150 KB image budget |
 | [`internal/action/`](internal/action/) | The next step a report earns — the right instrument, drafted and unsent |
 | [`internal/`](internal/) | Also: api, archive, store, config, sources, works, ingest, notify, auth, exif, ratelimit |
@@ -143,8 +144,8 @@ producing real usage. See [`docs/05-delivery/01-roadmap.md`](docs/05-delivery/01
 | **Region** | Mumbai Metropolitan Region — BMC R/C ward, Borivali, first |
 | **Backend** | Go. `cmd/ingest` collects and resolves, `cmd/api` serves; PostgreSQL 18 + PostGIS, Cloudflare R2 |
 | **Where things stand** | [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md) — read this first, on any machine |
-| **Gating everything** | The adversarial redaction set. Five real captures measured no recall, because not one contains a face |
-| **Docs last reviewed** | 2026-10-13 |
+| **Gating everything** | The adversarial redaction set. It can now be built (`/truth/`) and scored (`make redact-eval`); what it has none of is photographs containing a face or a plate |
+| **Docs last reviewed** | 2026-10-14 |
 
 ---
 

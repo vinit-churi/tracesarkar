@@ -117,7 +117,7 @@ summary of it, as of 13 October 2026:
 | 3 Classification | **Built, measuring.** The eval re-runs on whatever is labelled rather than waiting for a round number ([D114](../00-overview/05-decision-log.md)) |
 | 4 Issues | **Built and surfaced.** Dedup, corroboration, the clock, the hash chain |
 | 5 Accounts | **Partly built.** Email/password, Google, sessions, forgery resistance and rate limiting work. Missing: reset, email verification, revocation, phone OTP |
-| 6 Public surface | **Built.** Redaction, coarsening, the ward page and the issue permalink. The adversarial set is outstanding and is the gate |
+| 6 Public surface | **Built.** Redaction, coarsening, the ward page and the issue permalink. The detectors are now gradable — `/truth/` records what a person can see, `make redact-eval` scores them — and the set has no face or plate in it yet, which is the gate |
 | 7 Share kit | Not started |
 | 8 Operator console | Not started |
 
@@ -157,7 +157,7 @@ Legal and compliance, from
 - [ ] DPDP consent notice drafted, reviewed, translated (en/mr)
 - [ ] Consent scopes separable (`report_processing`, `public_display`, `notifications`)
 - [ ] Data-principal rights endpoints live
-- [ ] Redaction verified against an adversarial set
+- [ ] Redaction verified against an adversarial set — the harness exists; the photographs do not
 - [x] Public coarsening enforced at the serialisation layer, with a test — `publish.Derive`,
       and removing the gate turns tests red
 - [ ] Grievance officer named and published

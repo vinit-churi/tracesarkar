@@ -36,6 +36,25 @@ func NewScanner(d ...Detector) *Scanner {
 	return &Scanner{detectors: d}
 }
 
+// Tools names the detectors this scanner holds, in the order they will run.
+//
+// It is the string a scan will record, available before the scan: a detector
+// improvement is rolled out by finding every photograph whose record names
+// something else, which needs the current string first.
+func (s *Scanner) Tools() string {
+	out := ""
+	for _, d := range s.detectors {
+		if d.Tool() == "" {
+			continue
+		}
+		if out != "" {
+			out += "+"
+		}
+		out += d.Tool()
+	}
+	return out
+}
+
 // Scan never returns an error. A detector failing is a fact about the
 // photograph that Decide has to weigh, not a reason to abandon the other
 // detectors, and swallowing it is impossible because the failure is recorded

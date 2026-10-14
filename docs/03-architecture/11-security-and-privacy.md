@@ -70,8 +70,18 @@ on an edge-density localiser, both inside the Go process with no network egress.
 never the original. A photograph whose detectors cannot account for themselves is held: the
 verdict, the tool, the time and the output object are recorded on `report_media` (migration
 0025), and a CHECK constraint refuses a published verdict with no output object. The on-device
-tier does not exist. **The adversarial set this rule depends on does not exist either, and it is
-the gate** — see [ADR 0008](../04-adr/0008-redaction-approach.md).
+tier does not exist.
+
+**14 October 2026: the adversarial set can now be built and scored, and is still empty.** `/truth/`
+records what a person can see in one of their own photographs — every face and plate as a box in
+fractions of the image, the conditions that make it hard, and whether anybody is visible at all
+(migration 0026) — and `ingest redact-eval` runs the detectors over the originals and scores them
+against it. Three things follow for privacy: the marking-up surface serves the **un-redacted
+original**, so it is signed in, scoped to the account that took the photograph, and sent
+`Cache-Control: private`; the truth table holds boxes and words, never an image; and recall over a
+set with no face in it is reported as unmeasured rather than as a pass. **No photograph in the set
+yet contains a face or a plate, so recall is still unknown, and that is the gate** — see
+[ADR 0008](../04-adr/0008-redaction-approach.md).
 
 ---
 
@@ -215,7 +225,7 @@ window; no legal action against good-faith researchers.
 - [ ] Consent scopes implemented as separable
 - [ ] Data-principal rights endpoints implemented and tested
 - [ ] Retention jobs implemented with legal-hold support
-- [ ] Redaction pipeline verified against an adversarial test set
+- [ ] Redaction pipeline verified against an adversarial test set — harness built 14 Oct 2026 (`/truth/`, `make redact-eval`); the set itself is empty of faces and plates
 - [ ] Coarsening enforced at the serialisation layer with a test
 - [ ] Grievance officer named and published
 - [ ] Takedown and right-of-reply workflows operational
