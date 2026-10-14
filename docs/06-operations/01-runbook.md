@@ -204,6 +204,39 @@ go run ./cmd/ingest redact --rescan  # re-scan everything whose record names an 
 that is running. It re-writes the redacted derivative and the verdict, so a photograph the old
 detector published may be held by the new one, which is the right way round.
 
+### Re-verifying a social handle
+
+Every row in `authority_handles` carries a `verify_by` date and **stops being served when it
+passes**. That is deliberate: handles get renamed, merged and abandoned, and a registry nobody
+re-checks eventually points a stream of civic complaints at a stranger. Silence is the safe
+failure; a stale tag is not.
+
+```bash
+# What is due, and what has already fallen out of service
+psql "$POSTGRESQL_CONNECTION" -c \
+  "SELECT authority, ward, platform, handle, kind, first_hand, verify_by
+     FROM authority_handles ORDER BY verify_by"
+```
+
+To re-verify: open the account, confirm it is the authority's own and not a lookalike, and prefer a
+page the authority itself publishes. Then write a new row rather than editing the old one — the
+registry is a record of what was checked and when, and an edit erases that.
+
+```sql
+INSERT INTO authority_handles
+  (id, authority, ward, platform, handle, kind, source_ref, retrieved_at,
+   first_hand, note, effective_from, verify_by)
+VALUES (gen_random_uuid(), 'BMC', NULL, 'x', '@mybmc', 'institutional',
+        '<the page that publishes it>', now(), true, NULL,
+        CURRENT_DATE, CURRENT_DATE + 365);
+```
+
+`first_hand` is true only when the authority itself published the handle. It is printed in the
+post's source list and never used to suppress a handle.
+
+**Escalation handles** (a minister, a chief minister's office) are served only once a deadline has
+elapsed. Adding one with `kind = 'escalation'` does not put it on first reports.
+
 ---
 
 ## 3. Backup and restore

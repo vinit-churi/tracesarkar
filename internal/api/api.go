@@ -63,10 +63,14 @@ type Options struct {
 	// PublicIssues powers the issue permalink, the second surface served
 	// without a sign-in.
 	PublicIssues PublicIssues
-	Blobs        Blobs
-	Details      Details
-	Issuer       *auth.Issuer
-	Google       *auth.GoogleVerifier
+	// Handles is the registry of verified social accounts a generated post
+	// may tag. Optional: without it the share kit still generates every post,
+	// untagged, which is the safe direction.
+	Handles Handles
+	Blobs   Blobs
+	Details Details
+	Issuer  *auth.Issuer
+	Google  *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -88,6 +92,7 @@ type Server struct {
 	wards        WardProfiles
 	issues       Issues
 	publicIssues PublicIssues
+	handles      Handles
 	labels       Labels
 	truth        Truth
 	blobs        Blobs
@@ -144,6 +149,7 @@ func New(opts Options) (*Server, error) {
 		wards:        opts.Wards,
 		issues:       opts.Issues,
 		publicIssues: opts.PublicIssues,
+		handles:      opts.Handles,
 		labels:       opts.Labels,
 		truth:        opts.Truth,
 		blobs:        opts.Blobs,
@@ -189,6 +195,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/public/ward/{authority}/{ward}", s.handleWardProfile)
 	mux.HandleFunc("GET /v1/public/issue/{id}", s.handlePublicIssue)
 	mux.HandleFunc("GET /v1/public/issue/{id}/image", s.handlePublicIssueImage)
+	// The share kit. Public for the same reason the page is: asking a resident
+	// to sign in before they can send the post defeats the point of writing it
+	// for them.
+	mux.HandleFunc("GET /v1/public/issue/{id}/share", s.handleShareKit)
+	mux.HandleFunc("GET /v1/public/issue/{id}/card", s.handleShareCard)
 
 	mux.Handle("GET /v1/taxonomy", s.authenticated(http.HandlerFunc(s.handleTaxonomy)))
 	mux.Handle("GET /v1/label/queue", s.authenticated(http.HandlerFunc(s.handleLabelQueue)))

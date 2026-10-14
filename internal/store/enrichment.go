@@ -224,7 +224,7 @@ func (d *DB) nextStep(ctx context.Context, r ReportDetail) *action.Next {
 		return nil
 	}
 
-	routing, _, err := d.RoutingFor(ctx, r.Authority, r.Ward, category)
+	routing, _, err := d.RoutingFor(ctx, r.Authority, r.Ward, category, r.Classification.Subcategory)
 	if err != nil {
 		// A next step that cannot be built is not worth failing the report
 		// over; the capture and the verdict are still worth showing.

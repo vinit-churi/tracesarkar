@@ -58,6 +58,9 @@ type PublicIssueView struct {
 	// citation means no clock is shown at all.
 	DeadlineHours    int
 	DeadlineCitation string
+	// DeadlineShortRef is the citation in a form that fits a 280-character
+	// post. Empty means the deadline cannot be stated there at all.
+	DeadlineShortRef string
 
 	// Redaction is the record for the photograph that would be shown. Nil when
 	// no capture of this issue has been through redaction.
@@ -154,16 +157,17 @@ func (d *DB) attachPublicEvents(ctx context.Context, v *PublicIssueView) error {
 }
 
 func (d *DB) attachDeadline(ctx context.Context, v *PublicIssueView) error {
-	key, ok := deadlineKeys[v.Category]
-	if !ok {
+	key := deadlineKeyFor(v.Category, v.Subcategory)
+	if key == "" {
 		return nil
 	}
-	var value, citation string
+	var value, citation, short string
 	err := d.pool.QueryRow(ctx, `
-		SELECT value::text, citation FROM legal_constants
+		SELECT value::text, citation, COALESCE(short_citation, '')
+		  FROM legal_constants
 		 WHERE key = $1 AND effective_from <= now()::date
 		   AND (effective_to IS NULL OR effective_to >= now()::date)
-		 ORDER BY effective_from DESC LIMIT 1`, key).Scan(&value, &citation)
+		 ORDER BY effective_from DESC LIMIT 1`, key).Scan(&value, &citation, &short)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
@@ -177,6 +181,10 @@ func (d *DB) attachDeadline(ctx context.Context, v *PublicIssueView) error {
 		return nil
 	}
 	v.DeadlineHours, v.DeadlineCitation = hours, citation
+	// The short form is recorded, never derived: a legal citation truncated to
+	// fit a post cites nothing a person can look up. A constant without one
+	// simply cannot be stated on X.
+	v.DeadlineShortRef = short
 	return nil
 }
 

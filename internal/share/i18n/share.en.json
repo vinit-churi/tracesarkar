@@ -1,0 +1,45 @@
+{
+  "lang": "en",
+  "review": "reviewed",
+  "reviewed_by": "written in English; no review needed",
+  "reviewed_on": "2026-10-14",
+  "ward_word": "ward",
+  "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  "sentences": {
+    "what_where_short": "{thing} in {ward} {ward_word}.",
+    "what_where_long": "{thing} in {ward} {ward_word}, {authority}.",
+    "your_ward": "{handles} — this is your {ward_word}.",
+    "status_open": "Still open.",
+    "status_claimed_resolved": "The authority has recorded this as attended. No resident has photographed it fixed.",
+    "status_citizen_confirmed": "A resident photographed it fixed.",
+    "status_reopened": "Seen again after it was recorded as attended.",
+    "seen": "Seen {n} times since {date}.",
+    "told_on": "The authority was told on {date}.",
+    "not_told": "Nobody has recorded telling the authority about this yet, so no deadline is running.",
+    "deadline_elapsed_short": "{hours} hours to attend ({short_ref}). That time has passed.",
+    "deadline_running_short": "{hours} hours to attend ({short_ref}).",
+    "deadline_elapsed_long": "{hours} hours to attend — {citation} That time has passed.",
+    "deadline_running_long": "{hours} hours to attend — {citation}",
+    "deadline_obligation_long": "{hours} hours to attend once the authority is told — {citation}",
+    "sources_note": "Every fact above is on this page, with the document it came from:"
+  },
+  "categories": {
+    "road_defect": "Road defect",
+    "waste": "Uncollected waste",
+    "water_drainage": "Water and drainage",
+    "street_furniture": "Street furniture",
+    "structural": "Structural",
+    "environment": "Environment"
+  },
+  "things": {
+    "pothole": "Pothole",
+    "crack": "Cracked road",
+    "subsidence": "Road subsidence",
+    "missing manhole cover": "Missing manhole cover",
+    "open manhole": "Open manhole",
+    "damaged manhole cover": "Damaged manhole cover",
+    "damaged speed breaker": "Damaged speed breaker",
+    "utility-dig damage": "Unrepaired utility dig",
+    "missing/faded markings": "Faded road markings"
+  }
+}

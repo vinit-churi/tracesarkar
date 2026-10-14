@@ -34,6 +34,25 @@ UI strings live in `i18n/{lang}.json`, reviewed by a native speaker before relea
 translation is acceptable as a first draft for UI chrome; it is **not** acceptable for legal text,
 consent notices, or anything a citizen will act on.
 
+**Built, 14 October 2026.** The first copy to exist in all three languages is the share kit's, and
+it lives in `internal/share/i18n/share.{lang}.json` rather than at the repository root — beside the
+package that embeds it, because `go:embed` cannot reach above its own directory. Each file carries
+its own `review` state, and that file is the artefact a reviewer is handed; nothing in Go has to be
+read to check Marathi ([D137](../00-overview/05-decision-log.md),
+[ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md)).
+
+Three rules the share kit's copy follows, which any later vernacular surface should follow too:
+
+- **Legal citations are not translated.** They pass through every language unchanged, because a
+  citation is checked against the document that produced it.
+- **Digits stay Latin in all three languages**, for the same reason.
+- **A missing term falls back to the category's word and says so**, rather than being guessed at or
+  left as English in the middle of a Marathi sentence.
+
+**`share.mr.json` and `share.hi.json` are unreviewed.** They are served, because withholding them
+helps nobody in Mumbai, but never silently: the API names the draft languages and the page carries a
+notice above the text. A native speaker reading those two files is the outstanding task.
+
 ---
 
 ## 2. Voice
@@ -142,7 +161,7 @@ bureaucratic register.
 |---|---|
 | Screen reader pass (TalkBack, NVDA) | Per release |
 | Low-end device test (₹8,000-class Android, throttled network) | Per release |
-| Marathi and Hindi native-speaker review of all user-facing copy | Per release |
+| Marathi and Hindi native-speaker review of all user-facing copy | Per release · **overdue**: `internal/share/i18n/share.{mr,hi}.json` ship as drafts |
 | Voice input in each supported language | Per release |
 | 2G throughput test on the public page | Per release |
 | Accessibility audit (automated + manual) | Quarterly |

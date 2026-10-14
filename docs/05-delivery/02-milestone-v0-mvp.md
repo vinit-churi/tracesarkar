@@ -118,7 +118,7 @@ summary of it, as of 13 October 2026:
 | 4 Issues | **Built and surfaced.** Dedup, corroboration, the clock, the hash chain |
 | 5 Accounts | **Partly built.** Email/password, Google, sessions, forgery resistance and rate limiting work. Missing: reset, email verification, revocation, phone OTP |
 | 6 Public surface | **Built.** Redaction, coarsening, the ward page and the issue permalink. The detectors are now gradable — `/truth/` records what a person can see, `make redact-eval` scores them — and the set has no face or plate in it yet, which is the gate |
-| 7 Share kit | Not started |
+| 7 Share kit | **Mostly built.** The post in three languages and two channels, the annotated image, and a sourced handle registry. Marathi and Hindi serve as drafts until a native speaker reads them. Missing: the evidence PDF, the Open Graph card, the 9:16 variant |
 | 8 Operator console | Not started |
 
 Systems 1, 2 and 3 each need their evaluation artefact built **before** the system is called done.
@@ -171,7 +171,9 @@ Plus:
 
 - [ ] Contractor names are **not displayed** in v0.1 unless the manual dataset gives ≥ 0.95 confidence
       and the source is cited — the safest possible starting posture
-- [ ] Every generated share text passes the prohibited-pattern check
+- [x] Every generated share text passes the prohibited-pattern check — `share.Check` runs over the
+      finished string and `share.Compose` refuses to return text that fails it, so a caller cannot
+      forget to ([D135](../00-overview/05-decision-log.md))
 
 ---
 

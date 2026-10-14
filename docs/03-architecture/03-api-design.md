@@ -319,17 +319,31 @@ small. And it gives third-party clients a path in for free.
 
 Read-only, coarsened, aggressively cached.
 
-**Built as of 13 October 2026** — these three are live and serve without a sign-in:
+**Built as of 14 October 2026** — these five are live and serve without a sign-in:
 
 ```http
 GET /v1/public/ward/{authority}/{ward}    # desks, contacts, deadlines, each with its source
 GET /v1/public/issue/{id}                 # one issue: coarsened cell, history without actors
 GET /v1/public/issue/{id}/image           # the redacted copy, fitted to the 150 KB budget
+GET /v1/public/issue/{id}/share           # the written post, per language and per channel
+GET /v1/public/issue/{id}/card            # the same photograph with the facts printed under it
 ```
 
 The issue endpoints go through `publish.Derive`, which coarsens the position and refuses to name
 an image without a completed redaction record. The history type the public path can hold has no
 actor field at all, and the complaint reference is read but never rendered.
+
+The share kit is public for the same reason the page is: asking a resident to sign in before they
+can send the post defeats the point of writing it for them. It is composed from the same
+`store.PublicIssueView` the page is built from and from nothing else, so a fact the page may not
+show cannot reach a post that will be forwarded past it — the exact position and the complaint
+reference are absent by construction rather than by filtering. `/card` draws the fact block under
+the redacted copy and 404s on a photograph the gate withheld, exactly as `/image` does
+([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md)).
+
+The kit's response names the languages that are still drafts, so a client can mark them; and it
+says when the handle registry could not be read, because an untagged post reads exactly like a
+finished one.
 
 The rest of this section is design, not code:
 

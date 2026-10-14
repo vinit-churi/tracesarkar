@@ -1,0 +1,46 @@
+{
+  "lang": "hi",
+  "review": "pending",
+  "reviewed_by": "",
+  "reviewed_on": "",
+  "note": "Drafted by the platform, not yet read by a native speaker.",
+  "ward_word": "वार्ड",
+  "months": ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्तूबर", "नवंबर", "दिसंबर"],
+  "sentences": {
+    "what_where_short": "{ward} {ward_word} में {thing}.",
+    "what_where_long": "{ward} {ward_word} में {thing}. प्राधिकरण: {authority}.",
+    "your_ward": "{handles} — यह आपका {ward_word} है.",
+    "status_open": "अभी भी लंबित.",
+    "status_claimed_resolved": "प्राधिकरण ने इसे देख लिए जाने के रूप में दर्ज किया है. किसी निवासी ने इसके ठीक होने की तस्वीर नहीं दी है.",
+    "status_citizen_confirmed": "एक निवासी ने इसके ठीक होने की तस्वीर दी है.",
+    "status_reopened": "देख लिए जाने के दर्ज होने के बाद फिर दिखा.",
+    "seen": "{date} से {n} बार दर्ज.",
+    "told_on": "प्राधिकरण को {date} को बताया गया.",
+    "not_told": "इसके बारे में प्राधिकरण को बताए जाने का कोई रिकॉर्ड नहीं है, इसलिए कोई समयसीमा शुरू नहीं हुई है.",
+    "deadline_elapsed_short": "कार्रवाई के लिए {hours} घंटे ({short_ref}). यह समय बीत चुका है.",
+    "deadline_running_short": "कार्रवाई के लिए {hours} घंटे ({short_ref}).",
+    "deadline_elapsed_long": "कार्रवाई के लिए {hours} घंटे — {citation} यह समय बीत चुका है.",
+    "deadline_running_long": "कार्रवाई के लिए {hours} घंटे — {citation}",
+    "deadline_obligation_long": "प्राधिकरण को बताए जाने के बाद कार्रवाई के लिए {hours} घंटे — {citation}",
+    "sources_note": "ऊपर का हर तथ्य, उस दस्तावेज़ के साथ जिससे वह आया है, इस पेज पर है:"
+  },
+  "categories": {
+    "road_defect": "सड़क में खराबी",
+    "waste": "न उठाया गया कचरा",
+    "water_drainage": "पानी और नाली",
+    "street_furniture": "सड़क की सुविधाएं",
+    "structural": "ढांचागत",
+    "environment": "पर्यावरण"
+  },
+  "things": {
+    "pothole": "गड्ढा",
+    "crack": "सड़क में दरार",
+    "subsidence": "सड़क धंसी",
+    "missing manhole cover": "मैनहोल का ढक्कन गायब",
+    "open manhole": "खुला मैनहोल",
+    "damaged manhole cover": "मैनहोल का ढक्कन टूटा",
+    "damaged speed breaker": "टूटा स्पीड ब्रेकर",
+    "utility-dig damage": "खुदाई के बाद मरम्मत नहीं",
+    "missing/faded markings": "मिट चुकी सड़क पट्टियां"
+  }
+}

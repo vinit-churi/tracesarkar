@@ -197,6 +197,16 @@ technical enforcement points:
 4. Platform-generated statements and citizen-generated content are visually and structurally
    distinct in every surface.
 5. Every scorecard displays its formula version and its inputs.
+6. **A generated share post is composed from the public view and from nothing else.** The exact
+   position and the complaint reference are absent from `share.Facts` by construction rather than
+   by filtering, so a fact the permalink may not show cannot reach a post that will be forwarded
+   past it. No model is in that path ([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md)).
+7. **A social handle is treated as a fact about a named party**: it is served only from
+   `authority_handles`, where a source reference and a retrieval timestamp are NOT NULL and a row
+   past its `verify_by` date stops being served. The post carries the source and says whether it is
+   first-hand.
+8. **The annotated image is drawn on the redacted copy only.** `/card` goes through
+   `publish.Derive` exactly as `/image` does, so a photograph the gate withheld has no card either.
 
 These are code-level invariants with tests, not editorial guidelines.
 
@@ -227,6 +237,7 @@ window; no legal action against good-faith researchers.
 - [ ] Retention jobs implemented with legal-hold support
 - [ ] Redaction pipeline verified against an adversarial test set — harness built 14 Oct 2026 (`/truth/`, `make redact-eval`); the set itself is empty of faces and plates
 - [ ] Coarsening enforced at the serialisation layer with a test
+- [ ] Marathi and Hindi share copy read by a native speaker — built 14 Oct 2026 and serving as **drafts**, labelled in the API and on the page
 - [ ] Grievance officer named and published
 - [ ] Takedown and right-of-reply workflows operational
 - [ ] Correction log public

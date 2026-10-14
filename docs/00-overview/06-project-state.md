@@ -22,7 +22,7 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ## 2. What we have, as of 14 October 2026
 
-Twelve things are live and answering. Nothing below is aspirational.
+Thirteen things are live and answering. Nothing below is aspirational.
 
 | | Where | State |
 |---|---|---|
@@ -34,6 +34,7 @@ Twelve things are live and answering. Nothing below is aspirational.
 | **Methodology** | `…run.app/methodology/` | Public, no sign-in — sources, measurements, limits |
 | **Ward** | `…run.app/ward/` | Public, no sign-in — who owns what in R/C, how to reach them, what binds them |
 | **Issue** | `…run.app/issue/{id}` | Public, no sign-in — one problem: what, roughly where, how many sightings, whether it was lodged |
+| **Share kit** | on `…run.app/issue/{id}` | Public — the post, written for you in English, Marathi or Hindi, editable, WhatsApp first |
 | **Mark up** | `…run.app/truth/` | Drag a box round every face and plate, so the detector can be graded. Signed-in only |
 | **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
@@ -91,7 +92,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built, surfaced, and now public.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies, and is readable at `/issue/{id}` without the actor |
 | 5 | Accounts — OTP, rate limits, reset, revocation | **Partly built.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)) work. Missing: reset, email verification, revocation, phone OTP |
 | **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). The detector is now gradable: `/truth/` records what a person can see in a photograph and `make redact-eval` scores both detectors against it ([D132](05-decision-log.md), [D133](05-decision-log.md)). Remaining, and still the gate: photographs with faces and plates in them. Five captures measured no recall because none contains either ([D127](05-decision-log.md)) |
-| 7 | Share kit — annotated image, per-language text | Waiting |
+| **7** | **Share kit** — annotated image, per-language text | **Mostly built.** The post is assembled from the fact set with no model in the path, in three languages and two channels, and the annotated image puts the facts under the photograph rather than across it ([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md), [D135](05-decision-log.md)). A handle is printed only with its source and a re-verification date ([D136](05-decision-log.md)). Marathi and Hindi ship as **drafts** until a native speaker reads them, labelled as such in the API and on the page ([D137](05-decision-log.md)). Not built: the evidence PDF, the Instagram variant, the Open Graph card |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 
 **The first real captures landed on 5 October 2026, and earned their keep.** Two photographs of a
@@ -214,8 +215,8 @@ further update can be installed over an existing APK** — back it up somewhere 
 ### Then
 
 ```bash
-make test          # 22 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0026 is current)
+make test          # 23 Go packages, offline, no credentials needed
+make migrate       # applies anything newer than the deployed schema (0028 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -235,7 +236,7 @@ make test-live     # the tests that touch the real bucket and database
 | Grading the detector against marked-up photographs | `internal/redact/eval.go`, `cmd/ingest/redact_eval.go` |
 | What a public surface may show | `internal/publish/` |
 | The next step a report earns | `internal/action/` |
-| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/` |
+| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/ and the share kit's\nvocabulary in `internal/share/i18n/`` |
 | SQL | `internal/store/` — hand-written, no ORM. Migrations are forward-only and numbered |
 
 ### What is deployed, and how
@@ -276,9 +277,14 @@ did not agree to publish them. It was briefly public and was closed; the public 
 
 ### Next in the code
 
-- [ ] **System 7, the share kit** — the annotated image and the text, generated per language from
-      the fact set. It depends on the redacted derivative, which now exists. Never translated from
-      English: that produces garbage for hashtags and legal terms
+- [ ] **Have a native speaker read the share kit's Marathi and Hindi** —
+      `internal/share/i18n/share.mr.json` and `share.hi.json`, one file each, and change
+      `"review": "pending"` to `"reviewed"` when they have. Both are live and labelled as drafts
+      on every issue page, so this is the only outstanding item a user can see
+      ([D137](05-decision-log.md))
+- [ ] **Finish system 7** — the evidence PDF for meetings and filings, the Open Graph card so a
+      bare link unfurls into the argument, and the 9:16 variant. The post, the annotated image and
+      the handle registry are built
 - [ ] **Finish system 5** — password reset, email verification, token revocation. Throttling is
       done ([D113](05-decision-log.md)); the rest is not
 - [ ] **System 8, the operator console** — collection health is currently read from logs

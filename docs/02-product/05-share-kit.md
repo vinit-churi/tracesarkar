@@ -198,3 +198,61 @@ Deterministically generated and hash-stamped so two people generating it get an 
 That last row is the experiment the whole platform exists to run. It should be instrumented from
 day one, with a holdout: a random subset of issues where the share kit is generated but the user is
 not prompted to share, to establish a baseline.
+
+---
+
+## 10. What was built, 14 October 2026
+
+The written post exists; the evidence PDF and the Instagram variant do not. What runs is
+`internal/share` behind `GET /v1/public/issue/{id}/share` and `/card`, with the kit itself on the
+issue permalink — language toggle, editable text, and WhatsApp first.
+
+| Artefact | State |
+|---|---|
+| **Post text**, per channel and per language | Built. English, Marathi, Hindi × WhatsApp, X |
+| **Annotated image** | Built. The fact block sits *below* the photograph, not across it |
+| **Permalink** | Built earlier ([D130](../00-overview/05-decision-log.md)); no Open Graph card yet |
+| **Handle registry** | Built, with one row in it |
+| **Evidence PDF** | Not built |
+| **Instagram / Story card** | Not built |
+| **WhatsApp intake bot** | Not built |
+
+### What §3's structure became in practice
+
+The spec's example post leans on contract facts. No public surface carries a contract attribution
+yet, so a real post today states the thing, the ward, the authority's own account, whether anybody
+has been told, and the obligation where one binds. It degrades truthfully rather than leaving a
+gap: an issue nobody has lodged says so in a sentence, which is also the sentence that most often
+prompts somebody to lodge it.
+
+Four rules are tests rather than intentions ([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md)):
+
+- **No model writes a post.** Every sentence is assembled from fields the platform can prove, so
+  what a post may say is bounded by the database rather than by a prompt.
+- **A deadline with no citation is dropped whole**, never shown as a bare number. On X the short
+  reference is a recorded column, not a truncation of the long one — a citation cut to fit a window
+  cites nothing a person can look up (migration 0028).
+- **An escalation handle waits for an elapsed deadline**, enforced in `share.Compose` and not left
+  to the template.
+- **An unlodged issue never claims anybody was told**, because photographing something here
+  notifies nobody.
+
+### The two things it changed elsewhere
+
+Writing the post surfaced a defect on the page it links to. The Bombay High Court's forty-eight
+hours was keyed on the *category*, so the first real kit quoted "All potholes…" beside a missing
+manhole cover. It now binds the subcategory it names ([D138](../00-overview/05-decision-log.md)).
+
+And §4's "verify existence before use" is now a column: rows carry a `verify_by` date and stop
+being served when it passes. Only `@mybmc` is seeded, marked **secondary** because BMC's own portal
+publishes no social links; none of the twenty-four ward accounts is seeded at all
+([D136](../00-overview/05-decision-log.md)).
+
+### What has to happen before this is finished
+
+- **A native speaker reads `internal/share/i18n/share.mr.json` and `share.hi.json`.** Both ship as
+  drafts, labelled as drafts in the API and on the page. This is the one outstanding item that a
+  user sees.
+- **First-hand verification of `@mybmc`**, and a decision on ward handles.
+- **An Open Graph card**, so a bare link in any chat unfurls into the argument. The card image route
+  exists; the page does not reference it in metadata yet.

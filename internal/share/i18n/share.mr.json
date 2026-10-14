@@ -1,0 +1,46 @@
+{
+  "lang": "mr",
+  "review": "pending",
+  "reviewed_by": "",
+  "reviewed_on": "",
+  "note": "Drafted by the platform, not yet read by a native speaker. BMC's own term for an administrative ward is विभाग; प्रभाग is an electoral division and must not be used here (glossary).",
+  "ward_word": "विभाग",
+  "months": ["जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"],
+  "sentences": {
+    "what_where_short": "{ward} {ward_word}ात {thing}.",
+    "what_where_long": "{ward} {ward_word}ात {thing}. प्राधिकरण: {authority}.",
+    "your_ward": "{handles} — हा तुमचा {ward_word} आहे.",
+    "status_open": "अद्याप प्रलंबित.",
+    "status_claimed_resolved": "प्राधिकरणाने याची दखल घेतल्याची नोंद केली आहे. कोणत्याही रहिवाशाने ते दुरुस्त झाल्याचा फोटो दिलेला नाही.",
+    "status_citizen_confirmed": "एका रहिवाशाने ते दुरुस्त झाल्याचा फोटो दिला आहे.",
+    "status_reopened": "दखल घेतल्याची नोंद झाल्यानंतर पुन्हा आढळले.",
+    "seen": "{date} पासून {n} वेळा आढळले.",
+    "told_on": "प्राधिकरणाला {date} रोजी कळवले गेले.",
+    "not_told": "याबद्दल प्राधिकरणाला कळवल्याची नोंद अजून नाही, त्यामुळे कोणतीही मुदत सुरू झालेली नाही.",
+    "deadline_elapsed_short": "कार्यवाहीसाठी {hours} तास ({short_ref}). ही मुदत संपली आहे.",
+    "deadline_running_short": "कार्यवाहीसाठी {hours} तास ({short_ref}).",
+    "deadline_elapsed_long": "कार्यवाहीसाठी {hours} तास — {citation} ही मुदत संपली आहे.",
+    "deadline_running_long": "कार्यवाहीसाठी {hours} तास — {citation}",
+    "deadline_obligation_long": "प्राधिकरणाला कळवल्यापासून कार्यवाहीसाठी {hours} तास — {citation}",
+    "sources_note": "वरील प्रत्येक तपशील, तो ज्या कागदपत्रातून आला आहे त्यासह, या पानावर आहे:"
+  },
+  "categories": {
+    "road_defect": "रस्त्यातील दोष",
+    "waste": "न उचललेला कचरा",
+    "water_drainage": "पाणी आणि मलनिस्सारण",
+    "street_furniture": "रस्त्यावरील सुविधा",
+    "structural": "बांधकामविषयक",
+    "environment": "पर्यावरण"
+  },
+  "things": {
+    "pothole": "खड्डा",
+    "crack": "रस्त्याला तडा",
+    "subsidence": "रस्ता खचला",
+    "missing manhole cover": "मॅनहोलचे झाकण गायब",
+    "open manhole": "उघडे मॅनहोल",
+    "damaged manhole cover": "मॅनहोलचे झाकण तुटले",
+    "damaged speed breaker": "तुटलेला गतिरोधक",
+    "utility-dig damage": "खोदकामानंतर दुरुस्ती नाही",
+    "missing/faded markings": "पुसट झालेले रस्ता पट्टे"
+  }
+}

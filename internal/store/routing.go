@@ -29,9 +29,37 @@ type Routing struct {
 // decision, not a fact about the world: which of several published clocks the
 // platform shows for a category is ours to choose, while the clocks themselves
 // are sourced.
+// deadlineKeys maps a whole category to the constant that binds it. A entry
+// here says the deadline applies to everything in the category.
 var deadlineKeys = map[string]string{
-	"road_defect": "pothole.attend_hours.court",
-	"waste":       "waste.refuse_removal_hours",
+	"waste": "waste.refuse_removal_hours",
+}
+
+// subcategoryDeadlineKeys maps one specific thing to a constant that binds
+// only that thing.
+//
+// The Bombay High Court's 48-hour duty is the reason this map exists.
+// Paragraph 70(ix) reads "All potholes, once brought to the notice of the
+// concerned Corporation or Authority, shall be attended to forthwith and, in
+// any event, within forty-eight hours". It says potholes. It does not say road
+// defects, and a faded lane marking is not covered by it.
+//
+// Keying the order on the category made the platform quote a pothole order
+// beside a missing manhole cover, which overstates the law in the one
+// direction that matters: the share kit prints the quoted paragraph next to
+// the photograph, and a forwarded post is not correctable.
+var subcategoryDeadlineKeys = map[string]string{
+	"pothole": "pothole.attend_hours.court",
+}
+
+// deadlineKeyFor picks the narrowest constant that actually binds this thing,
+// and returns empty when none does. Empty means no clock is shown at all —
+// an obligation we cannot cite is not an obligation with a default.
+func deadlineKeyFor(category, subcategory string) string {
+	if k, ok := subcategoryDeadlineKeys[strings.ToLower(strings.TrimSpace(subcategory))]; ok {
+		return k
+	}
+	return deadlineKeys[strings.TrimSpace(category)]
 }
 
 // RoutingFor returns the department responsible for a category in a ward, with
@@ -42,7 +70,7 @@ var deadlineKeys = map[string]string{
 // returned and the rest are the caller's problem only when it has to choose.
 // Not found is not an error: most wards have no department recorded, and that
 // is a state the product states plainly rather than hides.
-func (d *DB) RoutingFor(ctx context.Context, authority, ward, category string) (Routing, bool, error) {
+func (d *DB) RoutingFor(ctx context.Context, authority, ward, category, subcategory string) (Routing, bool, error) {
 	var r Routing
 	err := d.pool.QueryRow(ctx, `
 		SELECT department, COALESCE(officer_designation, ''),
@@ -64,8 +92,8 @@ func (d *DB) RoutingFor(ctx context.Context, authority, ward, category string) (
 		return Routing{}, false, fmt.Errorf("routing for %s/%s: %w", ward, category, err)
 	}
 
-	key, ok := deadlineKeys[category]
-	if !ok {
+	key := deadlineKeyFor(category, subcategory)
+	if key == "" {
 		// No deadline mapped is not a failure. Water supply publishes none.
 		return r, true, nil
 	}

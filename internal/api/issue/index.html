@@ -54,6 +54,30 @@
   .share:hover{filter:brightness(1.08)}
   .share:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
   .sharenote{font-size:13px;color:var(--ink-45);text-align:center;margin:0 0 4px}
+  .kit{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+       padding:16px;margin:0 0 14px}
+  .langs{display:flex;gap:7px;margin:0 0 12px;flex-wrap:wrap}
+  .langs button{border:1px solid var(--hairline);background:var(--surface);
+                color:var(--ink-70);border-radius:999px;padding:6px 14px;font:inherit;
+                font-size:14px;cursor:pointer}
+  .langs button[aria-pressed="true"]{background:var(--accent-wash);color:var(--accent);
+                border-color:var(--accent);font-weight:600}
+  .kit textarea{width:100%;min-height:168px;border:1px solid var(--hairline);
+                border-radius:10px;padding:12px;font:inherit;font-size:15px;
+                line-height:1.55;color:var(--ink);background:var(--paper);resize:vertical}
+  .kit textarea:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+  .draft{background:var(--caution-wash);color:var(--caution);border-radius:9px;
+         padding:9px 12px;font-size:13px;line-height:1.45;margin:0 0 11px}
+  .sends{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .sends a,.sends button{flex:1 1 128px;text-align:center;border:1px solid var(--hairline);
+         background:var(--surface);color:var(--ink);border-radius:10px;padding:12px;
+         font:inherit;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none}
+  .sends a:hover,.sends button:hover{border-color:var(--accent);color:var(--accent)}
+  .sends .first{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .sends .first:hover{filter:brightness(1.08);color:#fff}
+  .kitnote{font-size:12px;color:var(--ink-45);margin:11px 0 0;line-height:1.45}
+  .cardimg{width:100%;border-radius:10px;border:1px solid var(--hairline);
+           margin-top:12px;display:block;background:var(--evidence)}
   .rows{display:grid;grid-template-columns:150px 1fr;gap:5px 14px;font-size:15px}
   @media (max-width:560px){.rows{grid-template-columns:1fr;gap:1px 0}
     .rows dt{color:var(--ink-45);font-size:12px;text-transform:uppercase;margin-top:9px}}
@@ -126,6 +150,111 @@ function title(d) {
   return sub ? sub.charAt(0).toUpperCase() + sub.slice(1) : cat.charAt(0).toUpperCase() + cat.slice(1);
 }
 
+const LANGS = { en: "English", mr: "\u092e\u0930\u093e\u0920\u0940", hi: "\u0939\u093f\u0902\u0926\u0940" };
+
+// The share kit. The server writes the post from facts it can already prove;
+// this only lets a person read it, change it, and send it themselves. Nothing
+// here submits anything — the citizen taps send in their own app.
+function shareKit(issueID) {
+  const box = E("section", "kit");
+  box.append(E("p", "sharenote", "Loading the post\u2026"));
+
+  let kit = null, lang = "en", channel = "whatsapp";
+
+  const draw = () => {
+    box.replaceChildren();
+
+    const langs = E("div", "langs");
+    Object.keys(LANGS).forEach(l => {
+      if (!kit.posts[l + "." + channel]) return;
+      const b = E("button", null, LANGS[l]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(l === lang));
+      b.addEventListener("click", () => { lang = l; draw(); });
+      langs.append(b);
+    });
+    box.append(langs);
+
+    const post = kit.posts[lang + "." + channel];
+    if (post.review === "draft") {
+      // Offered, because withholding it helps nobody — but never silently.
+      box.append(E("div", "draft", "This " + LANGS[lang] + " wording was written by " +
+        "the platform and has not yet been read by a native speaker. Read it " +
+        "before you send it, and change anything that reads wrong."));
+    }
+
+    const ta = E("textarea");
+    ta.value = post.text;
+    ta.setAttribute("aria-label", "The post, which you can edit before sending");
+    box.append(ta);
+
+    const sends = E("div", "sends");
+    const wa = E("a", "first", "Send on WhatsApp");
+    wa.href = "#"; wa.rel = "noopener";
+    wa.addEventListener("click", e => {
+      e.preventDefault();
+      window.open("https://wa.me/?text=" + encodeURIComponent(ta.value), "_blank", "noopener");
+    });
+    const x = E("a", null, "Post on X");
+    x.href = "#"; x.rel = "noopener";
+    x.addEventListener("click", e => {
+      e.preventDefault();
+      // X counts its own window, so the X wording is what goes to X.
+      const t = (channel === "x") ? ta.value : (kit.posts[lang + ".x"] || post).text;
+      window.open("https://x.com/intent/post?text=" + encodeURIComponent(t), "_blank", "noopener");
+    });
+    const copy = E("button", null, "Copy");
+    copy.type = "button";
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(ta.value);
+        copy.textContent = "Copied";
+      } catch {
+        ta.select();
+        copy.textContent = "Select and copy";
+      }
+      setTimeout(() => { copy.textContent = "Copy"; }, 4000);
+    });
+    sends.append(wa, x, copy);
+    box.append(sends);
+
+    if (kit.handles_unavailable) {
+      box.append(E("p", "kitnote", "The register of official accounts could not " +
+        "be read just now, so this post tags nobody. The facts are unaffected."));
+    }
+    box.append(E("p", "kitnote", kit.note));
+
+    if (kit.card_image) {
+      const img = E("img", "cardimg");
+      img.src = kit.card_image;
+      img.loading = "lazy";
+      img.alt = "The photograph with the facts printed under it: " +
+        (kit.card || []).join(". ");
+      box.append(img);
+      box.append(E("p", "kitnote", "Save this image to send it where a link " +
+        "will not travel. Faces and number plates are already obscured."));
+    }
+  };
+
+  fetch("/v1/public/issue/" + encodeURIComponent(issueID) + "/share")
+    .then(res => res.ok ? res.json() : Promise.reject(new Error("status " + res.status)))
+    .then(body => { kit = body; draw(); })
+    .catch(() => {
+      // The link alone still works, so fall back to it rather than to nothing.
+      box.replaceChildren();
+      const btn = E("button", "share", "Copy the link to this issue");
+      btn.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(location.href); btn.textContent = "Link copied"; }
+        catch { btn.textContent = location.href; }
+        setTimeout(() => { btn.textContent = "Copy the link to this issue"; }, 4000);
+      });
+      box.append(btn, E("p", "sharenote",
+        "The written post could not be loaded just now. The link still works."));
+    });
+
+  return box;
+}
+
 function render(d) {
   const m = document.getElementById("main");
   m.replaceChildren();
@@ -149,21 +278,9 @@ function render(d) {
   }
   m.append(fig);
 
-  // Share is the primary action on an issue, not an icon in a corner.
-  const btn = E("button", "share", "Copy the link to this issue");
-  btn.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(location.href);
-      btn.textContent = "Link copied";
-    } catch {
-      btn.textContent = location.href;
-      const r = document.createRange();
-      r.selectNodeContents(btn);
-      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
-    }
-    setTimeout(() => { btn.textContent = "Copy the link to this issue"; }, 4000);
-  });
-  m.append(btn, E("p", "sharenote", "Sharing is what moves a civic problem. Send it on."));
+  // Share is the primary action on an issue, not an icon in a corner — and
+  // the friction that kills it is writing the post, so the server writes one.
+  m.append(shareKit(d.issue_id));
 
   if (d.corroboration) {
     const c = E("div", "corrob");
