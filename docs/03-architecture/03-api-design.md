@@ -347,6 +347,16 @@ says when the handle registry could not be read, because an untagged post reads 
 finished one. A `shape` with no layout is a 400 rather than the default card, because somebody
 asking for a frame is going to post the result into it.
 
+One route in the share kit is **not** public:
+
+```http
+GET /v1/issues/{id}/evidence.pdf          # the compiled record, signed in, scoped by sighting
+```
+
+It carries the exact position and the complaint reference, because it is the document that gets
+attached to a complaint. Somebody with no sighting in the issue gets a 404, never a 403 — which
+issues exist is itself information ([D141](../00-overview/05-decision-log.md)).
+
 The page at `GET /issue/{id}` is served by the API too, and is no longer a static shell: the issue
 is read before a byte is written so the page can carry Open Graph and Twitter Card metadata, which
 is what makes a bare link in a chat unfurl into the facts. An id the database does not know is a

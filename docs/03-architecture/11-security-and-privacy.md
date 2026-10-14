@@ -207,6 +207,11 @@ technical enforcement points:
    first-hand.
 8. **The annotated image is drawn on the redacted copy only.** `/card` goes through
    `publish.Derive` exactly as `/image` does, so a photograph the gate withheld has no card either.
+9. **The evidence pack is the one share artefact that is not public**, because it carries the exact
+   position and the complaint reference. It is served only to an account with a sighting in the
+   issue, as a 404 to anybody else, with `Cache-Control: private, no-store`; its photographs are the
+   redacted copies, never the archival originals
+   ([D141](../00-overview/05-decision-log.md)).
 
 These are code-level invariants with tests, not editorial guidelines.
 

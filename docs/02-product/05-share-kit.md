@@ -213,7 +213,7 @@ issue permalink — language toggle, editable text, and WhatsApp first.
 | **Annotated image** | Built. The fact block sits *below* the photograph, not across it |
 | **Permalink** | Built earlier ([D130](../00-overview/05-decision-log.md)), and it now unfurls: a bare link in any chat becomes the title, the facts and the annotated card ([D139](../00-overview/05-decision-log.md)) |
 | **Handle registry** | Built, with one row in it |
-| **Evidence PDF** | Not built |
+| **Evidence PDF** | Built. Signed in, scoped by sighting, deterministic and stamped ([D141](../00-overview/05-decision-log.md), [D142](../00-overview/05-decision-log.md)) |
 | **Instagram / Story card** | Built. `?shape=story` draws the same facts into 9:16 ([D140](../00-overview/05-decision-log.md)) |
 | **WhatsApp intake bot** | Not built |
 
@@ -236,6 +236,32 @@ Four rules are tests rather than intentions ([ADR 0020](../04-adr/0020-share-tex
   to the template.
 - **An unlodged issue never claims anybody was told**, because photographing something here
   notifies nobody.
+
+### The evidence pack, and why it is the one private artefact
+
+Everything else here is public, because a post nobody can read is not distribution. §7's pack is
+the opposite: it carries the **exact** position and the complaint reference, because it exists to
+be attached to a complaint and a complaint needs the place and the number. Both already belong to
+the person asking for it, so it is served to them and to nobody else, scoped by sighting rather
+than by ownership — a stranger is told the issue does not exist rather than that they may not have
+it ([D141](../00-overview/05-decision-log.md)).
+
+The photographs in it are still the **redacted** copies. A pack is a document to hand to somebody
+else, which is exactly the case redaction is for, and the archival original stays break-glass
+however much more useful it would be in a filing.
+
+§7 asked for it to be "deterministically generated and hash-stamped so two people generating it get
+an identical file", and that turned out to decide the implementation: most PDF libraries stamp a
+creation date and a generated id, which breaks determinism quietly, so the writer is four hundred
+lines here with no dependency ([D142](../00-overview/05-decision-log.md)). The stamp is computed
+over the facts rather than the rendered bytes, so a later layout change does not invalidate a stamp
+already quoted in a filing.
+
+**What the first real pack found.** Compiled from an actual issue rather than a fixture, it put
+BMC's RTI manual URL past the right margin where it could not be read, and cited the contract as
+`bmc_roads_api` — a key into our own register, and nothing at all to the desk the document is
+handed to. A citation nobody can check satisfies hard rule 2's letter and defeats its point
+([D143](../00-overview/05-decision-log.md)).
 
 ### What the unfurl cost
 
@@ -264,6 +290,5 @@ publishes no social links; none of the twenty-four ward accounts is seeded at al
   drafts, labelled as drafts in the API and on the page. This is the one outstanding item that a
   user sees.
 - **First-hand verification of `@mybmc`**, and a decision on ward handles.
-- **The evidence PDF**, for meetings and filings. It is the one artefact in §1 still missing, and
-  the one Sunita's use needs.
-- **A WhatsApp intake bot** (§5.5), which is a distribution unlock rather than a share artefact.
+- **A WhatsApp intake bot** (§5.5), which is a distribution unlock rather than a share artefact,
+  and the only item in this document that has not been started.

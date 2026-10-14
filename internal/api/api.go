@@ -67,10 +67,13 @@ type Options struct {
 	// may tag. Optional: without it the share kit still generates every post,
 	// untagged, which is the safe direction.
 	Handles Handles
-	Blobs   Blobs
-	Details Details
-	Issuer  *auth.Issuer
-	Google  *auth.GoogleVerifier
+	// Evidence compiles one issue into the record behind the PDF pack. The
+	// only share surface that is not public.
+	Evidence Evidence
+	Blobs    Blobs
+	Details  Details
+	Issuer   *auth.Issuer
+	Google   *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -93,6 +96,7 @@ type Server struct {
 	issues       Issues
 	publicIssues PublicIssues
 	handles      Handles
+	evidence     Evidence
 	labels       Labels
 	truth        Truth
 	blobs        Blobs
@@ -150,6 +154,7 @@ func New(opts Options) (*Server, error) {
 		issues:       opts.Issues,
 		publicIssues: opts.PublicIssues,
 		handles:      opts.Handles,
+		evidence:     opts.Evidence,
 		labels:       opts.Labels,
 		truth:        opts.Truth,
 		blobs:        opts.Blobs,
@@ -189,6 +194,11 @@ func (s *Server) Handler() http.Handler {
 
 	mux.Handle("GET /v1/reports/{id}/media", s.authenticated(http.HandlerFunc(s.handleReportMedia)))
 	mux.Handle("POST /v1/issues/{id}/lodged", s.authenticated(http.HandlerFunc(s.handleLodged)))
+	// The evidence pack. Signed in, unlike the rest of the share kit: it
+	// carries the exact position and the complaint reference, because it is
+	// the document that gets attached to a complaint.
+	mux.Handle("GET /v1/issues/{id}/evidence.pdf",
+		s.authenticated(http.HandlerFunc(s.handleEvidencePack)))
 
 	// Public on purpose: published facts about offices and obligations, with
 	// nothing a citizen reported on it.

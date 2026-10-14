@@ -80,6 +80,12 @@
   .kitnote{font-size:12px;color:var(--ink-45);margin:11px 0 0;line-height:1.45}
   .cardimg{width:100%;border-radius:10px;border:1px solid var(--hairline);
            margin-top:12px;display:block;background:var(--evidence)}
+  .pack{margin-top:14px;padding-top:13px;border-top:1px solid var(--hairline)}
+  .pack button{width:100%;border:1px solid var(--hairline);background:var(--surface);
+        color:var(--ink);border-radius:10px;padding:12px;font:inherit;font-size:15px;
+        font-weight:600;cursor:pointer}
+  .pack button:hover{border-color:var(--accent);color:var(--accent)}
+  .pack button:disabled{opacity:.6;cursor:default}
   .rows{display:grid;grid-template-columns:150px 1fr;gap:5px 14px;font-size:15px}
   @media (max-width:560px){.rows{grid-template-columns:1fr;gap:1px 0}
     .rows dt{color:var(--ink-45);font-size:12px;text-transform:uppercase;margin-top:9px}}
@@ -225,6 +231,50 @@ function shareKit(issueID) {
         "be read just now, so this post tags nobody. The facts are unaffected."));
     }
     box.append(E("p", "kitnote", kit.note));
+
+    // The evidence pack is the one part of the kit that is not public: it
+    // carries the exact position and the complaint reference, so it is offered
+    // only to a browser that is already signed in, and the server still checks
+    // that this person photographed this problem.
+    const token = localStorage.getItem('ts_token') || '';
+    if (token) {
+      const pack = E("div", "pack");
+      const btn = E("button", null, "Download the record as a PDF");
+      btn.type = "button";
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        const was = btn.textContent;
+        btn.textContent = "Compiling\u2026";
+        try {
+          const res = await fetch("/v1/issues/" + encodeURIComponent(issueID) + "/evidence.pdf",
+            { headers: { "Authorization": "Bearer " + token } });
+          if (res.status === 404) {
+            btn.textContent = "Only the people who photographed this can compile it";
+            return;
+          }
+          if (!res.ok) throw new Error("status " + res.status);
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "tracesarkar-record.pdf";
+          document.body.append(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          btn.textContent = "Downloaded";
+        } catch {
+          btn.textContent = "That could not be compiled just now";
+        } finally {
+          setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 5000);
+        }
+      });
+      pack.append(btn, E("p", "kitnote", "Everything above plus the exact position, " +
+        "the reference number and the hash-chained history \u2014 for a meeting or to " +
+        "attach to a complaint. It is a compiled record, not legal advice, and nothing " +
+        "about it is filed for you."));
+      box.append(pack);
+    }
 
     if (kit.card_image) {
       const img = E("img", "cardimg");
