@@ -243,12 +243,13 @@ make test-live     # the tests that touch the real bucket and database
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00028-skz` (`a81a160`) carries
-  `/truth/` and the annotation routes
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00029-js8` (`b1aa75e`)
+  carries `/truth/`, the share kit and the narrowed deadline lookup
 - `tracesarkar-collector` — twice daily, alerts on failure
-- `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image; it was rebuilt at
-  `a81a160` so a newly captured photograph is scanned by `edge-density-2`, not the localiser that
-  was blind to large plates ([D134](05-decision-log.md))
+- `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image, rebuilt at
+  `b1aa75e`: a newly captured photograph is scanned by `edge-density-2` rather than the localiser
+  that was blind to large plates ([D134](05-decision-log.md)), and the next step it drafts quotes
+  the court's forty-eight hours only where that order actually binds ([D138](05-decision-log.md))
 
 The Flutter client is a Cloudflare Worker; the APK is published to R2 on a version tag. Deployment
 detail is in [the runbook §2](../06-operations/01-runbook.md).
