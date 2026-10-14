@@ -87,7 +87,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | # | System | State |
 |---|---|---|
 | **1** | **Attribution** — point → road → contract → contractor | **Bar met on probes.** Open until real captures confirm it |
-| **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17% |
+| **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17%. A road defect now routes to a named desk in **all 24 wards**, read out of BMC's own PIO list ([D145](05-decision-log.md)); waste and water remain R/C only |
 | 3 | **Classification** — what is in the photograph | **Built, measurement running.** Six categories, versioned prompt, guardrails. `ingest eval` scores whatever is labelled and re-runs as the set grows; 5 cases on 12 Oct — category 5/5, subcategory 4/5, no hazards missed. The ≥90% bar accrues from use ([D114](05-decision-log.md)) |
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built, surfaced, and now public.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies, and is readable at `/issue/{id}` without the actor |
 | 5 | Accounts — OTP, rate limits, reset, revocation | **Partly built.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)) work. Missing: reset, email verification, revocation, phone OTP |
@@ -216,7 +216,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0028 is current)
+make migrate       # applies anything newer than the deployed schema (0029 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
