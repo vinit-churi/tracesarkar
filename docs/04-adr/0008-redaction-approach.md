@@ -91,7 +91,8 @@ the person who took a photograph drags a box around every face and every number 
 the conditions that make it hard from a fixed vocabulary, and says whether anybody is visible at
 all. The judgement is stored in fractions of the image (migration 0026), so it survives the
 photograph being resized, and `ingest redact-eval` runs both detectors over the originals and
-scores them against it.
+scores them against it. It is deployed: `/truth/` answers on the Cloud Run service from
+`a81a160`, so the set can be filled from a phone in the field rather than from a laptop.
 
 Three rules the harness keeps:
 

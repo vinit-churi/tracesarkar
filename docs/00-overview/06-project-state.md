@@ -215,7 +215,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 22 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0025 is current)
+make migrate       # applies anything newer than the deployed schema (0026 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -235,16 +235,19 @@ make test-live     # the tests that touch the real bucket and database
 | Grading the detector against marked-up photographs | `internal/redact/eval.go`, `cmd/ingest/redact_eval.go` |
 | What a public surface may show | `internal/publish/` |
 | The next step a report earns | `internal/action/` |
-| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit}/` |
+| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/` |
 | SQL | `internal/store/` — hand-written, no ORM. Migrations are forward-only and numbered |
 
 ### What is deployed, and how
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00028-skz` (`a81a160`) carries
+  `/truth/` and the annotation routes
 - `tracesarkar-collector` — twice daily, alerts on failure
-- `tracesarkar-sweep` — every ten minutes
+- `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image; it was rebuilt at
+  `a81a160` so a newly captured photograph is scanned by `edge-density-2`, not the localiser that
+  was blind to large plates ([D134](05-decision-log.md))
 
 The Flutter client is a Cloudflare Worker; the APK is published to R2 on a version tag. Deployment
 detail is in [the runbook §2](../06-operations/01-runbook.md).
