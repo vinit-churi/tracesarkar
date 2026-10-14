@@ -34,3 +34,43 @@ func TestTheCourtsPotholeDeadlineBindsPotholesOnly(t *testing.T) {
 		}
 	}
 }
+
+// The ward page lists desks by category, but the court's forty-eight hours
+// binds a subcategory. Scoping the constant correctly (D138) silently dropped
+// the obligation from every ward page, because the page looked it up by
+// category and found nothing.
+//
+// Dropping it is wrong: the obligation is real and a resident reading a ward
+// page should see it. Attaching it to the whole category is also wrong. So it
+// is shown with the scope it actually has.
+func TestACategoryReportsTheObligationsBoundWithinIt(t *testing.T) {
+	cases := []struct {
+		category string
+		wantKey  string
+		wantFor  string
+	}{
+		{"road_defect", "pothole.attend_hours.court", "potholes"},
+		{"waste", "waste.refuse_removal_hours", ""},
+		{"water_drainage", "", ""},
+		{"street_furniture", "", ""},
+	}
+	for _, c := range cases {
+		got := deadlinesWithin(c.category)
+		if c.wantKey == "" {
+			if len(got) != 0 {
+				t.Errorf("%s: invented %d obligation(s): %+v", c.category, len(got), got)
+			}
+			continue
+		}
+		if len(got) != 1 {
+			t.Errorf("%s: got %d obligations, want 1", c.category, len(got))
+			continue
+		}
+		if got[0].key != c.wantKey {
+			t.Errorf("%s: key %q, want %q", c.category, got[0].key, c.wantKey)
+		}
+		if got[0].appliesTo != c.wantFor {
+			t.Errorf("%s: scope %q, want %q", c.category, got[0].appliesTo, c.wantFor)
+		}
+	}
+}

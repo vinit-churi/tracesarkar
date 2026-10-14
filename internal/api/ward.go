@@ -31,8 +31,11 @@ type publicDesk struct {
 	EscalatesTo      string `json:"escalates_to,omitempty"`
 	DeadlineHours    int    `json:"deadline_hours,omitempty"`
 	DeadlineCitation string `json:"deadline_citation,omitempty"`
-	Source           string `json:"source"`
-	RetrievedAt      string `json:"retrieved_at"`
+	// DeadlineAppliesTo is what the obligation covers inside this desk's
+	// category, when it does not cover all of it.
+	DeadlineAppliesTo string `json:"deadline_applies_to,omitempty"`
+	Source            string `json:"source"`
+	RetrievedAt       string `json:"retrieved_at"`
 }
 
 // handleWardProfile serves what is known about one ward, to anybody.
@@ -65,11 +68,12 @@ func (s *Server) handleWardProfile(w http.ResponseWriter, r *http.Request) {
 			Officer: d.Officer, Office: d.Office,
 			Phone: d.OfficePhone, Email: d.OfficeEmail,
 			Hours: d.OfficeHours, VisitingHours: d.VisitingHours,
-			EscalatesTo:      d.EscalatesTo,
-			DeadlineHours:    d.DeadlineHours,
-			DeadlineCitation: d.DeadlineCitation,
-			Source:           d.SourceRef,
-			RetrievedAt:      d.RetrievedAt.UTC().Format("2 January 2006"),
+			EscalatesTo:       d.EscalatesTo,
+			DeadlineHours:     d.DeadlineHours,
+			DeadlineCitation:  d.DeadlineCitation,
+			DeadlineAppliesTo: d.DeadlineAppliesTo,
+			Source:            d.SourceRef,
+			RetrievedAt:       d.RetrievedAt.UTC().Format("2 January 2006"),
 		})
 	}
 

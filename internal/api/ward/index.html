@@ -117,10 +117,18 @@ function desk(d) {
   // A deadline is shown only with the document that creates it, and its
   // absence is stated rather than left blank — no published deadline is a
   // fact about the obligation, not a gap in the page.
+  // The scope travels with the number. An obligation that binds potholes,
+  // shown against a desk that covers every road defect, has to say so — the
+  // order reads "All potholes", and stretching it is the one direction a
+  // public page must not err in.
+  const scope = d.deadline_applies_to
+    ? ' This applies to ' + esc(d.deadline_applies_to) + ', not to everything this desk covers.'
+    : '';
   const clock = d.deadline_hours
     ? '<div class="clock"><b>' + d.deadline_hours + ' hours</b> to attend, once the '
       + 'corporation has been told. The clock starts when a complaint is lodged, '
-      + 'not when the problem began.<div class="cite">' + esc(d.deadline_citation) + '</div></div>'
+      + 'not when the problem began.' + scope
+      + '<div class="cite">' + esc(d.deadline_citation) + '</div></div>'
     : '<div class="clock noclock">No deadline is published for this. '
       + 'TraceSarkar will not quote a number it cannot source.</div>';
 

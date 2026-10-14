@@ -3,9 +3,12 @@ package store
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vinit-churi/tracesarkar/internal/classify"
 )
 
 // Routing is the desk a problem belongs to, and what obliges it.
@@ -50,6 +53,53 @@ var deadlineKeys = map[string]string{
 // the photograph, and a forwarded post is not correctable.
 var subcategoryDeadlineKeys = map[string]string{
 	"pothole": "pothole.attend_hours.court",
+}
+
+// boundDeadline is a constant and the thing inside a category it binds.
+// appliesTo is empty when it binds the whole category.
+type boundDeadline struct {
+	key       string
+	appliesTo string
+}
+
+// categoryScopes names, in words a resident would read, what a subcategory
+// constant actually covers. A scope with no wording here is not published on a
+// surface that lists categories, because "48 hours" beside a category it does
+// not bind is the overstatement D138 removed.
+var categoryScopes = map[string]string{"pothole": "potholes"}
+
+// deadlinesWithin lists the obligations that bind anything inside a category.
+//
+// The ward page lists desks by category while the court's forty-eight hours
+// binds potholes, so scoping the constant correctly dropped the obligation
+// from every ward page — the page asked by category and found nothing.
+// Dropping it is wrong, since the obligation is real and a resident should see
+// it; attaching it to the category is the overstatement that was just removed.
+// So it is returned with the scope it has, and the surface states both.
+func deadlinesWithin(category string) []boundDeadline {
+	category = strings.TrimSpace(category)
+	var out []boundDeadline
+	if k, ok := deadlineKeys[category]; ok {
+		out = append(out, boundDeadline{key: k})
+	}
+	// Deterministic order: the taxonomy is small and a map range would reorder
+	// a public page between requests.
+	subs := make([]string, 0, len(subcategoryDeadlineKeys))
+	for sub := range subcategoryDeadlineKeys {
+		subs = append(subs, sub)
+	}
+	sort.Strings(subs)
+	for _, sub := range subs {
+		if classify.CategoryOf(sub) != category {
+			continue
+		}
+		scope, ok := categoryScopes[sub]
+		if !ok {
+			continue
+		}
+		out = append(out, boundDeadline{key: subcategoryDeadlineKeys[sub], appliesTo: scope})
+	}
+	return out
 }
 
 // deadlineKeyFor picks the narrowest constant that actually binds this thing,
@@ -157,6 +207,11 @@ type Desk struct {
 	RetrievedAt      time.Time
 	DeadlineHours    int
 	DeadlineCitation string
+	// DeadlineAppliesTo names what inside the category the obligation binds,
+	// empty when it binds the whole category. A desk is listed by category and
+	// the court's forty-eight hours binds potholes, so the scope has to travel
+	// with the number or the page overstates the law.
+	DeadlineAppliesTo string
 }
 
 // WardProfile is everything the platform can say about a ward without any
@@ -208,23 +263,33 @@ func (d *DB) WardProfileFor(ctx context.Context, authority, ward string) (WardPr
 	}
 
 	// The deadline for each desk, from the same table the product reads.
+	//
+	// A desk is listed by category and an obligation may bind only part of one,
+	// so the scope travels with the number. "48 hours" beside a category the
+	// order does not cover is the overstatement D138 removed; dropping it
+	// altogether loses an obligation a resident should see.
 	for i := range p.Desks {
-		key, ok := deadlineKeys[p.Desks[i].Category]
-		if !ok {
-			continue
-		}
-		var value, citation string
-		err := d.pool.QueryRow(ctx, `
-			SELECT value::text, citation FROM legal_constants
-			 WHERE key = $1 AND effective_from <= now()::date
-			   AND (effective_to IS NULL OR effective_to >= now()::date)
-			 ORDER BY effective_from DESC LIMIT 1`, key).Scan(&value, &citation)
-		if err != nil {
-			continue
-		}
-		if hours, convErr := strconv.Atoi(strings.Trim(value, `"`)); convErr == nil {
-			p.Desks[i].DeadlineHours = hours
-			p.Desks[i].DeadlineCitation = citation
+		for _, bound := range deadlinesWithin(p.Desks[i].Category) {
+			var value, citation string
+			err := d.pool.QueryRow(ctx, `
+				SELECT value::text, citation FROM legal_constants
+				 WHERE key = $1 AND effective_from <= now()::date
+				   AND (effective_to IS NULL OR effective_to >= now()::date)
+				 ORDER BY effective_from DESC LIMIT 1`, bound.key).Scan(&value, &citation)
+			if err != nil {
+				continue
+			}
+			hours, convErr := strconv.Atoi(strings.Trim(value, `"`))
+			if convErr != nil || citation == "" {
+				continue
+			}
+			// The first obligation found wins the desk's own fields, which is
+			// what a surface with one slot renders.
+			if p.Desks[i].DeadlineHours == 0 {
+				p.Desks[i].DeadlineHours = hours
+				p.Desks[i].DeadlineCitation = citation
+				p.Desks[i].DeadlineAppliesTo = bound.appliesTo
+			}
 		}
 	}
 

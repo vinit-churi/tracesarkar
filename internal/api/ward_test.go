@@ -171,3 +171,40 @@ func TestTheWardPageIsPublicAndHonest(t *testing.T) {
 		t.Error("the page does not say it carries no citizen data")
 	}
 }
+
+// An obligation that binds part of a category must say so on a page that
+// lists desks by category. Scoping the pothole order correctly dropped it from
+// every ward page until the scope travelled with it.
+func TestTheWardPageStatesWhatAnObligationCovers(t *testing.T) {
+	w := &fakeWards{profile: store.WardProfile{
+		Authority: "BMC", Ward: "K/E",
+		Desks: []store.Desk{{
+			Category: "road_defect", Department: "K/E Ward — Maintenance & Repair",
+			Officer: "Assistant Engineer (Maintenance & Repair), K/E Ward",
+			SourceRef: "https://example.test/pio.pdf", RetrievedAt: time.Now(),
+			DeadlineHours: 48, DeadlineCitation: "Bombay HC, PIL 71/2013, para 70(ix)",
+			DeadlineAppliesTo: "potholes",
+		}},
+	}}
+	rec := httptest.NewRecorder()
+	wardServer(t, w).Handler().ServeHTTP(rec,
+		httptest.NewRequest("GET", "/v1/public/ward/BMC/K%2FE", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("body: %v", err)
+	}
+	desks, _ := body["desks"].([]any)
+	if len(desks) == 0 {
+		t.Fatalf("no desks: %s", rec.Body.String())
+	}
+	d := desks[0].(map[string]any)
+	if d["deadline_hours"] == nil {
+		t.Error("the obligation vanished from the ward page")
+	}
+	if d["deadline_applies_to"] != "potholes" {
+		t.Errorf("scope is %v, want potholes", d["deadline_applies_to"])
+	}
+}
