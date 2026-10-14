@@ -80,7 +80,8 @@ against it. Three things follow for privacy: the marking-up surface serves the *
 original**, so it is signed in, scoped to the account that took the photograph, and sent
 `Cache-Control: private`; the truth table holds boxes and words, never an image; and recall over a
 set with no face in it is reported as unmeasured rather than as a pass. **No photograph in the set
-yet contains a face or a plate, so recall is still unknown, and that is the gate** — see
+yet contains a face or a plate, so recall is still unknown. The owner has accepted that risk
+rather than hold the release ([D144](../00-overview/05-decision-log.md))** — see
 [ADR 0008](../04-adr/0008-redaction-approach.md).
 
 ---

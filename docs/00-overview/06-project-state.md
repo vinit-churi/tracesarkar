@@ -263,13 +263,16 @@ did not agree to publish them. It was briefly public and was closed; the public 
 
 ## 9. Next actions
 
-### The one thing that gates everything else
+### Worth doing, and no longer a blocker
 
 - [ ] **Fill the adversarial redaction set.** The machinery is built: `/truth/` to drag a box round
       every face and plate in a photograph, and `make redact-eval` to score the detectors against
       what you recorded ([D132](05-decision-log.md), [D133](05-decision-log.md)). What it has no
       supply of is photographs. Nothing in the five stored captures contains a face or a plate, so
-      recall is still unmeasured and no public image should exist until it is not.
+      recall is still unmeasured. **This no longer blocks anything**: the owner has accepted the
+      residual risk and asked that it not be treated as a defect ([D144](05-decision-log.md)). The
+      detectors still run on every capture and still hold an image they cannot account for; what is
+      gone is the rule that said no public image may exist until recall is measured.
       **What the set needs:** faces at distance, in profile, partly occluded, at night, backlit, in
       a crowd; plates at an angle, on two-wheelers, the yellow commercial ones, hand-painted, and
       half-hidden behind another vehicle. Mark them up the same evening — the conditions are what

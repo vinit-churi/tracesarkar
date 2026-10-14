@@ -77,12 +77,16 @@ Three things this ADR said, now enforced rather than intended:
 - **The permissive-licence review** this ADR required: pigo is MIT, vendored at
   `internal/redact/cascade/` with its licence beside it.
 
-**The adversarial set is still outstanding, and it is the gate.** Run over every stored capture on
+**The adversarial set is still outstanding.** It is no longer a release gate: the owner has
+accepted the residual risk of publishing an unmeasured detector's output, and asked that the
+absence not be recorded as a defect ([D144](../00-overview/05-decision-log.md)). The detectors
+still run ahead of every public derivative and still hold an image they cannot account for — what
+was withdrawn is the prohibition, not the mechanism. Run over every stored capture on
 13 October, the detector reached a verdict on all five real ones and produced four false positives
 on litter and pavement — the harmless direction. It measured no recall at all, because none of the
 five contains a face or a plate. Faces at distance, partial occlusion, reflections, night, and
-Indian plate formats at angle remain unmeasured, and no public image should exist until they are
-not.
+Indian plate formats at angle remain unmeasured. That measurement is still worth having, and the
+platform now ships without waiting for it.
 
 ## The set, 14 October 2026
 

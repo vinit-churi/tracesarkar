@@ -146,7 +146,7 @@ producing real usage. See [`docs/05-delivery/01-roadmap.md`](docs/05-delivery/01
 | **Region** | Mumbai Metropolitan Region — BMC R/C ward, Borivali, first |
 | **Backend** | Go. `cmd/ingest` collects and resolves, `cmd/api` serves; PostgreSQL 18 + PostGIS, Cloudflare R2 |
 | **Where things stand** | [`docs/00-overview/06-project-state.md`](docs/00-overview/06-project-state.md) — read this first, on any machine |
-| **Gating everything** | The adversarial redaction set. It can now be built (`/truth/`) and scored (`make redact-eval`); what it has none of is photographs containing a face or a plate |
+| **Known unmeasured** | Redaction recall. The harness exists (`/truth/`, `make redact-eval`); the set has no face or plate in it. Accepted by the owner rather than gating a release ([D144](docs/00-overview/05-decision-log.md)) |
 | **Docs last reviewed** | 2026-10-14 |
 
 ---

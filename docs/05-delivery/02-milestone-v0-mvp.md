@@ -117,7 +117,7 @@ summary of it, as of 13 October 2026:
 | 3 Classification | **Built, measuring.** The eval re-runs on whatever is labelled rather than waiting for a round number ([D114](../00-overview/05-decision-log.md)) |
 | 4 Issues | **Built and surfaced.** Dedup, corroboration, the clock, the hash chain |
 | 5 Accounts | **Partly built.** Email/password, Google, sessions, forgery resistance and rate limiting work. Missing: reset, email verification, revocation, phone OTP |
-| 6 Public surface | **Built.** Redaction, coarsening, the ward page and the issue permalink. The detectors are now gradable — `/truth/` records what a person can see, `make redact-eval` scores them — and the set has no face or plate in it yet, which is the gate |
+| 6 Public surface | **Built.** Redaction, coarsening, the ward page and the issue permalink. The detectors are now gradable — `/truth/` records what a person can see, `make redact-eval` scores them — and the set has no face or plate in it yet. Not a blocker ([D144](../00-overview/05-decision-log.md)) |
 | 7 Share kit | **Built.** The post in three languages and two channels, the annotated image, and a sourced handle registry. Marathi and Hindi serve as drafts until a native speaker reads them. The permalink unfurls into the facts in any chat, the card is drawn in 9:16 for Status and Stories, and a signed-in reporter can compile the record as a deterministic, stamped PDF. Missing: the WhatsApp intake bot |
 | 8 Operator console | Not started |
 
