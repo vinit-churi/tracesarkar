@@ -211,10 +211,10 @@ issue permalink — language toggle, editable text, and WhatsApp first.
 |---|---|
 | **Post text**, per channel and per language | Built. English, Marathi, Hindi × WhatsApp, X |
 | **Annotated image** | Built. The fact block sits *below* the photograph, not across it |
-| **Permalink** | Built earlier ([D130](../00-overview/05-decision-log.md)); no Open Graph card yet |
+| **Permalink** | Built earlier ([D130](../00-overview/05-decision-log.md)), and it now unfurls: a bare link in any chat becomes the title, the facts and the annotated card ([D139](../00-overview/05-decision-log.md)) |
 | **Handle registry** | Built, with one row in it |
 | **Evidence PDF** | Not built |
-| **Instagram / Story card** | Not built |
+| **Instagram / Story card** | Built. `?shape=story` draws the same facts into 9:16 ([D140](../00-overview/05-decision-log.md)) |
 | **WhatsApp intake bot** | Not built |
 
 ### What §3's structure became in practice
@@ -237,6 +237,16 @@ Four rules are tests rather than intentions ([ADR 0020](../04-adr/0020-share-tex
 - **An unlodged issue never claims anybody was told**, because photographing something here
   notifies nobody.
 
+### What the unfurl cost
+
+Making a link unfurl meant giving up the rule that the page shell was the same bytes for every id.
+That rule existed so a crawler reached nothing before the gate had been consulted, so the gate moved
+*earlier* rather than being relaxed: the issue is read before a byte is written, an unknown id is a
+404 from the server, and `publish.Derive` decides whether an image may be named at all. A held
+photograph is never offered to a preview crawler, which matters more than on the page itself —
+WhatsApp and X cache what they fetch, out of reach of any later correction
+([D139](../00-overview/05-decision-log.md)).
+
 ### The two things it changed elsewhere
 
 Writing the post surfaced a defect on the page it links to. The Bombay High Court's forty-eight
@@ -254,5 +264,6 @@ publishes no social links; none of the twenty-four ward accounts is seeded at al
   drafts, labelled as drafts in the API and on the page. This is the one outstanding item that a
   user sees.
 - **First-hand verification of `@mybmc`**, and a decision on ward handles.
-- **An Open Graph card**, so a bare link in any chat unfurls into the argument. The card image route
-  exists; the page does not reference it in metadata yet.
+- **The evidence PDF**, for meetings and filings. It is the one artefact in §1 still missing, and
+  the one Sunita's use needs.
+- **A WhatsApp intake bot** (§5.5), which is a distribution unlock rather than a share artefact.

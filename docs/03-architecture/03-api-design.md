@@ -327,6 +327,7 @@ GET /v1/public/issue/{id}                 # one issue: coarsened cell, history w
 GET /v1/public/issue/{id}/image           # the redacted copy, fitted to the 150 KB budget
 GET /v1/public/issue/{id}/share           # the written post, per language and per channel
 GET /v1/public/issue/{id}/card            # the same photograph with the facts printed under it
+GET /v1/public/issue/{id}/card?shape=story  # the same card in 9:16, for Status and Stories
 ```
 
 The issue endpoints go through `publish.Derive`, which coarsens the position and refuses to name
@@ -343,7 +344,14 @@ the redacted copy and 404s on a photograph the gate withheld, exactly as `/image
 
 The kit's response names the languages that are still drafts, so a client can mark them; and it
 says when the handle registry could not be read, because an untagged post reads exactly like a
-finished one.
+finished one. A `shape` with no layout is a 400 rather than the default card, because somebody
+asking for a frame is going to post the result into it.
+
+The page at `GET /issue/{id}` is served by the API too, and is no longer a static shell: the issue
+is read before a byte is written so the page can carry Open Graph and Twitter Card metadata, which
+is what makes a bare link in a chat unfurl into the facts. An id the database does not know is a
+404 from the server, and the preview image is named only when the redaction gate allows it — a
+preview is cached by whoever fetched it ([D139](../00-overview/05-decision-log.md)).
 
 The rest of this section is design, not code:
 

@@ -179,3 +179,66 @@ func looksLikeCoordinate(s string) bool {
 	}
 	return false
 }
+
+// WhatsApp Status and Instagram Stories are a real MMR channel and they are
+// 9:16. A landscape card posted there is letterboxed into illegibility.
+func TestTheStoryCardIsPortraitAndKeepsEveryFact(t *testing.T) {
+	photo := image.NewRGBA(image.Rect(0, 0, 1200, 900))
+	for y := 0; y < 900; y++ {
+		for x := 0; x < 1200; x++ {
+			photo.Set(x, y, color.RGBA{R: 30, G: 120, B: 90, A: 255})
+		}
+	}
+	c := CardFor(lodgedFacts())
+
+	out, err := DrawStory(photo, c)
+	if err != nil {
+		t.Fatalf("DrawStory: %v", err)
+	}
+	b := out.Bounds()
+	ratio := float64(b.Dy()) / float64(b.Dx())
+	if ratio < 1.7 || ratio > 1.8 {
+		t.Errorf("story card is %dx%d (ratio %.2f), want about 9:16", b.Dx(), b.Dy(), ratio)
+	}
+
+	// The photograph must still be in it, undistorted: a card that stretched
+	// the evidence to fill a frame is not evidence.
+	found := false
+	for y := 0; y < b.Dy() && !found; y += 7 {
+		for x := 0; x < b.Dx(); x += 7 {
+			if r, g, bb, _ := out.At(x, y).RGBA(); r>>8 == 30 && g>>8 == 120 && bb>>8 == 90 {
+				found = true
+				break
+			}
+		}
+	}
+	if !found {
+		t.Error("the photograph is not in the story card")
+	}
+}
+
+func TestTheStoryCardEncodesInsideTheBudget(t *testing.T) {
+	photo := image.NewRGBA(image.Rect(0, 0, 1600, 1200))
+	for y := 0; y < 1200; y++ {
+		for x := 0; x < 1600; x++ {
+			photo.Set(x, y, color.RGBA{R: uint8(x % 251), G: uint8(y % 241), B: 70, A: 255})
+		}
+	}
+	body, err := EncodeShape(photo, CardFor(lodgedFacts()), Story)
+	if err != nil {
+		t.Fatalf("EncodeShape: %v", err)
+	}
+	if _, err := jpeg.Decode(bytes.NewReader(body)); err != nil {
+		t.Fatalf("not a decodable jpeg: %v", err)
+	}
+	if len(body) > CardBudgetBytes {
+		t.Errorf("story card is %d bytes, budget is %d", len(body), CardBudgetBytes)
+	}
+}
+
+func TestAnUnknownShapeIsRefusedRatherThanGuessedAt(t *testing.T) {
+	photo := image.NewRGBA(image.Rect(0, 0, 200, 150))
+	if _, err := EncodeShape(photo, CardFor(lodgedFacts()), Shape("square")); err == nil {
+		t.Error("EncodeShape accepted a shape it has no layout for")
+	}
+}

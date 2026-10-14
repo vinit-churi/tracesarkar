@@ -215,3 +215,53 @@ func TestTheKitSaysSoWhenItIsNotConfigured(t *testing.T) {
 		t.Errorf("status %d, want 501", rec.Code)
 	}
 }
+
+func TestTheCardIsOfferedInTheShapeTheChannelWants(t *testing.T) {
+	f := &fakePublicIssues{view: anIssue(), found: true}
+	srv := shareServer(t, f, &fakeHandles{})
+
+	var feedH, storyH int
+	for _, c := range []struct {
+		query    string
+		portrait bool
+	}{
+		{"", false},
+		{"?shape=feed", false},
+		{"?shape=story", true},
+	} {
+		rec := httptest.NewRecorder()
+		srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET",
+			"/v1/public/issue/"+f.view.IssueID+"/card"+c.query, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%q: status %d: %s", c.query, rec.Code, rec.Body.String())
+		}
+		img, err := jpeg.Decode(strings.NewReader(rec.Body.String()))
+		if err != nil {
+			t.Fatalf("%q: not a jpeg: %v", c.query, err)
+		}
+		b := img.Bounds()
+		if c.portrait {
+			storyH = b.Dy()
+			if b.Dy() <= b.Dx() {
+				t.Errorf("the story card is %dx%d, which is not portrait", b.Dx(), b.Dy())
+			}
+		} else {
+			feedH = b.Dy()
+		}
+	}
+	if feedH == 0 || storyH == 0 {
+		t.Fatal("one of the shapes produced nothing")
+	}
+}
+
+// A shape with no layout is a 400, not the default card: somebody asking for a
+// frame is going to post the result into it.
+func TestAnUnknownCardShapeIsRefused(t *testing.T) {
+	f := &fakePublicIssues{view: anIssue(), found: true}
+	rec := httptest.NewRecorder()
+	shareServer(t, f, &fakeHandles{}).Handler().ServeHTTP(rec,
+		httptest.NewRequest("GET", "/v1/public/issue/"+f.view.IssueID+"/card?shape=square", nil))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status %d, want 400", rec.Code)
+	}
+}

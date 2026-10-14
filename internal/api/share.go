@@ -51,6 +51,8 @@ func (s *Server) handleShareKit(w http.ResponseWriter, r *http.Request) {
 		"posts":      kit.Posts,
 		"card":       kit.Card.Lines(),
 		"card_image": "/v1/public/issue/" + v.IssueID + "/card",
+		// 9:16, for WhatsApp Status and Instagram Stories.
+		"card_story": "/v1/public/issue/" + v.IssueID + "/card?shape=story",
 		"note": "Every fact in these posts is on the issue page, with the " +
 			"document it came from. Nothing here is sent for you.",
 	}
@@ -91,6 +93,26 @@ func draftLanguages(k share.Kit) []string {
 // handle" and "we could not look" are different answers and only one of them
 // is safe to render silently.
 func (s *Server) factsFor(r *http.Request, v store.PublicIssueView) (share.Facts, bool) {
+	f, _ := factsOnly(r, v)
+
+	if s.handles == nil {
+		return f, false
+	}
+	hs, err := s.handles.Handles(r.Context(), v.Authority, v.Ward)
+	if err != nil {
+		s.log.Error("could not read the handle registry", "error", err.Error())
+		return f, true
+	}
+	f.Handles = hs
+	return f, false
+}
+
+// factsOnly narrows the public view without consulting the registry.
+//
+// Separate from factsFor because the unfurl needs the same narrowing and no
+// handles: metadata tags nobody, and a page render should not wait on a
+// registry query it has no use for.
+func factsOnly(r *http.Request, v store.PublicIssueView) (share.Facts, publish.Derivative) {
 	d := publish.Derive(publish.Capture{
 		ReportID: v.IssueID, Lat: v.Lat, Lon: v.Lon,
 		Category: v.Category, Subcategory: v.Subcategory,
@@ -119,17 +141,7 @@ func (s *Server) factsFor(r *http.Request, v store.PublicIssueView) (share.Facts
 	// Deliberately absent: Lat, Lon and Reference. The position is a cell on
 	// the page and nothing on a forwarded post, and the reference belongs to
 	// the person who lodged the complaint.
-
-	if s.handles == nil {
-		return f, false
-	}
-	hs, err := s.handles.Handles(r.Context(), v.Authority, v.Ward)
-	if err != nil {
-		s.log.Error("could not read the handle registry", "error", err.Error())
-		return f, true
-	}
-	f.Handles = hs
-	return f, false
+	return f, d
 }
 
 // handleShareCard draws the fact block under the redacted photograph.
@@ -173,8 +185,20 @@ func (s *Server) handleShareCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// An unknown shape is refused rather than quietly served as the default:
+	// somebody asking for a frame is going to post the result into it.
+	shape := share.Feed
+	if q := r.URL.Query().Get("shape"); q != "" {
+		shape = share.Shape(q)
+		if !share.KnownShape(shape) {
+			writeError(w, http.StatusBadRequest,
+				`shape must be "feed" or "story"`)
+			return
+		}
+	}
+
 	f, _ := s.factsFor(r, v)
-	body, err := share.Encode(photo, share.CardFor(f))
+	body, err := share.EncodeShape(photo, share.CardFor(f), shape)
 	if err != nil {
 		s.log.Error("could not draw a share card", "error", err.Error())
 		writeError(w, http.StatusInternalServerError, "could not draw the card for this issue")

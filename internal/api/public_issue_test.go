@@ -299,22 +299,24 @@ func mustJSON(t *testing.T, v any) string {
 	return string(b)
 }
 
-func TestTheIssuePageIsPublicAndHoldsNoIssueData(t *testing.T) {
+func TestTheIssuePageIsPublicAndCarriesNoReporterData(t *testing.T) {
 	rec := httptest.NewRecorder()
-	// Deliberately no Authorization header, and an id that does not exist.
-	publicServer(t, &fakePublicIssues{found: false}, &fakeStore{}).Handler().
-		ServeHTTP(rec, httptest.NewRequest("GET", "/issue/3f1a0f9c-0000-4000-8000-000000000001/", nil))
+	// Deliberately no Authorization header: this surface is public.
+	publicServer(t, &fakePublicIssues{found: true, view: anIssue()}, &fakeStore{}).Handler().
+		ServeHTTP(rec, httptest.NewRequest("GET", "/issue/"+anIssue().IssueID+"/", nil))
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("got %d for the page shell: %s", rec.Code, rec.Body.String())
+		t.Fatalf("got %d for the page: %s", rec.Code, rec.Body.String())
 	}
 	page := rec.Body.String()
 
-	// The shell is the same bytes for every issue. Anything issue-specific in
-	// it would be served to a crawler before the gate had been consulted.
+	// The page now carries per-issue metadata so that a link unfurls into the
+	// facts, which makes what it may NOT carry the thing worth asserting: an
+	// unfurl is fetched by a third party and cached out of reach of any later
+	// correction.
 	for _, leak := range []string{reporterID, reference, "19.2309", "72.8567", "media/"} {
 		if strings.Contains(page, leak) {
-			t.Errorf("the page shell carries %q", leak)
+			t.Errorf("the page carries %q", leak)
 		}
 	}
 	// It has to say the three things the design promises, in the markup, so a
@@ -330,23 +332,41 @@ func TestTheIssuePageIsPublicAndHoldsNoIssueData(t *testing.T) {
 	}
 }
 
-func TestTheIssuePageServesEveryIdTheSameShell(t *testing.T) {
-	srv := publicServer(t, &fakePublicIssues{found: true, view: anIssue()}, &fakeStore{})
+// The page is served only after the issue has been read, so a trailing slash
+// is the same page and an id the database does not know is not a page at all.
+//
+// This replaces the earlier rule that every id got identical bytes. That rule
+// existed so a crawler could reach nothing before the gate had been consulted;
+// the gate is now consulted first instead, which is the same guarantee earlier
+// in the request ([D139](../../docs/00-overview/05-decision-log.md)).
+func TestTheIssuePageIsServedOnlyAfterTheIssueHasBeenRead(t *testing.T) {
+	known := publicServer(t, &fakePublicIssues{found: true, view: anIssue()}, &fakeStore{})
 	var first string
 	for _, path := range []string{
-		"/issue/3f1a0f9c-0000-4000-8000-000000000001",
-		"/issue/3f1a0f9c-0000-4000-8000-000000000001/",
-		"/issue/not-a-uuid/",
+		"/issue/" + anIssue().IssueID,
+		"/issue/" + anIssue().IssueID + "/",
 	} {
 		rec := httptest.NewRecorder()
-		srv.Handler().ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		known.Handler().ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
 		if rec.Code != http.StatusOK {
 			t.Fatalf("%s: got %d", path, rec.Code)
 		}
 		if first == "" {
 			first = rec.Body.String()
 		} else if rec.Body.String() != first {
-			t.Errorf("%s served a different shell", path)
+			t.Errorf("%s served a different page", path)
+		}
+	}
+
+	unknown := publicServer(t, &fakePublicIssues{found: false}, &fakeStore{})
+	for _, path := range []string{
+		"/issue/3f1a0f9c-0000-4000-8000-0000000000ff",
+		"/issue/not-a-uuid/",
+	} {
+		rec := httptest.NewRecorder()
+		unknown.Handler().ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: got %d, want 404", path, rec.Code)
 		}
 	}
 }

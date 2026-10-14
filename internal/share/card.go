@@ -1,12 +1,10 @@
 package share
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"image/jpeg"
 	"strconv"
 	"strings"
 	"time"
@@ -51,15 +49,36 @@ type Card struct {
 	Mark     string
 }
 
+// Thing names what was photographed, in English, as specifically as the
+// vocabulary allows. It is the noun every surface should use for this capture.
+func Thing(f Facts) string {
+	en, err := vocabulary(EN)
+	if err != nil {
+		return strings.TrimSpace(f.Subcategory)
+	}
+	t, _ := en.thing(f)
+	if t == "" {
+		return strings.TrimSpace(f.Subcategory)
+	}
+	return t
+}
+
+// Title is the issue in one line, in sentence case: "Pothole · R/C ward".
+//
+// Separate from the card's headline, which is set in capitals because it is
+// read at a glance on a forwarded image. A link preview is read as a sentence,
+// and capitals there read as shouting.
+func Title(f Facts) string {
+	t := Thing(f)
+	if f.Ward != "" {
+		t += " · " + f.Ward + " ward"
+	}
+	return t
+}
+
 // CardFor derives the block from the fact set.
 func CardFor(f Facts) Card {
-	en, err := vocabulary(EN)
-	thing := strings.TrimSpace(f.Subcategory)
-	if err == nil {
-		if t, _ := en.thing(f); t != "" {
-			thing = t
-		}
-	}
+	thing := Thing(f)
 
 	c := Card{
 		Headline: strings.ToUpper(thing),
@@ -236,22 +255,7 @@ func Draw(photo image.Image, c Card) (image.Image, error) {
 // shrunk: a card that has lost a fact is worse than a card that is slightly
 // soft, and the facts are the point.
 func Encode(photo image.Image, c Card) ([]byte, error) {
-	annotated, err := Draw(photo, c)
-	if err != nil {
-		return nil, err
-	}
-	var last []byte
-	for _, q := range []int{82, 70, 60, 50, 40} {
-		var buf bytes.Buffer
-		if err := jpeg.Encode(&buf, annotated, &jpeg.Options{Quality: q}); err != nil {
-			return nil, fmt.Errorf("share: encode card: %w", err)
-		}
-		last = buf.Bytes()
-		if len(last) <= CardBudgetBytes {
-			return last, nil
-		}
-	}
-	return last, nil
+	return EncodeShape(photo, c, Feed)
 }
 
 func face(ttf []byte, size float64) (interface {

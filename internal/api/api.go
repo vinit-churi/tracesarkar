@@ -229,10 +229,12 @@ func (s *Server) Handler() http.Handler {
 			mux.Handle("GET /ward", http.RedirectHandler("/ward/", http.StatusFound))
 		}
 		// The issue permalink carries an id in its path, so it cannot be a
-		// plain file server: every id serves the same page, which reads the id
-		// back and asks the public endpoint for it. Nothing about the issue is
-		// in the HTML, so the page itself discloses nothing.
-		if page, err := issuePage(); err == nil {
+		// plain file server. The shell reads the id back and asks the public
+		// endpoint for the facts, and the server fills in the metadata an
+		// unfurl needs — which means the gate is consulted before a byte is
+		// written, rather than afterwards by the page's own script.
+		if shell, err := issueShell(); err == nil {
+			page := s.issuePageHandler(shell)
 			mux.Handle("GET /issue/{id}", page)
 			mux.Handle("GET /issue/{id}/", page)
 		}
@@ -388,18 +390,13 @@ func staticPage(from embed.FS, name string) (http.Handler, error) {
 	return http.StripPrefix("/"+name, http.FileServer(http.FS(sub))), nil
 }
 
-// issuePage serves the issue permalink shell for any id.
-func issuePage() (http.Handler, error) {
+// issueShell is the permalink page before any issue has been read into it.
+func issueShell() ([]byte, error) {
 	body, err := issueFS.ReadFile("issue/index.html")
 	if err != nil {
 		return nil, fmt.Errorf("issue page: %w", err)
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "public, max-age=600")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(body)
-	}), nil
+	return body, nil
 }
 
 // methodologyHandler serves the public methodology page.
