@@ -243,8 +243,9 @@ make test-live     # the tests that touch the real bucket and database
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00030-wsk` (`a6167e8`)
-  carries `/truth/`, the share kit, the unfurling permalink and the narrowed deadline lookup
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00031-wln` (`bcacdda`)
+  carries `/truth/`, the share kit, the unfurling permalink, the evidence pack and the narrowed
+  deadline lookup
 - `tracesarkar-collector` — twice daily, alerts on failure
 - `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image, rebuilt at
   `b1aa75e`: a newly captured photograph is scanned by `edge-density-2` rather than the localiser
