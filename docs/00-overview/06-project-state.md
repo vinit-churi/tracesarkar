@@ -58,6 +58,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
+| Wards with a desk for a road defect | 24 of 24 · read out of BMC's own PIO list ([D145](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
 
@@ -243,9 +244,9 @@ make test-live     # the tests that touch the real bucket and database
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00031-wln` (`bcacdda`)
-  carries `/truth/`, the share kit, the unfurling permalink, the evidence pack and the narrowed
-  deadline lookup
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00032-84w` (`b5c9551`)
+  carries `/truth/`, the share kit, the unfurling permalink, the evidence pack, and obligations
+  shown with the scope they bind
 - `tracesarkar-collector` — twice daily, alerts on failure
 - `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image, rebuilt at
   `b1aa75e`: a newly captured photograph is scanned by `edge-density-2` rather than the localiser
