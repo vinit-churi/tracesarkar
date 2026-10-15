@@ -180,7 +180,7 @@ func TestTheWardPageStatesWhatAnObligationCovers(t *testing.T) {
 		Authority: "BMC", Ward: "K/E",
 		Desks: []store.Desk{{
 			Category: "road_defect", Department: "K/E Ward — Maintenance & Repair",
-			Officer: "Assistant Engineer (Maintenance & Repair), K/E Ward",
+			Officer:   "Assistant Engineer (Maintenance & Repair), K/E Ward",
 			SourceRef: "https://example.test/pio.pdf", RetrievedAt: time.Now(),
 			DeadlineHours: 48, DeadlineCitation: "Bombay HC, PIL 71/2013, para 70(ix)",
 			DeadlineAppliesTo: "potholes",

@@ -46,6 +46,49 @@ func TestLiveEveryWardHasARoadDefectDesk(t *testing.T) {
 	}
 }
 
+// Waste and water route everywhere too, each with the document behind it.
+func TestLiveEveryWardRoutesWasteAndWater(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, category := range []string{"waste", "water_drainage"} {
+		var missing []string
+		for _, ward := range jurisdiction.KnownWards() {
+			r, found, err := db.RoutingFor(ctx, "BMC", ward, category, "")
+			if err != nil {
+				t.Fatalf("%s/%s: %v", ward, category, err)
+			}
+			if !found || strings.TrimSpace(r.Department) == "" {
+				missing = append(missing, ward)
+				continue
+			}
+			if strings.TrimSpace(r.SourceRef) == "" {
+				t.Errorf("%s/%s: %q has no source reference", ward, category, r.Department)
+			}
+		}
+		if len(missing) > 0 {
+			t.Errorf("%s: %d ward(s) have no desk: %s",
+				category, len(missing), strings.Join(missing, " "))
+		}
+	}
+}
+
+// Refuse removal binds the whole waste category, so every ward should carry
+// the clock with its citation.
+func TestLiveTheWasteDeadlineReachesEveryWard(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		r, found, err := db.RoutingFor(ctx, "BMC", ward, "waste", "overflowing bin")
+		if err != nil || !found {
+			continue
+		}
+		if r.DeadlineHours != 24 || r.DeadlineCitation == "" {
+			t.Errorf("%s: waste deadline is %d hours, citation %q",
+				ward, r.DeadlineHours, r.DeadlineCitation)
+		}
+	}
+}
+
 // The pothole deadline binds potholes only, and that must hold in every ward
 // now that every ward routes.
 func TestLiveTheCourtDeadlineHoldsItsScopeInEveryWard(t *testing.T) {
