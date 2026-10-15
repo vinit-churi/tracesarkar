@@ -20,7 +20,7 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 2. What we have, as of 14 October 2026
+## 2. What we have, as of 15 October 2026
 
 Thirteen things are live and answering. Nothing below is aspirational.
 
@@ -51,6 +51,8 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
 | Department mappings | 4 · road defects, waste, water supply — all sourced |
+| BMC departments registered | 86 · every department BMC lists, with its handbook ([D150](05-decision-log.md)) |
+| Wards with an escalation contact | 24 of 24 · Assistant Commissioner and zone DMC, role mailboxes ([D149](05-decision-log.md)) |
 | Routable categories | 3 of 6 · `road_defect`, `waste`, `water_drainage` |
 | Legal constants | 5 · two pothole clocks, a penalty, two waste clocks |
 | Government resolutions watched | 461 |
@@ -59,6 +61,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
 | Wards with a desk to complain to | 24 of 24, for road defects, waste and water · 73 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md)) |
+| — and an office above it to escalate to | 24 of 24 · 31 rows across 7 zones ([D149](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
 
@@ -217,13 +220,22 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0030 is current)
+make migrate       # applies anything newer than the deployed schema (0032 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
 ```
 
 `make test` passing with no `.env` present is the quickest check that a clone is sound.
+
+**One gotcha with the live tests.** `POSTGRES_CA_PATH` in `.env.example` is `./ca.pem`, a *relative*
+path, and `go test ./internal/store/` runs with that package as its working directory — so every
+live test fails with `postgres CA file: stat ./ca.pem: no such file or directory` even though the
+certificate is sitting in the repository root. Point it at an absolute path when running them:
+
+```bash
+POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
+```
 
 ### Where the code actually is
 
@@ -239,6 +251,7 @@ make test-live     # the tests that touch the real bucket and database
 | The next step a report earns | `internal/action/` |
 | HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/ and the share kit's\nvocabulary in `internal/share/i18n/`` |
 | SQL | `internal/store/` — hand-written, no ORM. Migrations are forward-only and numbered |
+| Who a complaint escalates to | `internal/store/escalation.go` — `EscalationFor` (ward + zone), `Departments` (the BMC register) |
 
 ### What is deployed, and how
 
@@ -280,6 +293,48 @@ did not agree to publish them. It was briefly public and was closed; the public 
       explain a miss, and they are hard to remember a week later.
       One annotated photograph was already enough to find the localiser blind to any plate large in
       the frame ([D134](05-decision-log.md)), which is what the set is for.
+
+### Next in the code — the BMC portal thread, picked up where it was left
+
+The portal is **no longer blocked**; the obstacle was our own User-Agent, not BMC
+([D148](05-decision-log.md)). Everything below is now reachable without asking anybody for a link.
+
+- [ ] **Settle whether a street light is BMC's or Adani's.** This is the one thing standing between
+      the registry and a street-light desk. Adani Electricity lists a dedicated Street Light officer
+      in CONNECT 2026, so a citywide Mechanical & Electrical desk would misroute much of the
+      suburbs ([D150](05-decision-log.md)). The answer is inside the M&E RTI manuals,
+      `qlrticemne` → `Chief Eng M&E_RTI_M_01…18.pdf`, which are **legacy-font Marathi and must be
+      read as images** — `pdftotext` returns mojibake, not merely dropped matras. Manual 1 is
+      organisation and functions; manual 3 is powers and duties. Until it is settled, **do not seed
+      a street-light desk**
+- [ ] **Render the Citizen Charter** (`qlcitizenchar`). Its inner iView timed out on every attempt;
+      retrying usually works, and a browser screenshot is a fallback. This is BMC's own published
+      service-level table and is the proper source for `legal_constants` — the platform currently
+      has five constants, four of them from a court rather than from BMC
+- [ ] **Seed the footbridge desk from the Bridges handbooks.** `qlCeb` →
+      `Chief Engineer_Bridges_E01…E18.pdf`, clean English, already downloadable. Note the file
+      numbering is offset: `E(n)` is Manual `(n−1)`, so decision process and time limits are
+      **E04**, norms **E05**, officer directory **E10**. Of the three blocked categories this is
+      the one with no jurisdictional ambiguity
+- [ ] **Seed tree felling.** The Assistant Superintendent of Gardens sits in every ward's CONNECT
+      entry, and Gardens & Tree Authority is in the register (`qlgarden`). About an hour's work and
+      nothing is blocking it
+- [ ] **Read the remaining 23 wards' RTI handbooks** for office hours, visiting hours and the
+      per-activity time limits. The path generalises:
+      `.../Wards/Assistant Commissioner (<X>-Ward)/RTI Manuals/`. The A-ward handbook gave the real
+      escalation chain and a circular register ([D151](05-decision-log.md)); the other 23 will give
+      the same, and `authority_departments.office_hours` and `visiting_hours` are null for all but
+      two rows
+- [ ] **Consider seeding the 227 councillors** — `councillor<N>@mcgm.gov.in` by electoral ward,
+      from the English Diary 2026. This supersedes BMC's own GIS `COUNCILLOR` field, stale since
+      the January 2026 poll. Weigh it first: a councillor is an elected politician rather than an
+      office, so it is closer to a named party under hard rule 2 than the role mailboxes in
+      [D149](05-decision-log.md) are, and the share kit's rule against political reference
+      ([D136](05-decision-log.md)) bears on how it could ever be surfaced
+- [ ] **Archive what was read into R2.** CONNECT 2026, the English Diary 2026 and the handbooks
+      downloaded this session are on a laptop, not in the archive, and the archive — not the parsed
+      row — is the evidentiary record. `authority_departments` rows cite an `archive_key`; the new
+      `ward_escalation_contacts` and `bmc_departments` rows cite a live URL only, which is weaker
 
 ### Next in the code
 

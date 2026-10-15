@@ -593,3 +593,125 @@ decoration.
 - ~~Whether a newer BMC USOR edition supersedes 2018.~~ Answered 18 Sep 2026: Roads USOR 2023 ◐.
 - Whether Mahatenders' non-AOC searches are also captcha-gated.
 - Bhashini production licensing terms and cost.
+
+---
+
+# Addendum — 15 October 2026: the BMC portal, re-surveyed
+
+The August audit recorded BMC's portal as "SAP-portal URLs are brittle" and several later attempts
+to reach department pages were abandoned after they appeared to return empty documents. That
+reading was wrong, and the correction opens three categories that had been blocked.
+
+## A.1 The portal answers 200 to a refusal ✅
+
+BMC's portal is SAP Enterprise Portal. Asked without a browser `User-Agent`, it returns **HTTP 200**
+with this body and nothing else:
+
+> Could not open iView. The iView is not compatible with your browser, operating system, or device.
+
+A 200 carrying a page is indistinguishable from a live page with no content, and was read as a dead
+end. Every one of those URLs returns the full document when asked with a browser agent. **Any future
+fetch from `portal.mcgm.gov.in` must send one, and must read the body before concluding a URL is
+dead** ([D148](../00-overview/05-decision-log.md)).
+
+A second, independent failure mode sits behind the same wall: inner iViews time out server-side and
+return `iView has timed out; there is no cached content to display`. That one is transient — the
+same URL retried usually renders. Both look like an empty page.
+
+## A.2 Department List — the index nobody had read ✅
+
+`/irj/portal/anonymous/qlDeptManualsPage` lists **every BMC department** in Marathi and English, each
+with up to three links: Overview, RTI and Docs. 86 departments are now seeded
+([migration 0032](../../internal/store/migrations/0032_seed_bmc_department_registry.sql)).
+
+| Department | RTI (reliable) | Docs (unreliable) |
+|---|---|---|
+| Chief Engineer (Bridges) | `qlCeb` ✅ | `qlBridges` ⛔ |
+| Chief Engineer — Mechanical and Electrical | `qlrticemne` ✅ | `qlmechdocs` ⛔ |
+| Chief Engineer — Storm Water Drains | `qlcheswdpage` ✅ | `qlcheswd` ⛔ |
+| Dy. Chief Engineer (Building Proposal) WS-II | `qldcebpws` ✅ | `dycebpws2` ⛔ |
+| Gardens & Tree Authority | `qlgarden` ✅ | `qlgarden1` |
+| Roads & Traffic | `qlroadsandtraffic` ✅ | `qlroadsdocs` ⛔ |
+| **Citizen Charter** | — | `qlcitizenchar` ⚠️ **not yet rendered** |
+
+Three structural facts worth keeping:
+
+- **The RTI link resolves; the Docs link usually does not.** `qlCeb` returns the eighteen Bridges
+  handbook chapters. `qlBridges` returns the portal homepage. Prefer `rti_url`.
+- **There is no path pattern to guess.** Ward handbooks live under `RTI Manuals`, Bridges under
+  `RTI manuals`, and M&E under a folder spelling the name `Mechanical and Electrical` rather than
+  with an ampersand. Each department's RTI page must be read for its own paths.
+- **One defect in the source:** Chief Engineer (Bridges) and Chief Engineer (Building Maintenance)
+  are published with the *same* Overview link. The Overview column is not stored; it cannot key.
+
+Per-ward handbooks follow the same shape and generalise across all 24 wards:
+`.../MCGM Department List/Wards/Assistant Commissioner (<X>-Ward)/RTI Manuals/`. Confirmed for
+A and B; a folder that exists answers "no displayable content", one that does not answers 404.
+
+## A.3 CONNECT 2026 — the cross-agency directory ✅
+
+BMC's disaster-management contact directory, reachable from `qlBMCDairyBooks`. **Published under a
+2021 filename; the document itself is titled and dated CONNECT – 2026 on every page** and is
+recorded here by its contents, not its filename.
+
+§14 "Ward Wise Information" (pp. 73–337) is the richest routing source found to date: all 24 wards,
+roughly eleven pages each, carrying the ward office address, control room, the full desk list
+(AE Maintenance I and II, AE Building & Factory, AE Water Works, AE SWM, Assistant Superintendent of
+Gardens, **Complaint Officer**), the ward's MP, MLA, Ward Committee chair and councillors, local
+fire stations, and the **tree-trimming contractor by name**. Seeded as
+[migration 0031](../../internal/store/migrations/0031_seed_ward_escalation_contacts.sql) — role
+mailboxes, control rooms and addresses only; see [D149](../00-overview/05-decision-log.md) for what
+was deliberately refused.
+
+It also carries what BMC is *not*: Mumbai Police by ACP, Central/Western/Konkan Railway, BEST by
+depot, MHADA, MMRDA, MMRCL, Adani Electricity, Tata Power, the oil companies, IMD and the Collectors
+for Mumbai City, Mumbai Suburban and Thane. This is the directory an "it isn't BMC's" answer needs.
+
+**Jurisdiction finding — street lights may not be BMC's** ⚠️. Adani Electricity lists a dedicated
+Street Light officer. A citywide Mechanical & Electrical desk would therefore misroute a large part
+of the suburbs. **Unresolved; do not seed a street-light desk until it is settled**
+([D150](../00-overview/05-decision-log.md)).
+
+## A.4 BMC English Diary 2026 ✅
+
+The officer directory, clean English text extraction. Head-of-department role mailboxes:
+`che.br@`, `che.me@`, `che.swd@`, `che.rt@`, `che.coastalroad@`, `he@` (all `mcgm.gov.in`), each
+with per-zone Deputy Chief Engineers for City, Western Suburbs and Eastern Suburbs. Also the 227
+elected councillors with party, electoral ward number and `councillor<N>@mcgm.gov.in` — which
+**supersedes the `COUNCILLOR` field in BMC's GIS**, stale since the January 2026 poll (§5.1).
+
+Control rooms, verbatim: Central Control Room (MHO) **1916**; Disaster Control 22694725/22694727;
+water supply, garbage and drainage each split City / Eastern Subs / Western Subs.
+
+## A.5 Ward RTI handbooks — what they do and do not contain ✅
+
+`RTI 17 Manual AE MAINT A Ward.pdf` was read in full. Section 4(1)(b)(iii) gives the real escalation
+chain — **JE → SE → AE (M&R) → Ward EE → Assistant Commissioner → Addl. MC (Zone)** — and per-activity
+time limits. Section 4(1)(b)(v) is a circular register, naming `MGC/F/1074 dated 06.07.2013` for
+potholes and a dozen others for trenches, mandap permissions and bottlenecks.
+
+**It sets no pothole deadline.** Section 4(1)(b)(iv) answers, for every grade: *"There are no
+financial targets set for this department… the work is carried out on day to day basis."* The only
+stated limits are for encroachment — 24-hour site visit, 7-day section 314 notice. The Bombay High
+Court's 48 hours is therefore the *only* binding pothole deadline that exists
+([D151](../00-overview/05-decision-log.md)).
+
+## A.6 Encoding ⚠️ — two different Devanagari problems
+
+The August audit recorded that BMC PDFs "extract with dropped matras". That is the *milder* of two
+cases now observed:
+
+| Case | Example | Extraction | Fix |
+|---|---|---|---|
+| Unicode Devanagari, matras lost | ward PIO list | degraded but recognisable | read pages as images ([ADR 0006](../04-adr/0006-claude-for-vision-and-extraction.md)) |
+| **Legacy pre-Unicode font** | **M&E RTI manuals** | **total mojibake** (`He´cegKe DeefYe³eblee`) | **vision only; no font map will help** |
+
+Bridges manuals, by contrast, are clean English. Expect the encoding to vary per department, and
+test extraction before assuming a department is machine-readable.
+
+## A.7 MARG — the grievance channel ✅
+
+`marg.mcgm.gov.in/MARG/welcomePage.html`. Citizen login is **mobile + OTP**; there is also a
+**"Search by Grievance ID" field of exactly 6 characters**, usable without logging in. That fixes
+the expected shape of the complaint reference the evidence pack carries, and means a reference can
+be checked without holding the complainant's credentials.
