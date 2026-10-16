@@ -58,7 +58,25 @@ func build(f Facts, v *vocab, ch Channel, p *Post) ([]line, []string, []Source) 
 	}
 
 	if s := v.sentence("status_" + f.Status); s != "" {
-		lines = append(lines, line{"status", s, rankOptional})
+		// A line that says *how* an issue was resolved is not optional.
+		//
+		// It used to be, and the consequence only showed up on X: the window
+		// is 280 runes, fit drops the lowest-ranked lines to make room, the
+		// status line was the lowest and is also the longest sentence in the
+		// set — so an issue the authority calls attended, an issue a resident
+		// photographed fixed, and an issue seen again afterwards came out as
+		// byte-identical posts. That is the one distinction this platform
+		// exists to make (G14, D007), erased by the code whose job is to make
+		// the post fit. The permalink still carried the truth; the thing that
+		// travels did not.
+		//
+		// `open` stays droppable: it is the default state, it makes no claim
+		// about resolution, and a post with no status line reads as open.
+		rank := rankCore
+		if f.Status == "" || f.Status == "open" {
+			rank = rankOptional
+		}
+		lines = append(lines, line{"status", s, rank})
 	}
 
 	// D121: the line appears from the second sighting onward. "Seen 1 times"

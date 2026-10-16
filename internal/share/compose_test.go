@@ -224,6 +224,59 @@ func TestAnythingButReviewedIsADraft(t *testing.T) {
 	}
 }
 
+// G14 on every channel and in every language, which is where the earlier
+// test was too narrow: it checked English on WhatsApp only.
+//
+// On X the post is cut to fit 280 runes by dropping the lowest-ranked lines,
+// and the status line was the lowest. So an issue the authority calls
+// attended and an issue a resident photographed fixed came out as the same
+// text — the single distinction this platform exists to make, erased by the
+// line that makes the post fit. The permalink still carried the truth; the
+// thing that travels did not.
+func TestTheTwoKindsOfFixedNeverReadTheSameOnAnyChannel(t *testing.T) {
+	for _, lang := range Languages() {
+		for _, ch := range Channels() {
+			claimed, citizen, reopened := lodgedFacts(), lodgedFacts(), lodgedFacts()
+			claimed.Status = "claimed_resolved"
+			citizen.Status = "citizen_confirmed"
+			reopened.Status = "reopened"
+
+			posts := map[string]Post{}
+			for name, f := range map[string]Facts{
+				"claimed_resolved": claimed, "citizen_confirmed": citizen, "reopened": reopened,
+			} {
+				p, err := Compose(f, lang, ch)
+				if err != nil {
+					t.Fatalf("Compose(%s/%s/%s): %v", name, lang, ch, err)
+				}
+				posts[name] = p
+			}
+			for _, a := range []string{"claimed_resolved", "citizen_confirmed", "reopened"} {
+				for _, b := range []string{"claimed_resolved", "citizen_confirmed", "reopened"} {
+					if a >= b {
+						continue
+					}
+					if posts[a].Text == posts[b].Text {
+						t.Errorf("%s/%s: %s and %s produced the same post:\n%s",
+							lang, ch, a, b, posts[a].Text)
+					}
+				}
+			}
+			// The reason they could collide: the status line was dropped to
+			// fit the window. Nothing that states how an issue was resolved
+			// may be dropped.
+			for name, p := range posts {
+				for _, key := range p.Dropped {
+					if key == "status" {
+						t.Errorf("%s/%s/%s dropped the status line to fit %d runes",
+							lang, ch, name, XLimit)
+					}
+				}
+			}
+		}
+	}
+}
+
 // G14, restated for generated text: these are different claims by different
 // parties and must never read the same.
 func TestAnAuthorityClaimAndACitizenConfirmationNeverReadTheSame(t *testing.T) {

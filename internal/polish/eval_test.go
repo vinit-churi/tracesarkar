@@ -254,3 +254,35 @@ func TestMeasureKeepsWhatTheModelActuallyWrote(t *testing.T) {
 		}
 	}
 }
+
+// A post that exceeds X's window is rejected by X, and share.fit exists to
+// prevent that — but fit stops at rankCore and never drops a core line, so
+// raising a line's rank can push a post over the limit instead. That is
+// exactly what making the resolution status non-droppable risked (D176), and
+// it is the kind of thing one hand-written fact set will not catch.
+//
+// Asserted here rather than in internal/share because the corpus lives here:
+// 16 fact sets across every category and status, which is what makes the
+// check worth anything.
+func TestEveryCorpusPostFitsItsChannel(t *testing.T) {
+	for _, c := range Corpus() {
+		p, err := share.Compose(c.Facts, c.Lang, c.Chan)
+		if err != nil {
+			t.Fatalf("compose %s/%s/%s: %v", c.Name, c.Lang, c.Chan, err)
+		}
+		if c.Chan != share.X {
+			continue
+		}
+		if n := len([]rune(p.Text)); n > share.XLimit {
+			t.Errorf("%s/%s is %d runes, over the %d window, having dropped %v:\n%s",
+				c.Name, c.Lang, n, share.XLimit, p.Dropped, p.Text)
+		}
+		// And whatever it dropped, it never dropped the claim about how the
+		// issue was resolved.
+		for _, key := range p.Dropped {
+			if key == "status" && c.Facts.Status != "open" && c.Facts.Status != "" {
+				t.Errorf("%s/%s dropped the %q status line", c.Name, c.Lang, c.Facts.Status)
+			}
+		}
+	}
+}
