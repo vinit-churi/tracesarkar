@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collection health</title>
+<style>
+  :root {
+    --ink:#141518; --ink-70:#4A4D55; --ink-45:#7C8089;
+    --paper:#FBFAF8; --surface:#fff; --hairline:#E3E1DC;
+    --accent:#6B2C4F; --accent-wash:#F5EAF0; --alert:#A33A1F; --alert-wash:#FBEDE8;
+    --caution:#8A6410; --caution-wash:#FAF3E2;
+    --confirm:#1F6A4D; --confirm-wash:#EAF3EF; --evidence:#F2F0EB;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+         padding:14px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+  h1{font-size:17px;margin:0;font-weight:600}
+  h2{font-size:14px;margin:0 0 10px;font-weight:600;letter-spacing:.02em;
+     text-transform:uppercase;color:var(--ink-45)}
+  .stamp{font-size:13px;color:var(--ink-45);font-variant-numeric:tabular-nums}
+  main{max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:16px}
+  section{background:var(--surface);border:1px solid var(--hairline);
+          border-radius:12px;padding:16px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-weight:600;color:var(--ink-45);font-size:12px;
+     text-transform:uppercase;letter-spacing:.02em;padding:0 8px 7px 0}
+  td{padding:7px 8px 7px 0;border-top:1px solid var(--hairline);vertical-align:top}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;width:4.5em}
+  .clears{color:var(--ink-45);font-size:13px}
+  .zero td.n{color:var(--ink-45);font-weight:400}
+  /* A number somebody should act on, and a number nobody can, must not look
+     the same. Waiting is amber; a decision or a person's turn is plain. */
+  .waiting td.n{color:var(--caution)}
+  .ratio{display:flex;gap:12px;flex-wrap:wrap}
+  .big{flex:1 1 180px;border:1px solid var(--hairline);border-radius:10px;padding:12px;
+       background:var(--paper)}
+  .big .v{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.1}
+  .big .k{font-size:13px;color:var(--ink-70);margin-top:3px}
+  .big.claim{background:var(--caution-wash);border-color:var(--caution)}
+  .big.claim .v{color:var(--caution)}
+  .big.conf{background:var(--confirm-wash);border-color:var(--confirm)}
+  .big.conf .v{color:var(--confirm)}
+  .note{font-size:13px;color:var(--ink-45);margin:10px 0 0;line-height:1.45}
+  .bad{color:var(--alert)}
+  .signin{max-width:360px;margin:56px auto;background:var(--surface);
+          border:1px solid var(--hairline);border-radius:12px;padding:20px}
+  label{display:block;font-size:13px;color:var(--ink-70);margin:0 0 4px}
+  input{width:100%;padding:9px 10px;border:1px solid var(--hairline);border-radius:8px;
+        font:inherit;margin-bottom:12px;background:var(--paper);color:var(--ink)}
+  button{border:1px solid var(--accent);background:var(--accent);color:#fff;
+         border-radius:9px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+  button.quiet{background:var(--surface);color:var(--ink);border-color:var(--hairline)}
+  .err{background:var(--alert-wash);color:var(--alert);border-radius:8px;
+       padding:8px 10px;font-size:13px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="signin" id="signin" hidden>
+  <h1>Collection health</h1>
+  <p class="note" style="margin:6px 0 14px">Sign in with the operator account.</p>
+  <div id="signinErr"></div>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="username">
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="signinBtn">Sign in</button>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>Collection health</h1>
+    <span class="stamp" id="stamp"></span>
+  </header>
+  <main>
+    <section>
+      <h2>What an authority says, against what a resident saw</h2>
+      <div class="ratio" id="ratio"></div>
+      <p class="note">Two counts and never a percentage: a percentage of small
+        numbers is a lie with a decimal point in it. These are the figures this
+        platform exists to produce, and no public surface carries them yet.</p>
+    </section>
+
+    <section>
+      <h2>Waiting</h2>
+      <table><thead><tr><th>Queue</th><th class="n">Count</th><th>What clears it</th></tr></thead>
+        <tbody id="queues"></tbody></table>
+      <p class="note">A queue whose answer is a person, or nothing, is not a
+        backlog. Each row says which, so a number nobody can act on is not
+        mistaken for one somebody should.</p>
+    </section>
+
+    <section>
+      <h2>Sources</h2>
+      <table><thead><tr><th>Source</th><th>Endpoint</th><th>Last fetch</th>
+        <th class="n">Records</th><th class="n">Fails</th></tr></thead>
+        <tbody id="sources"></tbody></table>
+    </section>
+
+    <section>
+      <h2>Recent runs</h2>
+      <table><thead><tr><th>Command</th><th>Started</th><th>Result</th></tr></thead>
+        <tbody id="runs"></tbody></table>
+      <p class="note">A run with no finish time never returned, which is a
+        different failure from one that returned an error.</p>
+    </section>
+
+    <section>
+      <h2>Issues</h2>
+      <table><thead><tr><th>Status</th><th class="n">Count</th></tr></thead>
+        <tbody id="issues"></tbody></table>
+      <p class="note">Every status the database allows, including the ones at
+        zero: a status missing from a dashboard reads as "none" and is
+        indistinguishable from "we stopped counting it".</p>
+    </section>
+
+    <p class="note" style="text-align:center">
+      <button class="quiet" id="refresh">Refresh</button>
+    </p>
+  </main>
+</div>
+
+<script>
+const API = location.origin;
+// Its own key: these are different jobs, and signing out of the console
+// should not sign you out of the labelling or mark-up surfaces.
+let token = localStorage.getItem('ts.ops.token') || '';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function showSignIn(message) {
+  $('app').hidden = true; $('signin').hidden = false;
+  $('signinErr').innerHTML = message ? '<div class="err">' + esc(message) + '</div>' : '';
+}
+
+$('signinBtn').onclick = async () => {
+  $('signinErr').innerHTML = '';
+  try {
+    const res = await fetch(API + '/v1/auth/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: $('email').value.trim(), password: $('password').value})
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not sign in.');
+    token = body.token;
+    localStorage.setItem('ts.ops.token', token);
+    $('signin').hidden = true;
+    load();
+  } catch (e) { showSignIn(e.message); }
+};
+
+$('refresh').onclick = () => load();
+
+function when(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toISOString().replace('T', ' ').slice(0, 16) + 'Z';
+}
+
+function row(cells, cls) {
+  return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' + cells.join('') + '</tr>';
+}
+
+function draw(h) {
+  $('stamp').textContent = 'as of ' + when(h.at) + ' · ' + h.captures + ' captures stored';
+
+  $('ratio').innerHTML =
+    '<div class="big claim"><div class="v">' + h.claimed_resolved + '</div>' +
+      '<div class="k">the authority recorded as attended</div></div>' +
+    '<div class="big conf"><div class="v">' + h.citizen_confirmed + '</div>' +
+      '<div class="k">a resident photographed fixed</div></div>';
+
+  // A queue clears itself (a job will take it), or it waits on somebody, or
+  // it is already a decision. Only the first is a backlog.
+  $('queues').innerHTML = (h.queues || []).map(q => {
+    const job = /the sweep|expiry/.test(q.clears);
+    let cls = q.count === 0 ? 'zero' : (job ? 'waiting' : '');
+    return row([
+      '<td>' + esc(q.name) + '</td>',
+      '<td class="n">' + q.count + '</td>',
+      '<td class="clears">' + esc(q.clears) + '</td>'
+    ], cls);
+  }).join('') || row(['<td colspan="3" class="clears">nothing recorded</td>']);
+
+  $('sources').innerHTML = (h.sources || []).map(s => row([
+    '<td>' + esc(s.source) + '</td>',
+    '<td>' + esc(s.endpoint) + '</td>',
+    '<td>' + when(s.last_fetch) + '</td>',
+    '<td class="n">' + s.records + '</td>',
+    '<td class="n' + (s.failures ? ' bad' : '') + '">' + s.failures + '</td>'
+  ], s.failures ? '' : 'zero')).join('') ||
+    row(['<td colspan="5" class="clears">no fetches recorded yet</td>']);
+
+  $('runs').innerHTML = (h.runs || []).map(r => {
+    let result = '<span class="bad">failed</span>';
+    if (r.never_returned) result = '<span class="bad">never returned</span>';
+    else if (r.ok) result = 'ok';
+    if (r.error) result += ' <span class="clears">' + esc(r.error) + '</span>';
+    return row([
+      '<td>' + esc(r.command) + '</td>',
+      '<td>' + when(r.started_at) + '</td>',
+      '<td>' + result + '</td>'
+    ]);
+  }).join('') || row(['<td colspan="3" class="clears">no runs recorded yet</td>']);
+
+  $('issues').innerHTML = (h.issues || []).map(i => row([
+    '<td>' + esc(i.status) + '</td>',
+    '<td class="n">' + i.count + '</td>'
+  ], i.count === 0 ? 'zero' : '')).join('');
+
+  $('app').hidden = false;
+}
+
+async function load() {
+  if (!token) return showSignIn();
+  try {
+    const res = await fetch(API + '/v1/ops/health?runs=10',
+      {headers: {Authorization: 'Bearer ' + token}});
+    if (res.status === 401) {
+      token = ''; localStorage.removeItem('ts.ops.token');
+      return showSignIn('That session has ended. Sign in again.');
+    }
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error?.message || 'Could not read collection health.');
+    draw(body);
+  } catch (e) {
+    // Said out loud rather than drawn as zeros: a dashboard that silently
+    // shows nothing is worse than one that says it could not count.
+    $('app').hidden = false;
+    $('stamp').innerHTML = '<span class="bad">' + esc(e.message) + '</span>';
+  }
+}
+
+load();
+</script>
+</body>
+</html>

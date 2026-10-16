@@ -186,6 +186,26 @@ It prints `stored|have <key> <url>` per line, and the key is what a migration sh
 Two live tests guard the result: every routing row must carry an `archive_key`, and every cited
 key must actually be in the bucket.
 
+### The operator console
+
+`/ops/` is the first answer to "is collection healthy and is anything stuck" that does not involve
+reading logs ([D178](../00-overview/05-decision-log.md)). Sign in with the operator account; the
+page reads `GET /v1/ops/health`, which is authenticated.
+
+Read it in this order. **Waiting** is the one that tells you whether to act, and every row names
+what clears it: a row cleared by *the sweep* is a backlog, and a row cleared by *a person* or by
+*nothing* is not. **Sources** and **Recent runs** tell you whether collection is still happening —
+a run shown as *never returned* is a process that died rather than a job that failed, and the two
+need different responses. **The ratio** is the figure the platform exists to produce and is shown
+as two counts, never a percentage.
+
+The same counts are available without a browser:
+
+```bash
+ingest status        # per-endpoint collection health
+ingest credentials   # removes spent one-time links; also the sweep's fifth stage
+```
+
 ### The sweep job
 
 `tracesarkar-sweep` runs `ingest sweep` every ten minutes: **enrich, redact, classify, issues,

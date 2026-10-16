@@ -88,10 +88,14 @@ type Options struct {
 	// PublicBaseURL is where the client lives, used to build the link in a
 	// reset mail. Without it a link cannot be built and the mail is not sent.
 	PublicBaseURL string
-	Blobs         Blobs
-	Details       Details
-	Issuer        *auth.Issuer
-	Google        *auth.GoogleVerifier
+	// Operator powers system 8's first surface: collection health, the queues,
+	// and the claimed-versus-confirmed counts. Optional, like every other
+	// surface that needs a database.
+	Operator Operator
+	Blobs    Blobs
+	Details  Details
+	Issuer   *auth.Issuer
+	Google   *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -117,6 +121,7 @@ type Server struct {
 	evidence      Evidence
 	polish        polish.Polisher
 	credentials   Credentials
+	operator      Operator
 	mail          mail.Sender
 	labels        Labels
 	truth         Truth
@@ -197,6 +202,7 @@ func New(opts Options) (*Server, error) {
 		evidence:      opts.Evidence,
 		polish:        opts.Polish,
 		credentials:   opts.Credentials,
+		operator:      opts.Operator,
 		mail:          opts.Mail,
 		publicBaseURL: base,
 		labels:        opts.Labels,
@@ -238,6 +244,11 @@ func (s *Server) Handler() http.Handler {
 		s.authenticated(http.HandlerFunc(s.handleRequestEmailVerification)))
 	mux.Handle("POST /v1/auth/sessions/revoke",
 		s.authenticated(http.HandlerFunc(s.handleRevokeSessions)))
+
+	// System 8's first surface. Authenticated: a count of what is stuck is an
+	// operational signal, and the published version of the ratio belongs on a
+	// surface built for publishing it.
+	mux.Handle("GET /v1/ops/health", s.authenticated(http.HandlerFunc(s.handleOperatorHealth)))
 
 	mux.Handle("POST /v1/reports", s.authenticated(http.HandlerFunc(s.handlePostReport)))
 
@@ -320,6 +331,14 @@ func (s *Server) Handler() http.Handler {
 		if page, err := staticPage(truthFS, "truth"); err == nil {
 			mux.Handle("GET /truth/", page)
 			mux.Handle("GET /truth", http.RedirectHandler("/truth/", http.StatusFound))
+		}
+		// The operator console. One page, three blocks, and no moderation:
+		// the surfaces that need a human verdict are /review/, /label/ and
+		// /truth/, and this is the one that answers whether anything is
+		// stuck.
+		if page, err := staticPage(opsFS, "ops"); err == nil {
+			mux.Handle("GET /ops/", page)
+			mux.Handle("GET /ops", http.RedirectHandler("/ops/", http.StatusFound))
 		}
 	} else {
 		s.log.Warn("field kit unavailable", "error", err.Error())
@@ -462,6 +481,9 @@ var issueFS embed.FS
 
 //go:embed truth
 var truthFS embed.FS
+
+//go:embed ops
+var opsFS embed.FS
 
 // reviewHandler serves the attribution review page. Personal tier: it exists
 // so a human can put a precision number on the join, and it shows no data of
