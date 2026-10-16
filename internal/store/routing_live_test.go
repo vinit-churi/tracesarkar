@@ -39,13 +39,18 @@ func TestLiveRoutingFindsTheDeskAndTheClock(t *testing.T) {
 		}
 	})
 
-	t.Run("a ward with nothing recorded is not an error", func(t *testing.T) {
-		_, ok, err := db.RoutingFor(ctx, "BMC", "R/N", "waste", "")
+	// This case used to read "a ward with nothing recorded". No ward is in
+	// that state any more — migrations 0029 to 0033 gave all twenty-four a
+	// desk for four categories — so the honest version of the same assertion
+	// is a category nobody has researched yet. Not found must stay an ordinary
+	// answer: the platform says it does not know rather than guessing.
+	t.Run("a category with nothing recorded is not an error", func(t *testing.T) {
+		_, ok, err := db.RoutingFor(ctx, "BMC", "R/N", "structural", "")
 		if err != nil {
 			t.Fatalf("RoutingFor: %v", err)
 		}
 		if ok {
-			t.Error("R/N has no waste department; it must not be found")
+			t.Error("no structural desk is recorded anywhere; it must not be found")
 		}
 	})
 }

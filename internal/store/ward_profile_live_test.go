@@ -48,20 +48,34 @@ func TestLiveWardProfileIsPublishableOnItsOwn(t *testing.T) {
 		len(p.Desks), p.Segments, p.Metres/1000)
 }
 
-// A ward with nothing recorded is an ordinary answer, not an error. Most wards
-// are in that state and the page has to say so rather than fail.
-func TestLiveAWardWithNoDesksStillProfiles(t *testing.T) {
+// This test was written when most wards had nothing recorded and the page had
+// to say so rather than fail. That state is gone: migrations 0029 to 0033 gave
+// every ward a desk for four categories. What it asserts now is the half of it
+// that still matters — a ward outside the pilot profiles like any other, and a
+// place the platform holds nothing for is still an answer rather than an error.
+func TestLiveAnyWardProfilesAndTheUnknownOneIsNotAnError(t *testing.T) {
 	ctx, _, db := liveDB(t)
 
 	p, err := db.WardProfileFor(ctx, "BMC", "R/N")
 	if err != nil {
 		t.Fatalf("WardProfileFor: %v", err)
 	}
-	if len(p.Desks) != 0 {
-		t.Errorf("R/N has no departments recorded; got %d", len(p.Desks))
+	if len(p.Desks) == 0 {
+		t.Error("R/N should carry the desks seeded for every ward")
 	}
 	// The boundary exists, so the road count still means something.
 	if p.Segments == 0 {
 		t.Error("R/N has a boundary and should still resolve road segments")
+	}
+
+	// A ward code the platform does not hold. Empty, and not an error: the
+	// honest edge of the platform is a page that says so.
+	none, err := db.WardProfileFor(ctx, "BMC", "ZZ")
+	if err != nil {
+		t.Fatalf("WardProfileFor an unknown ward: %v", err)
+	}
+	if len(none.Desks) != 0 || none.Segments != 0 {
+		t.Errorf("ZZ is not a ward; got %d desks and %d segments",
+			len(none.Desks), none.Segments)
 	}
 }

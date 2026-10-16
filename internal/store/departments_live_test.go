@@ -112,3 +112,63 @@ func TestLiveTheCourtDeadlineHoldsItsScopeInEveryWard(t *testing.T) {
 		}
 	}
 }
+
+// A streetlight that is out is `street_furniture` in the taxonomy, and the
+// taxonomy's own rule is that a category exists only if something downstream
+// can route it. Until these rows existed a citizen could photograph a dead
+// streetlight, have it classified correctly, and be told nothing about where
+// it goes.
+func TestLiveEveryWardRoutesStreetFurniture(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	var missing []string
+	for _, ward := range jurisdiction.KnownWards() {
+		r, found, err := db.RoutingFor(ctx, "BMC", ward, "street_furniture", "streetlight out")
+		if err != nil {
+			t.Fatalf("%s: RoutingFor: %v", ward, err)
+		}
+		if !found || strings.TrimSpace(r.Department) == "" {
+			missing = append(missing, ward)
+			continue
+		}
+		if strings.TrimSpace(r.SourceRef) == "" {
+			t.Errorf("%s: desk %q has no source reference", ward, r.Department)
+		}
+		if strings.TrimSpace(r.Officer) == "" {
+			t.Errorf("%s: no officer designation to address a complaint to", ward)
+		}
+		if strings.TrimSpace(r.EscalatesTo) == "" {
+			t.Errorf("%s: street furniture desk has no office above it", ward)
+		}
+	}
+	if len(missing) > 0 {
+		t.Errorf("%d ward(s) resolve but have no street furniture desk: %s",
+			len(missing), strings.Join(missing, " "))
+	}
+}
+
+// The distribution licensee lights the lamp; it does not own the complaint.
+// Adani Electricity, Tata Power and BEST supply the power and publish the LUX
+// standard the ward works to — the ward's own Assistant Engineer (Maintenance
+// & Repair) is the office a resident writes to. Naming a licensee here would
+// send a citizen to a company that cannot act on a municipal asset.
+func TestLiveTheStreetLightDeskIsMunicipalNotTheLicensee(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	licensees := []string{"Adani", "Tata Power", "Reliance", "BEST"}
+	for _, ward := range jurisdiction.KnownWards() {
+		r, found, err := db.RoutingFor(ctx, "BMC", ward, "street_furniture", "streetlight out")
+		if err != nil || !found {
+			continue
+		}
+		for _, l := range licensees {
+			if strings.Contains(r.Department, l) || strings.Contains(r.Officer, l) {
+				t.Errorf("%s: street light routed to a licensee: %q / %q",
+					ward, r.Department, r.Officer)
+			}
+		}
+		if !strings.Contains(r.Officer, "Maintenance") {
+			t.Errorf("%s: expected the ward maintenance post, got %q", ward, r.Officer)
+		}
+	}
+}

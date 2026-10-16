@@ -715,3 +715,47 @@ test extraction before assuming a department is machine-readable.
 **"Search by Grievance ID" field of exactly 6 characters**, usable without logging in. That fixes
 the expected shape of the complaint reference the evidence pack carries, and means a reference can
 be checked without holding the complainant's credentials.
+
+## A.8 Street lighting, and the ward quicklink pattern ✅
+
+*16 October 2026.*
+
+**Who owns a street light.** Settled against three documents and one absence
+([D152](../00-overview/05-decision-log.md)):
+
+| Document | What it says |
+|---|---|
+| Ward AE (Maintenance & Repair) handbook, duty 38 | "To provide street lighting in area as per LUX value (illumination) of Reliance energy and TATA power" — verbatim in **A Ward** (island city) and **P/North** (Adani licence area) |
+| BMC English Diary 2026 | Street lights counted as municipal assets, division-wise: City 42,421 · W. Suburb 87,347 · E. Suburb 11,377 · **total 1,41,115**, under Roads & Traffic statistics |
+| N Ward AE (M&R) handbook, budget | A line item "Gen civil repairs – Street light", ₹60 lakh |
+| Chief Engineer (M&E) handbook, manual 2 | Twenty-two functions. Street lighting is **not** one. It claims only high-mast lamps and the illumination of gardens and playgrounds |
+
+The licensee publishes the illumination standard; the ward does the work. A citywide Mechanical &
+Electrical desk would have been wrong for the ordinary lamp post.
+
+**Ward pages are reachable by pattern, and they list their handbooks.** Each ward office has a
+quicklink `qlac<ward>ward` — `qlacaward`, `qlackwward`, `qlacrcward`, `qlacpnward`, `qlacmeward`
+and so on — and the page lists every Section 4 handbook that ward publishes, as direct PDF links.
+This removes the guesswork recorded in [A.2](#a2-department-list--the-index-nobody-had-read):
+**the file names are not guessable and do not need to be**, because the ward page carries them.
+Observed spellings for one document, the AE (Maintenance) handbook, across five wards:
+
+```
+A    RTI 17 Manual AE MAINT A Ward.pdf
+R/C  RTI 17 manual for Maintenance Dept RC Ward.pdf
+P/N  PDFMannualAEMAINTPnorthyear201314.pdf
+S    AEMaint.pdf
+N    AE(Maint)NWard.pdf
+```
+
+Note also that the folder segment itself varies: most wards use
+`Assistant Commissioner (X-Ward)`, S Ward uses `Assistant Commissioner  S-Ward` with two spaces
+and no parentheses.
+
+**Coverage is uneven.** Of five ward AE (Maintenance) handbooks read, A and P/North carry the
+full numbered duty list; R/Central and S carry a different structure with no duty 38. A duty read
+in one ward is evidence for that ward, and only becomes the standard list when a second,
+differently situated ward repeats it word for word.
+
+**Reading a legacy-font manual.** `pdftoppm -r 170 -png` then read the pages as images. The glyphs
+render correctly even though the text layer is mojibake — see [A.6](#a6-encoding--two-different-devanagari-problems).

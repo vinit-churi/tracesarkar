@@ -61,6 +61,35 @@ func TestLiveAPermanentlyFailingCaptureStopsBeingRetried(t *testing.T) {
 		t.Fatalf("AddReportMedia: %v", err)
 	}
 
+	// The classifier reads the redacted derivative, never the original, so a
+	// capture only becomes classifiable once the mosaic has run on it
+	// (`UnclassifiedReports` joins on `redaction_output_key`). In production
+	// the sweep does this a stage earlier; here it has to be done by hand, or
+	// the capture never reaches the queue this test is about.
+	targets, err := db.MediaToRedact(ctx, 200)
+	if err != nil {
+		t.Fatalf("MediaToRedact: %v", err)
+	}
+	var mediaID string
+	for _, m := range targets {
+		if m.ReportID == id {
+			mediaID = m.MediaID
+			break
+		}
+	}
+	if mediaID == "" {
+		t.Fatal("the capture's photograph is not waiting to be redacted")
+	}
+	if err := db.RecordRedaction(ctx, mediaID, store.RedactionResult{
+		RanAt:     time.Now().UTC(),
+		Tool:      "test",
+		OutputKey: "media/" + id + "/broken.redacted.jpg",
+		Published: false,
+		Reason:    "test fixture: held, never published",
+	}); err != nil {
+		t.Fatalf("RecordRedaction: %v", err)
+	}
+
 	contains := func(t *testing.T, limit int) bool {
 		t.Helper()
 		pending, err := db.Pending(ctx, limit)

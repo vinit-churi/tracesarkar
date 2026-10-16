@@ -20,7 +20,7 @@ More: [vision](01-vision.md) · [v0.1 MVP](../05-delivery/02-milestone-v0-mvp.md
 
 ---
 
-## 2. What we have, as of 15 October 2026
+## 2. What we have, as of 16 October 2026
 
 Thirteen things are live and answering. Nothing below is aspirational.
 
@@ -53,14 +53,14 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | Department mappings | 4 · road defects, waste, water supply — all sourced |
 | BMC departments registered | 86 · every department BMC lists, with its handbook ([D150](05-decision-log.md)) |
 | Wards with an escalation contact | 24 of 24 · Assistant Commissioner and zone DMC, role mailboxes ([D149](05-decision-log.md)) |
-| Routable categories | 3 of 6 · `road_defect`, `waste`, `water_drainage` |
+| Routable categories | 4 of 6 · `road_defect`, `waste`, `water_drainage`, `street_furniture` |
 | Legal constants | 5 · two pothole clocks, a penalty, two waste clocks |
 | Government resolutions watched | 461 |
 | Captures stored | 5 · all real. Six synthetic rows were deleted on 13 Oct ([D129](05-decision-log.md)) |
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
-| Wards with a desk to complain to | 24 of 24, for road defects, waste and water · 73 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md)) |
+| Wards with a desk to complain to | 24 of 24, for road defects, waste, water and street furniture · 97 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md)) |
 | — and an office above it to escalate to | 24 of 24 · 31 rows across 7 zones ([D149](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
@@ -79,7 +79,12 @@ Thirteen things are live and answering. Nothing below is aspirational.
 
 ### Tests
 
-22 Go packages passing, 22 Flutter tests. Live tests gated behind `TRACESARKAR_LIVE=1`.
+22 Go packages passing, 22 Flutter tests. Live tests gated behind `TRACESARKAR_LIVE=1`, and the
+whole live store suite is green as of 16 October. Three of them had rotted and were repaired that
+day: two asserted that most wards have nothing recorded, which stopped being true at migration
+0029, and one could never have passed — it expected a capture to be classifiable before anything
+had redacted it, and `UnclassifiedReports` joins on the redacted derivative. The CA-path gotcha
+in [§8](#8-picking-this-up-on-another-machine) applies when running them.
 
 ---
 
@@ -220,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0032 is current)
+make migrate       # applies anything newer than the deployed schema (0033 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -299,14 +304,14 @@ did not agree to publish them. It was briefly public and was closed; the public 
 The portal is **no longer blocked**; the obstacle was our own User-Agent, not BMC
 ([D148](05-decision-log.md)). Everything below is now reachable without asking anybody for a link.
 
-- [ ] **Settle whether a street light is BMC's or Adani's.** This is the one thing standing between
-      the registry and a street-light desk. Adani Electricity lists a dedicated Street Light officer
-      in CONNECT 2026, so a citywide Mechanical & Electrical desk would misroute much of the
-      suburbs ([D150](05-decision-log.md)). The answer is inside the M&E RTI manuals,
-      `qlrticemne` → `Chief Eng M&E_RTI_M_01…18.pdf`, which are **legacy-font Marathi and must be
-      read as images** — `pdftotext` returns mojibake, not merely dropped matras. Manual 1 is
-      organisation and functions; manual 3 is powers and duties. Until it is settled, **do not seed
-      a street-light desk**
+- [x] **Settled: a street light is BMC's, and the ward's.** Done 16 October
+      ([D152](05-decision-log.md), migration 0033). Duty 38 of the ward Assistant Engineer
+      (Maintenance & Repair) is to provide street lighting to the licensee's LUX value — Adani and
+      Tata Power publish the standard, the ward does the work — and the same item appears word for
+      word in A Ward and in P/North inside Adani's licence area. The Mechanical & Electrical
+      handbook, read as images, claims high-mast lamps and garden illumination and **not** street
+      lighting, so the citywide desk that looked obvious would have been wrong. `street_furniture`
+      now routes in all 24 wards, to the same office that holds minor roads and footpaths
 - [ ] **Render the Citizen Charter** (`qlcitizenchar`). Its inner iView timed out on every attempt;
       retrying usually works, and a browser screenshot is a fallback. This is BMC's own published
       service-level table and is the proper source for `legal_constants` — the platform currently
@@ -319,12 +324,16 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
 - [ ] **Seed tree felling.** The Assistant Superintendent of Gardens sits in every ward's CONNECT
       entry, and Gardens & Tree Authority is in the register (`qlgarden`). About an hour's work and
       nothing is blocking it
-- [ ] **Read the remaining 23 wards' RTI handbooks** for office hours, visiting hours and the
-      per-activity time limits. The path generalises:
-      `.../Wards/Assistant Commissioner (<X>-Ward)/RTI Manuals/`. The A-ward handbook gave the real
-      escalation chain and a circular register ([D151](05-decision-log.md)); the other 23 will give
-      the same, and `authority_departments.office_hours` and `visiting_hours` are null for all but
-      two rows
+- [ ] **Read the remaining ward RTI handbooks** for office hours, visiting hours and the
+      per-activity time limits. Five are now read (A, P/North, R/Central, S, N). Finding each one
+      is no longer guesswork: every ward office has a quicklink **`qlac<ward>ward`** —
+      `qlacaward`, `qlackwward`, `qlacrcward` — and that page lists the ward's handbooks as direct
+      PDF links. The file names are not guessable and do not need to be
+      ([A.8](../01-research/08-data-availability-audit.md)). The A-ward handbook gave the real
+      escalation chain and a circular register ([D151](05-decision-log.md)) and P/North confirmed
+      the street-lighting duty ([D152](05-decision-log.md)); `authority_departments.office_hours`
+      and `visiting_hours` are still null for all but two rows. Note the duty lists are **not**
+      uniform — R/Central and S carry a different structure with no numbered duty list at all
 - [ ] **Consider seeding the 227 councillors** — `councillor<N>@mcgm.gov.in` by electoral ward,
       from the English Diary 2026. This supersedes BMC's own GIS `COUNCILLOR` field, stale since
       the January 2026 poll. Weigh it first: a councillor is an elected politician rather than an
