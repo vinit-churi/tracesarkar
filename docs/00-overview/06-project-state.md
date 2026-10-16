@@ -283,8 +283,14 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00036-x6t`** (`58ace5a`,
-  16 October) adds password reset, email verification and session revocation
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00039-vbl`** (`9f876e7`,
+  16 October) serves the native-speaker-reviewed Marathi and Hindi with no draft notice on any post
+  and a word for all 36 subcategories ([D175](05-decision-log.md)), and no longer drops the status
+  line to fit X's window — which had been making *the authority says attended*, *a resident
+  photographed it fixed* and *seen again afterwards* the same post
+  ([D176](05-decision-log.md)). Verified on a live issue: `draft_languages` absent, all three
+  languages `reviewed`, no vocabulary fallbacks. `00036-x6t` added password reset, email
+  verification and session revocation
   ([D171](05-decision-log.md), migration 0044 — the two mail endpoints answer 501 until `MAIL_MODE`
   is set), the share kit's `wording` field and the rewording layer it belongs to
   ([D170](05-decision-log.md), off until `SHARE_POLISH` is set), and one spelling per ward in every
