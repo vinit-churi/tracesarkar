@@ -157,6 +157,25 @@ const (
 	Draft ReviewState = "draft"
 )
 
+// Wording records who chose the words.
+//
+// It is deliberately a separate axis from ReviewState, and the distinction is
+// the whole point of the field. A model can make a Marathi sentence fluent; it
+// cannot make it checked. A post that reads perfectly and has never been seen
+// by a Marathi speaker is still a draft, and a single field conflating the two
+// would make the review task look finished when nobody has done it.
+type Wording string
+
+const (
+	// WordedByTemplate is the deterministic composition in internal/share: the
+	// same facts produce the same bytes, every time.
+	WordedByTemplate Wording = "template"
+	// WordedByModel means a model reworded the prose lines and every protected
+	// span, every number and every addressable token survived the check in
+	// internal/polish. It says nothing about review.
+	WordedByModel Wording = "model"
+)
+
 // Post is one composed message.
 type Post struct {
 	Lang     Lang        `json:"lang"`
@@ -164,6 +183,7 @@ type Post struct {
 	Text     string      `json:"text"`
 	Hashtags []string    `json:"hashtags"`
 	Review   ReviewState `json:"review"`
+	Wording  Wording     `json:"wording"`
 	Sources  []Source    `json:"sources"`
 	// Fallbacks names any term this language had no word for, so a gap in the
 	// vocabulary is visible rather than silently filled from English.
@@ -192,7 +212,8 @@ func Compose(f Facts, lang Lang, ch Channel) (Post, error) {
 		return Post{}, fmt.Errorf("share: no template for channel %q", ch)
 	}
 
-	p := Post{Lang: lang, Channel: ch, Review: v.state(), Hashtags: hashtags(f)}
+	p := Post{Lang: lang, Channel: ch, Review: v.state(),
+		Wording: WordedByTemplate, Hashtags: hashtags(f)}
 	lines, fallbacks, sources := build(f, v, ch, &p)
 	p.Fallbacks, p.Sources = fallbacks, sources
 

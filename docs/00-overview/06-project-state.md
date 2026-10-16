@@ -252,6 +252,7 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 | Dedup, the clock, the hash chain | `internal/issue/` |
 | Faces, plates, the mosaic, the hold | `internal/redact/` |
 | Grading the detector against marked-up photographs | `internal/redact/eval.go`, `cmd/ingest/redact_eval.go` |
+| The one place a model may touch a generated post | `internal/polish/` — rewords composed lines, never composes one; `Verify` is the gate, `Corpus`/`Measure` the eval set |
 | What a public surface may show | `internal/publish/` |
 | The next step a report earns | `internal/action/` |
 | HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/ and the share kit's\nvocabulary in `internal/share/i18n/`` |
@@ -384,6 +385,20 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       not given these: a fee beside a photograph of a stump, in a post that travels beyond any
       page this platform can correct, is an accusation however it is worded
 
+- [x] **Put a model in the share path, for rewording only.** Done 16 October
+      ([D170](05-decision-log.md),
+      [ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md)).
+      `internal/polish` hands a model the numbered prose lines of an already-composed post — not
+      the fact set, not the permalink, not the issue id — and publishes what comes back only if
+      every protected span, every number and every account survives the line it replaced. One
+      failure discards the whole candidate and the composed post is served, so a provider that is
+      down, slow or wrong costs nothing. The eval set
+      [ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md) demanded before
+      any of this exists: 16 fact sets, 96 posts, all six categories, three languages, including
+      the states that remove a sentence. **Off unless `SHARE_POLISH` is set, with no default
+      model** — that choice has to be a recorded decision with the measurement behind it, and is
+      not yet made
+
 - [x] **Archived what was read.** Done 16 October ([D162](05-decision-log.md), migration 0039).
       Thirty-six documents — every ward and departmental handbook, charter, circular and Right to
       Public Services board this week's work rests on — fetched, hashed and stored by a new
@@ -399,7 +414,18 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       `internal/share/i18n/share.mr.json` and `share.hi.json`, one file each, and change
       `"review": "pending"` to `"reviewed"` when they have. Both are live and labelled as drafts
       on every issue page, so this is the only outstanding item a user can see
-      ([D137](05-decision-log.md))
+      ([D137](05-decision-log.md)). **The rewording layer does not close this**
+      ([D170](05-decision-log.md)): it can make a stilted sentence fluent, which is not the same as
+      making it right, and it adds a second artefact for the same reader —
+      `internal/polish/prompts/share_polish_v1.md`, whose per-language register rules are claims
+      about Marathi and Hindi written by somebody who speaks neither
+- [ ] **Choose the rewording model, and measure it before trusting it.** The machinery is built
+      and off ([D170](05-decision-log.md)). What it has no supply of is a decision:
+      `POLISH_BASE_URL`, `POLISH_API_KEY` and `POLISH_MODEL`, then
+      `TRACESARKAR_LIVE=1 go test ./internal/polish/ -run TestLive -v`, which prints the publish
+      rate, the refusals by kind and every refused post in full. Record the numbers and the model
+      in the decision log; a model picked without that entry is the mistake the classifier already
+      made (`deepseek-flash` is in production with no entry naming it)
 - [ ] **Finish system 5** — password reset, email verification, token revocation. Throttling is
       done ([D113](05-decision-log.md)); the rest is not, and the public tier needs it
       ([ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md))

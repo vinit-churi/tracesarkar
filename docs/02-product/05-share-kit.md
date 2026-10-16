@@ -284,11 +284,37 @@ being served when it passes. Only `@mybmc` is seeded, marked **secondary** becau
 publishes no social links; none of the twenty-four ward accounts is seeded at all
 ([D136](../00-overview/05-decision-log.md)).
 
+### The rewording layer, 16 October 2026
+
+§3 above specified post text as a model call; [ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md)
+shipped it as none. [ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md)
+splits the difference along the line that turned out to matter: a model may **reword** a composed
+sentence and may not **compose** one.
+
+What that looks like in the response. Every post now carries a `wording` field — `template` or
+`model` — and the kit carries a `polish` block naming the model, the prompt version, how many posts
+were reworded and how many kept the composed text. `review` is untouched: a reworded Marathi post
+is still a draft, and `draft_languages` still lists `mr` and `hi`.
+
+What the model is given: the prose lines, numbered. Not the fact set, not the permalink, not the
+issue id. What comes back is checked span by span against what went out — citation, ward code,
+authority, `@handle` byte for byte; numbers as a multiset; no new account, tag or link; the right
+script; the tone list of §3; the channel window — and a single failure anywhere serves the composed
+post instead. A half-reworded post is refused too, because two registers in one message read as two
+authors.
+
+Why it was worth doing at all: §1's thesis is that the share *is* the distribution channel, and a
+stilted post in the reader's own language is a post that does not get sent. The English templates
+read acceptably because a person wrote them; the Marathi and Hindi were written by the same person,
+who speaks neither.
+
 ### What has to happen before this is finished
 
 - **A native speaker reads `internal/share/i18n/share.mr.json` and `share.hi.json`.** Both ship as
   drafts, labelled as drafts in the API and on the page. This is the one outstanding item that a
-  user sees.
+  user sees, and the rewording layer above does **not** close it — it makes a stilted sentence
+  fluent, which is not the same as making it right. The register rules in
+  `internal/polish/prompts/share_polish_v1.md` are now part of what that reader should check.
 - **First-hand verification of `@mybmc`**, and a decision on ward handles.
 - **A WhatsApp intake bot** (§5.5), which is a distribution unlock rather than a share artefact,
   and the only item in this document that has not been started.

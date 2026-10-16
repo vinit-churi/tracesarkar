@@ -53,6 +53,27 @@ Three rules the share kit's copy follows, which any later vernacular surface sho
 helps nobody in Mumbai, but never silently: the API names the draft languages and the page carries a
 notice above the text. A native speaker reading those two files is the outstanding task.
 
+**A model may now reword that copy at request time, 16 October 2026.** Rule 1 above is unchanged and
+is the reason the layer is shaped the way it is: nothing is translated from a generated English
+string. `internal/polish` takes the *Marathi* lines a Marathi template composed and asks for better
+*Marathi*, line for line, and publishes the answer only if every citation, number, ward code and
+account survives it
+([ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md)). Rules 2 and 3
+are enforced rather than asked for: a legal term and an official name are protected spans, and a
+line that alters one is discarded.
+
+Two things this does not do, both worth stating plainly.
+
+- **It does not make a language reviewed.** A fluent sentence nobody who speaks Marathi has read is
+  still an unreviewed sentence. `review: "pending"` stays, `draft_languages` still names `mr` and
+  `hi`, and a test fails if rewording ever flips either.
+- **It adds a second artefact for the same reviewer.**
+  `internal/polish/prompts/share_polish_v1.md` carries the per-language register rules — that BMC's
+  word for an administrative ward is विभाग and never प्रभाग, that Mumbai Hindi is neither
+  Sanskritised nor Urdu-leaning, where a danda belongs and where it does not. Those are claims about
+  Marathi and Hindi written by someone who speaks neither, which is exactly the condition that made
+  the vocabulary files a review task.
+
 ---
 
 ## 2. Voice

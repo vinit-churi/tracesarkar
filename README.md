@@ -97,7 +97,8 @@ Start at [project state](docs/00-overview/06-project-state.md) §2 for what exis
 | [`internal/issue/`](internal/issue/) | Dedup and merge, the SLA clock, the hash-chained timeline |
 | [`internal/redact/`](internal/redact/) | Face and plate detection, the mosaic, the gate that holds an image when a detector cannot account for itself, and the scorer that grades the detectors against photographs marked up by hand |
 | [`internal/evidence/`](internal/evidence/) | The compiled record as a PDF: a deterministic writer with no dependency, because the stamp on the first page means nothing if the bytes differ per run |
-| [`internal/share/`](internal/share/) | The post, written from the fact set in three languages with no model in the path; the annotated image; the tone check that runs over the finished string. Vocabulary in [`i18n/`](internal/share/i18n/), one reviewable file per language |
+| [`internal/share/`](internal/share/) | The post, written from the fact set in three languages with no model and no network call; the annotated image; the tone check that runs over the finished string. Vocabulary in [`i18n/`](internal/share/i18n/), one reviewable file per language |
+| [`internal/polish/`](internal/polish/) | The one place a model may touch a generated post: it rewords composed lines and may not change one, which `Verify` enforces span by span. The prompt is a versioned file; `Corpus` and `Measure` are the eval set that had to exist first |
 | [`internal/publish/`](internal/publish/) | What a public surface may show: coarsened position, the redaction gate, the 150 KB image budget |
 | [`internal/action/`](internal/action/) | The next step a report earns — the right instrument, drafted and unsent |
 | [`internal/`](internal/) | Also: api, archive, store, config, sources, works, ingest, notify, auth, exif, ratelimit |

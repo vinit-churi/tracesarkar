@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/auth"
+	"github.com/vinit-churi/tracesarkar/internal/polish"
 	"github.com/vinit-churi/tracesarkar/internal/store"
 )
 
@@ -70,10 +71,14 @@ type Options struct {
 	// Evidence compiles one issue into the record behind the PDF pack. The
 	// only share surface that is not public.
 	Evidence Evidence
-	Blobs    Blobs
-	Details  Details
-	Issuer   *auth.Issuer
-	Google   *auth.GoogleVerifier
+	// Polish rewords the prose lines of a generated post. Optional, and off
+	// unless configured: without it every post is the deterministic
+	// composition, which is what ADR 0020 shipped and is always correct.
+	Polish  polish.Polisher
+	Blobs   Blobs
+	Details Details
+	Issuer  *auth.Issuer
+	Google  *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -97,6 +102,7 @@ type Server struct {
 	publicIssues PublicIssues
 	handles      Handles
 	evidence     Evidence
+	polish       polish.Polisher
 	labels       Labels
 	truth        Truth
 	blobs        Blobs
@@ -155,6 +161,7 @@ func New(opts Options) (*Server, error) {
 		publicIssues: opts.PublicIssues,
 		handles:      opts.Handles,
 		evidence:     opts.Evidence,
+		polish:       opts.Polish,
 		labels:       opts.Labels,
 		truth:        opts.Truth,
 		blobs:        opts.Blobs,

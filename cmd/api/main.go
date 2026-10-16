@@ -27,6 +27,7 @@ import (
 	"github.com/vinit-churi/tracesarkar/internal/archive"
 	"github.com/vinit-churi/tracesarkar/internal/auth"
 	"github.com/vinit-churi/tracesarkar/internal/config"
+	"github.com/vinit-churi/tracesarkar/internal/polish"
 	"github.com/vinit-churi/tracesarkar/internal/store"
 )
 
@@ -148,6 +149,38 @@ func serve(ctx context.Context, args []string) error {
 		slog.Info("google sign-in disabled", "reason", "GOOGLE_CLIENT_ID is not set")
 	}
 
+	// The share kit's rewording model. Off unless SHARE_POLISH is set, and a
+	// hard startup error when it is set without a model or an endpoint —
+	// there is deliberately no default model here. A model chosen by default
+	// is a model nobody decided on, and CLAUDE.md requires that choice to be
+	// a recorded decision rather than an implementation detail.
+	var polisher polish.Polisher
+	if os.Getenv("SHARE_POLISH") != "" {
+		baseURL, model := os.Getenv("POLISH_BASE_URL"), os.Getenv("POLISH_MODEL")
+		if baseURL == "" || model == "" {
+			return errors.New("SHARE_POLISH is set but POLISH_BASE_URL or POLISH_MODEL is not; " +
+				"name the model explicitly so the choice is on the record")
+		}
+		g, err := polish.NewGateway(polish.GatewayOptions{
+			BaseURL:    baseURL,
+			APIKey:     os.Getenv("POLISH_API_KEY"),
+			Model:      model,
+			PromptName: envOr("POLISH_PROMPT", "share_polish_v1"),
+			SchemaMode: polish.SchemaMode(envOr("POLISH_SCHEMA_MODE", string(polish.SchemaJSON))),
+		})
+		if err != nil {
+			return err
+		}
+		// A share kit is a public GET already cached for five minutes at the
+		// edge; paying for one answer on every request is the cheapest
+		// mistake available.
+		polisher = polish.Cached(g, 30*time.Minute, 1024)
+		slog.Info("share kit rewording enabled", "model", model,
+			"prompt", envOr("POLISH_PROMPT", "share_polish_v1"))
+	} else {
+		slog.Info("share kit rewording disabled", "reason", "SHARE_POLISH is not set")
+	}
+
 	origins := splitList(envOr("ALLOWED_ORIGINS",
 		"http://localhost:8080,http://localhost:5000,http://127.0.0.1:5000"))
 
@@ -163,6 +196,7 @@ func serve(ctx context.Context, args []string) error {
 		PublicIssues:   db,
 		Handles:        db,
 		Evidence:       db,
+		Polish:         polisher,
 		Blobs:          blobs,
 		Details:        db,
 		Issuer:         issuer,

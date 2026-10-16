@@ -1,6 +1,8 @@
 # ADR 0020 — Share text is generated from the fact set, not written by a model
 
-**Status:** Accepted · **Date:** 2026-10-14 · **Related:**
+**Status:** Accepted, amended in part by
+[ADR 0021](0021-a-model-may-reword-a-generated-post-never-author-one.md) ·
+**Date:** 2026-10-14 · **Related:**
 [ADR 0006](0006-claude-for-vision-and-extraction.md) ·
 [ADR 0007](0007-never-auto-file.md) ·
 [share kit](../02-product/05-share-kit.md) ·
@@ -58,11 +60,19 @@ prove, by code, in `internal/share`.**
 
 | Option | Why not |
 |---|---|
-| **A model writes the post from the fact set** | Better prose, and an unbounded surface. The thing that must never happen — an asserted fact about a named party in a forwarded image — is exactly what a fluent generator is good at producing, and no amount of prompt instruction converts into a test. Revisit only with an eval set that measures invented facts, not tone. |
+| **A model writes the post from the fact set** | Better prose, and an unbounded surface. The thing that must never happen — an asserted fact about a named party in a forwarded image — is exactly what a fluent generator is good at producing, and no amount of prompt instruction converts into a test. Revisit only with an eval set that measures invented facts, not tone. **That condition was met on 16 October 2026 for the narrower question of *rewording*, and only that: see [ADR 0021](0021-a-model-may-reword-a-generated-post-never-author-one.md). Authorship from the fact set remains refused.** |
 | **A model writes it, then the prohibited-pattern list filters it** | The list catches accusation, insult and party reference. It does not catch a confident, well-worded, wrong contract number. Filtering catches the vocabulary of a bad post, not its claims. |
 | **Machine-translate the English post into Marathi and Hindi** | Explicitly rejected by the vernacular doc, and obviously so for text carrying hashtags, handles and a court citation. |
 | **Withhold Marathi and Hindi until a native speaker has reviewed them** | Helps nobody in Mumbai in the meantime. They ship as drafts, labelled in the API and on the page, and editable. |
 | **Burn the fact block onto the image in all three languages** | The Go fonts carry no Devanagari and nothing in the standard library shapes a complex script, so conjuncts and matras would misplace. A card with broken Marathi is worse than an English card beside a Marathi post. |
+
+## Amendment, 16 October 2026
+
+[ADR 0021](0021-a-model-may-reword-a-generated-post-never-author-one.md) permits a model to
+**reword** lines this package composed, under `polish.Verify`, and keeps everything above intact
+for **authorship**. The reading that changed: "no model in the generation path" was the right rule
+for what a post may *say* and too broad a rule for how it may be *worded*, and the cost of the
+broad version fell almost entirely on Marathi and Hindi.
 
 ## Consequences
 

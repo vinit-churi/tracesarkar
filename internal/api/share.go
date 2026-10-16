@@ -10,9 +10,11 @@ import (
 	_ "image/jpeg"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/issue"
+	"github.com/vinit-churi/tracesarkar/internal/polish"
 	"github.com/vinit-churi/tracesarkar/internal/publish"
 	"github.com/vinit-churi/tracesarkar/internal/share"
 	"github.com/vinit-churi/tracesarkar/internal/store"
@@ -46,6 +48,15 @@ func (s *Server) handleShareKit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The model, if one is configured. It never sees the fact set and never
+	// writes a post: it rewords the sentences the platform already composed,
+	// and anything it returns that cannot be proved to say the same facts is
+	// thrown away in favour of the composed text (ADR 0021).
+	var polishMeta map[string]any
+	if s.polish != nil {
+		polishMeta = s.polishKit(r.Context(), f, &kit, v.IssueID)
+	}
+
 	body := map[string]any{
 		"issue_id":   kit.IssueID,
 		"posts":      kit.Posts,
@@ -65,10 +76,87 @@ func (s *Server) handleShareKit(w http.ResponseWriter, r *http.Request) {
 	if d := draftLanguages(kit); len(d) > 0 {
 		body["draft_languages"] = d
 	}
+	if polishMeta != nil {
+		body["polish"] = polishMeta
+	}
 
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	writeJSON(w, http.StatusOK, body)
 }
+
+// polishKit rewords every post in the kit and keeps the deterministic one
+// wherever the rewording cannot be proved to say the same facts.
+//
+// Three properties matter here and none of them is about the model.
+//
+// It runs the posts concurrently under one deadline. This is a public GET on
+// a page load, and six calls in sequence at a per-call timeout would make the
+// share kit slower than the thing it is trying to make easier.
+//
+// A refusal is logged and not surfaced as an error, because the response is
+// already correct without it. The log line is the measurement: it names the
+// post, the model and the prompt version, so a prompt that starts inventing
+// numbers shows up in the logs rather than in a forwarded WhatsApp message.
+//
+// It never touches Review. A model can make a Marathi sentence fluent; the
+// claim that a Marathi speaker has read it is a different claim and stays
+// false until one has.
+func (s *Server) polishKit(ctx context.Context, f share.Facts, kit *share.Kit, issueID string) map[string]any {
+	// The whole kit, not each post: a slow provider must not multiply by the
+	// number of languages.
+	ctx, cancel := context.WithTimeout(ctx, shareKitPolishBudget)
+	defer cancel()
+
+	type outcome struct {
+		key string
+		res polish.Result
+	}
+	results := make(chan outcome, len(kit.Posts))
+	var wg sync.WaitGroup
+	for key, p := range kit.Posts {
+		wg.Add(1)
+		go func(key string, p share.Post) {
+			defer wg.Done()
+			results <- outcome{key, polish.Apply(ctx, s.polish, f, p)}
+		}(key, p)
+	}
+	wg.Wait()
+	close(results)
+
+	var model, prompt string
+	var worded, kept int
+	for o := range results {
+		if o.res.Model != "" {
+			model, prompt = o.res.Model, o.res.Prompt
+		}
+		kit.Posts[o.key] = o.res.Post
+		if len(o.res.Faults) == 0 {
+			if o.res.Post.Wording == share.WordedByModel {
+				worded++
+			}
+			continue
+		}
+		kept++
+		s.log.Warn("kept the composed post rather than the model's wording",
+			"issue_id", issueID, "post", o.key, "model", o.res.Model,
+			"prompt", o.res.Prompt, "faults", len(o.res.Faults),
+			"first_fault", o.res.Faults[0].String())
+	}
+	return map[string]any{
+		"model": model, "prompt": prompt,
+		"worded_by_model": worded, "kept_composed": kept,
+		"note": "A model reworded the sentences the platform composed. It was " +
+			"given no facts and no link, and every number, reference and " +
+			"account in a reworded line was checked against the line it " +
+			"replaced. Where the check failed, the composed text is what you " +
+			"see.",
+	}
+}
+
+// shareKitPolishBudget is the whole kit's share of a page load. A share kit
+// that arrives late is a share that does not happen, and the composed post is
+// already correct.
+const shareKitPolishBudget = 10 * time.Second
 
 // draftLanguages names the languages no native speaker has read yet, so the
 // client can mark them and the user can edit before sending.

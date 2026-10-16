@@ -70,6 +70,9 @@
   .kit textarea:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
   .draft{background:var(--caution-wash);color:var(--caution);border-radius:9px;
          padding:9px 12px;font-size:13px;line-height:1.45;margin:0 0 11px}
+  /* Quieter than .draft on purpose: an unread language is a caution, a
+     model's wording is a disclosure. */
+  .worded{color:var(--ink-45);font-size:12px;line-height:1.45;margin:0 0 10px}
   .sends{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
   .sends a,.sends button{flex:1 1 128px;text-align:center;border:1px solid var(--hairline);
          background:var(--surface);color:var(--ink);border-radius:10px;padding:12px;
@@ -190,9 +193,20 @@ function shareKit(issueID) {
     const post = kit.posts[lang + "." + channel];
     if (post.review === "draft") {
       // Offered, because withholding it helps nobody — but never silently.
-      box.append(E("div", "draft", "This " + LANGS[lang] + " wording was written by " +
-        "the platform and has not yet been read by a native speaker. Read it " +
+      // A model may have reworded it, which is a different claim from a
+      // native speaker having read it, and the notice must not blur the two.
+      const by = post.wording === "model"
+        ? "written by the platform and reworded by a language model"
+        : "written by the platform";
+      box.append(E("div", "draft", "This " + LANGS[lang] + " wording was " + by +
+        ", and has not yet been read by a native speaker. Read it " +
         "before you send it, and change anything that reads wrong."));
+    } else if (post.wording === "model") {
+      // You are about to send this under your own name. You should know a
+      // model chose the words, and what was checked before it was shown.
+      box.append(E("div", "worded", "A language model reworded these sentences. " +
+        "Every number, reference and account in them was checked against the " +
+        "platform's own records before this was shown to you."));
     }
 
     const ta = E("textarea");

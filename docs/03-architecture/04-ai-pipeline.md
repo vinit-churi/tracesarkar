@@ -128,21 +128,39 @@ in the whole pipeline.
 
 ---
 
-## 5. Call: share-kit text generation
+## 5. Call: share-kit text rewording
 
-**Input:** the issue fact set (structured), the target channel, the target language.
-**Output:** post text within channel constraints.
+**This call does not generate a post.** It was specified as generation and shipped as none:
+[ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md) took the model out of
+the path entirely, because the share kit is the first surface composing prose about a named party
+that gets forwarded beyond any page the platform can correct.
+[ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md) put a model back
+in for the narrower job of **rewording** what `internal/share` already composed, and for nothing
+else.
+
+**Input:** the numbered prose lines of an already-composed post, and the target language and
+channel. **Not** the fact set, **not** the permalink, **not** the issue id — so the provider is
+never told which report the sentences belong to.
+**Output:** the same line numbers, reworded. One line in, one line out.
 
 | Setting | Value |
 |---|---|
-| Model | `claude-haiku-4-5` |
-| Effort | `low` |
-| Structured output | Yes — `{text, hashtags[], handles[], char_count}` |
-| Post-validation | Prohibited-pattern check (allegations, insults, party references, personal handles) before display |
+| Model | Configured per deployment, no default. A model chosen by default is a model nobody decided on; the choice is a decision-log entry |
+| Temperature | `0.2` — the job is to reword a fixed set of sentences, not to explore, and a low setting makes the eval set mean something between runs |
+| Structured output | Yes — `{lines: [{i, text}]}`, strict schema, with a `json_object` fallback for providers that reject named schemas |
+| Prompt | [`internal/polish/prompts/share_polish_v1.md`](../../internal/polish/prompts/share_polish_v1.md), versioned, plus a per-language register block generated from a map so a new language cannot be forgotten |
+| Post-validation | `polish.Verify`: protected spans byte for byte, numbers as a multiset, no new `@handle`/`#tag`/URL, correct script, the prohibited-pattern list, a line-length cap, the channel window. One failure discards the whole candidate |
+| Failure behaviour | The composed post, always. A provider that is down, slow, rate-limited or wrong costs nothing but the call |
+| Budget | 10 s for the whole kit, posts run concurrently, 8 s per call, 2 attempts, a 5-failure breaker with a 2-minute cooldown |
+| Cost control | In-process cache keyed on the hash of exactly what would be sent, 30 minutes, 1024 entries; the endpoint is already edge-cached for 5 |
+| Off by default | `SHARE_POLISH` unset means no call and no change |
 
-Generated **per language from the fact set**, never translated from a generated English string —
+Each language is reworded **from its own composed lines**, never from the English string —
 translating a hashtag-laden tweet produces garbage. See
 [accessibility and vernacular](../02-product/10-accessibility-and-vernacular.md).
+
+Rewording is not review. `Post.Wording` says who chose the words; `Post.Review` says whether a
+native speaker has read the language, and a model cannot make that true.
 
 ---
 

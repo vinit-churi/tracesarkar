@@ -460,6 +460,15 @@ Copy, More. WhatsApp first because that is where the behaviour is.
 Burned into the image: coarsened location, date, contract ID if published, the mark and URL.
 Never: an exact coordinate, an unredacted face or plate, an accusation.
 
+**Two notices, and they are different claims.** A language whose vocabulary no native speaker has
+read carries the caution notice — *"written by the platform … has not yet been read by a native
+speaker"* — keyed on `review`. A post whose sentences a model reworded carries a quieter disclosure
+keyed on `wording`, naming the model's part and what was checked before the text was shown. A
+reworded unreviewed language carries the caution notice with the model named inside it. **The two
+must never be collapsed into one chip or one sentence**: a fluent sentence nobody who speaks the
+language has read is still unreviewed
+([ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md)).
+
 ---
 
 ### S11 — My reports · v0.1
