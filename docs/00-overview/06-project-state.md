@@ -283,8 +283,13 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00042-cnq`** (`ab8a86f`,
-  16 October) lets a reporter answer the question the classifier could not
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00043-5j4`** (`4c44f9c`,
+  16 October) draws activity per day in `/ops/` over 7, 30 or 90 days
+  ([D180](05-decision-log.md)) — no new storage, since every series comes from a timestamp the rows
+  already carried. Verified after deploy: the block is in the page, `/v1/ops/trend` refuses an
+  unauthenticated request, and an out-of-range window is still refused as unauthenticated, so a
+  caller with no session learns nothing about valid parameters. `00042-cnq` let a reporter answer
+  the question the classifier could not
   ([D179](05-decision-log.md), migration 0046) — the field kit carries the block, the endpoint is
   authenticated and scoped to the caller's own captures, and three captures stuck since 5 October
   are answerable. `00041-725` added `/ops/`, system 8's first surface ([D178](05-decision-log.md)), and takes the
