@@ -54,7 +54,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | BMC departments registered | 86 · every department BMC lists, with its handbook ([D150](05-decision-log.md)) |
 | Wards with an escalation contact | 24 of 24 · Assistant Commissioner and zone DMC, role mailboxes ([D149](05-decision-log.md)) |
 | Routable categories | 4 of 6 · `road_defect`, `waste`, `water_drainage`, `street_furniture` |
-| Legal constants | 5 · two pothole clocks, a penalty, two waste clocks |
+| Legal constants | 7 · two pothole clocks, a penalty, and four waste clocks — two of them BMC's own, from its Citizen Charter ([D154](05-decision-log.md)) |
 | Government resolutions watched | 461 |
 | Captures stored | 5 · all real. Six synthetic rows were deleted on 13 Oct ([D129](05-decision-log.md)) |
 | — redacted, with a verdict recorded | 5 of 5 |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0033 is current)
+make migrate       # applies anything newer than the deployed schema (0034 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -312,18 +312,35 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       handbook, read as images, claims high-mast lamps and garden illumination and **not** street
       lighting, so the citywide desk that looked obvious would have been wrong. `street_furniture`
       now routes in all 24 wards, to the same office that holds minor roads and footpaths
-- [ ] **Render the Citizen Charter** (`qlcitizenchar`). Its inner iView timed out on every attempt;
-      retrying usually works, and a browser screenshot is a fallback. This is BMC's own published
-      service-level table and is the proper source for `legal_constants` — the platform currently
-      has five constants, four of them from a court rather than from BMC
+- [x] **Rendered the Citizen Charter — by not rendering it.** Done 16 October
+      ([D153](05-decision-log.md), [D154](05-decision-log.md), [D155](05-decision-log.md)). The
+      page never loads; its inner iView times out on every attempt. The document store behind it
+      is SAP Knowledge Management, which answers **WebDAV `PROPFIND`** — so the folder lists
+      itself even though its HTML view says it has no displayable content. 50 folders, 141 files,
+      one charter per department and ward. BMC's waste clocks are now its own: 12 hours for the
+      category, 48 for a dead animal (migration 0034). Roads & Traffic publishes no pothole clock
+      and the Hydraulic Engineer none for a leak, both recorded so nobody looks again
 - [ ] **Seed the footbridge desk from the Bridges handbooks.** `qlCeb` →
       `Chief Engineer_Bridges_E01…E18.pdf`, clean English, already downloadable. Note the file
       numbering is offset: `E(n)` is Manual `(n−1)`, so decision process and time limits are
       **E04**, norms **E05**, officer directory **E10**. Of the three blocked categories this is
       the one with no jurisdictional ambiguity
-- [ ] **Seed tree felling.** The Assistant Superintendent of Gardens sits in every ward's CONNECT
-      entry, and Gardens & Tree Authority is in the register (`qlgarden`). About an hour's work and
-      nothing is blocking it
+- [ ] **Seed tree felling** — but not from the Garden charter. Its Citizen Charter covers garden
+      services only: saplings, plant hire, events. Felling and pruning belong to the **Tree
+      Authority** under the Maharashtra (Urban Areas) Protection and Preservation of Trees Act
+      1975, which is a statutory body with its own officer and its own clocks, and neither has
+      been read yet. What is in hand: the Assistant Superintendent of Gardens sits in every ward's
+      CONNECT entry, and the Garden charter names the citywide fallback — Superintendent of
+      Gardens, `sg.gardens@mcgm.gov.in` ([A.9](../01-research/08-data-availability-audit.md)).
+      `environment` is the category, and like `street_furniture` before migration 0033 it is in
+      the taxonomy and routes nowhere
+- [ ] **Find what else is notified under the Maharashtra Right to Public Services Act 2015.** Two
+      notifications turned up inside the Citizen Charter folder — a sewerage connection in G/South,
+      15 days, dated 28 January 2026, with its designated officer and both appellate authorities
+      named. A service notified under that Act carries a *statutory* deadline, which is stronger
+      evidence than a charter and stronger than anything in `legal_constants` except the court
+      order. Where BMC publishes the full notified list is not yet known; the WebDAV walk
+      ([D153](05-decision-log.md)) is the tool for finding out
 - [ ] **Read the remaining ward RTI handbooks** for office hours, visiting hours and the
       per-activity time limits. Five are now read (A, P/North, R/Central, S, N). Finding each one
       is no longer guesswork: every ward office has a quicklink **`qlac<ward>ward`** —

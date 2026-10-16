@@ -73,7 +73,9 @@ func TestLiveEveryWardRoutesWasteAndWater(t *testing.T) {
 }
 
 // Refuse removal binds the whole waste category, so every ward should carry
-// the clock with its citation.
+// the clock with its citation. Twelve hours, from BMC's own Citizen Charter of
+// 7 December 2020 — which supersedes the 24 hours the 2006 R/Central handbook
+// gave, being both newer and citywide.
 func TestLiveTheWasteDeadlineReachesEveryWard(t *testing.T) {
 	ctx, _, db := liveDB(t)
 
@@ -82,9 +84,36 @@ func TestLiveTheWasteDeadlineReachesEveryWard(t *testing.T) {
 		if err != nil || !found {
 			continue
 		}
-		if r.DeadlineHours != 24 || r.DeadlineCitation == "" {
+		if r.DeadlineHours != 12 || r.DeadlineCitation == "" {
 			t.Errorf("%s: waste deadline is %d hours, citation %q",
 				ward, r.DeadlineHours, r.DeadlineCitation)
+		}
+	}
+}
+
+// The same charter gives a dead animal its own clock — 48 hours, four times
+// the twelve the rest of the category gets — so the narrower constant must win
+// for that subcategory and leave the others alone. This is D138's rule applied
+// a second time: a clock is shown with the scope the document gives it.
+func TestLiveADeadAnimalCarriesItsOwnClock(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		dead, found, err := db.RoutingFor(ctx, "BMC", ward, "waste", "dead animal")
+		if err != nil || !found {
+			continue
+		}
+		if dead.DeadlineHours != 48 || dead.DeadlineCitation == "" {
+			t.Errorf("%s: a dead animal has %d hours and citation %q",
+				ward, dead.DeadlineHours, dead.DeadlineCitation)
+		}
+		bin, found, err := db.RoutingFor(ctx, "BMC", ward, "waste", "overflowing bin")
+		if err != nil || !found {
+			continue
+		}
+		if bin.DeadlineHours != 12 {
+			t.Errorf("%s: the dead-animal clock leaked onto a bin: %d hours",
+				ward, bin.DeadlineHours)
 		}
 	}
 }

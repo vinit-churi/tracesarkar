@@ -53,6 +53,10 @@ var deadlineKeys = map[string]string{
 // the photograph, and a forwarded post is not correctable.
 var subcategoryDeadlineKeys = map[string]string{
 	"pothole": "pothole.attend_hours.court",
+	// BMC's own charter gives a dead animal 48 hours where the rest of the
+	// waste category gets 12. Binding it to the subcategory keeps the longer
+	// clock off a bin and the shorter one off a carcass (migration 0034).
+	"dead animal": "waste.dead_animal_removal_hours",
 }
 
 // boundDeadline is a constant and the thing inside a category it binds.
@@ -66,7 +70,10 @@ type boundDeadline struct {
 // constant actually covers. A scope with no wording here is not published on a
 // surface that lists categories, because "48 hours" beside a category it does
 // not bind is the overstatement D138 removed.
-var categoryScopes = map[string]string{"pothole": "potholes"}
+var categoryScopes = map[string]string{
+	"pothole":     "potholes",
+	"dead animal": "a dead animal",
+}
 
 // deadlinesWithin lists the obligations that bind anything inside a category.
 //

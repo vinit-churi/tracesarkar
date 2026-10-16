@@ -44,33 +44,34 @@ func TestTheCourtsPotholeDeadlineBindsPotholesOnly(t *testing.T) {
 // page should see it. Attaching it to the whole category is also wrong. So it
 // is shown with the scope it actually has.
 func TestACategoryReportsTheObligationsBoundWithinIt(t *testing.T) {
+	// A category can bind more than one obligation, and `waste` now does: the
+	// charter's twelve hours for the category and its forty-eight for a dead
+	// animal. The page states each with the scope it has.
 	cases := []struct {
 		category string
-		wantKey  string
-		wantFor  string
+		want     []boundDeadline
 	}{
-		{"road_defect", "pothole.attend_hours.court", "potholes"},
-		{"waste", "waste.refuse_removal_hours", ""},
-		{"water_drainage", "", ""},
-		{"street_furniture", "", ""},
+		{"road_defect", []boundDeadline{
+			{key: "pothole.attend_hours.court", appliesTo: "potholes"},
+		}},
+		{"waste", []boundDeadline{
+			{key: "waste.refuse_removal_hours"},
+			{key: "waste.dead_animal_removal_hours", appliesTo: "a dead animal"},
+		}},
+		{"water_drainage", nil},
+		{"street_furniture", nil},
 	}
 	for _, c := range cases {
 		got := deadlinesWithin(c.category)
-		if c.wantKey == "" {
-			if len(got) != 0 {
-				t.Errorf("%s: invented %d obligation(s): %+v", c.category, len(got), got)
+		if len(got) != len(c.want) {
+			t.Errorf("%s: got %d obligation(s), want %d: %+v",
+				c.category, len(got), len(c.want), got)
+			continue
+		}
+		for i := range c.want {
+			if got[i] != c.want[i] {
+				t.Errorf("%s[%d]: got %+v, want %+v", c.category, i, got[i], c.want[i])
 			}
-			continue
-		}
-		if len(got) != 1 {
-			t.Errorf("%s: got %d obligations, want 1", c.category, len(got))
-			continue
-		}
-		if got[0].key != c.wantKey {
-			t.Errorf("%s: key %q, want %q", c.category, got[0].key, c.wantKey)
-		}
-		if got[0].appliesTo != c.wantFor {
-			t.Errorf("%s: scope %q, want %q", c.category, got[0].appliesTo, c.wantFor)
 		}
 	}
 }

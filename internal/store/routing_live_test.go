@@ -16,8 +16,8 @@ func TestLiveRoutingFindsTheDeskAndTheClock(t *testing.T) {
 		if r.Officer == "" || r.Office == "" {
 			t.Errorf("no desk to address: %+v", r)
 		}
-		if r.DeadlineHours != 24 {
-			t.Errorf("deadline = %d, want 24", r.DeadlineHours)
+		if r.DeadlineHours != 12 {
+			t.Errorf("deadline = %d, want 12", r.DeadlineHours)
 		}
 		if r.DeadlineCitation == "" {
 			t.Error("a deadline without its citation is not evidence")

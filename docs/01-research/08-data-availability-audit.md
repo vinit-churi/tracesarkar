@@ -759,3 +759,46 @@ differently situated ward repeats it word for word.
 
 **Reading a legacy-font manual.** `pdftoppm -r 170 -png` then read the pages as images. The glyphs
 render correctly even though the text layer is mojibake — see [A.6](#a6-encoding--two-different-devanagari-problems).
+
+## A.9 The KM repository answers WebDAV ✅
+
+*16 October 2026.* The portal's document store is SAP Knowledge Management, and KM speaks WebDAV.
+A folder whose HTML view says "The folder you are looking for has no displayable content" will
+still list itself:
+
+```
+curl -X PROPFIND -H "Depth: 1" -A "<a browser UA>" \
+  "https://portal.mcgm.gov.in/irj/go/km/docs/documents/<folder>"
+# 207 Multi-Status, one <D:href> per child
+```
+
+`Depth: 1` only — `Depth: 2` is answered with a 400, so a tree walk costs one request per folder.
+This is the same anonymous read a browser performs, over the protocol the server advertises in its
+own "Web folder" link on the very page that refuses to list the folder.
+
+It supersedes the guesswork in [A.2](#a2-department-list--the-index-nobody-had-read) and
+[A.8](#a8-street-lighting-and-the-ward-quicklink-pattern): **no BMC file name ever needs to be
+guessed again.**
+
+### What it found: the Citizen Charter
+
+`MCGM Department List/Citizen Charter` — **50 folders, 141 files**, one per department or ward.
+The portal page for it (`qlcitizenchar`) has never rendered: its inner iView answers *"The iView
+has timed out… displaying expired content from the cache"* on every attempt, and the surrounding
+HTML is byte-identical to the homepage.
+
+| Document | What it publishes |
+|---|---|
+| **Solid Waste Management, 07.12.2020** | 13 complaint types with clocks — **12 hours** for eleven of them, **48 hours** for a dead animal, 1 week for open defecation. Free for types I–XII; type XIII (a household's own repair debris) is charged at the ward contract's per-tonne rate + 15% supervision. MMC Act 1888 ss.365–385. Escalation ladder, and `cleanmumbai.report@gmail.com` for a service not delivered in time |
+| **Chief Engineer (Roads & Traffic), 2016** | One service: a no-objection certificate for a set-back plot, 25 working days. **No pothole clock** |
+| **Hydraulic Engineer, undated** | 14 transactional services — new connection 15 days, plumber's licence, ownership change, water pressure 3 days, water quality 3 days. **No clock for a leak or a burst main** |
+| **Garden Department** | Sale of saplings 2 days, plant hire 1–2 days before the date. Tree felling is **not** here — it belongs to the Tree Authority. Names the citywide fallback: Superintendent of Gardens, 23742162, `sg.gardens@mcgm.gov.in` |
+| **F/North ward, 15.12.2023** | 47 pages, every department in one ward. The most recent charter found |
+| **G/South, 28.01.2026** | One service notified under the **Maharashtra Right to Public Services Act 2015** — a sewerage connection in 15 days, with its designated officer and both appellate authorities named |
+
+That last row is a thread worth pulling: services notified under the 2015 Act carry a *statutory*
+deadline and a named appeal ladder, which is stronger than a charter. Only two such notifications
+were found in this folder. Whether BMC has notified more, and where they are published, is open.
+
+Legacy-font Marathi appears again in the Garden charter ([A.6](#a6-encoding--two-different-devanagari-problems)); the
+SWM and Hydraulic charters extract as readable Unicode with matras dropped.
