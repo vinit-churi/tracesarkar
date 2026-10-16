@@ -802,3 +802,39 @@ were found in this folder. Whether BMC has notified more, and where they are pub
 
 Legacy-font Marathi appears again in the Garden charter ([A.6](#a6-encoding--two-different-devanagari-problems)); the
 SWM and Hydraulic charters extract as readable Unicode with matras dropped.
+
+## A.10 Bridges — the jurisdiction is written down ✅
+
+*16 October 2026.* `Chief Engineer (Bridges)/Docs/Circular (Revised) Maint of Bridge.pdf` —
+circular **No.Ch.E./25MGC/Bridges dated 28.06.2019**, three scanned pages, English. It is the
+clearest jurisdiction document found so far, and it divides bridges by span:
+
+| What | Whose |
+|---|---|
+| Bridge above 6.00 m span | Chief Engineer (Bridges) — structural audit, major and minor repairs, demolition and reconstruction proposal |
+| Bridge or culvert up to and including 6.00 m span | Chief Engineer (Storm Water Drains) — inventory, repairs, reconstruction |
+| Bridge on Hydraulic Engineer land | Hydraulic Engineer — inspection, structural audit, remedial measures |
+| Bridge or culvert in a private layout | The co-operative housing society or plot owner; CE (D.P.) imposes the condition when approving |
+| Cleaning, rain-water outlets, encroachment, hoardings, executing a closure | The ward Assistant Commissioner, on any bridge |
+
+Two rules from the same circular are quotable in their own right: **no advertisement board or
+hoarding is permitted on any bridge with MCGM**, and no beautification, vertical garden or cosmetic
+civil work may be carried out without prior clearance from the Bridges or Storm Water department.
+
+The department's own Section 4 handbooks add the inventory and the people:
+
+- **Manual 17** — 452 MCGM bridges: 226 over nalla or river, 67 footover bridges, 40 footover
+  bridges at railway level, 47 rail over-bridges, 23 skywalks, 18 flyovers, 18 pedestrian subways,
+  10 vehicular subways, 3 on the Eastern Freeway. Split City 98, Western Suburb 178, Eastern
+  Suburb 176
+- **Manual 16** — an Assistant Engineer (Bridges) for **every** ward, with a role mailbox, grouped
+  five or six wards to a mailbox. The merged cells are legible in the scan, so no ward is left
+  unattributed
+- **Manual 1** — the office: Engineering Hub Building, ground floor, Dr. E. Moses Road, Worli,
+  400018, 24958001, `che.br@mcgm.gov.in`. Four Deputy Chief Engineers (City, Eastern Suburb,
+  Western Suburb, Inspection — the last vacant) and ten Executive Engineers
+- **Manuals 3 and 4** — procedure and norms. Both say only that decisions follow delegated powers
+  and circulars. **No time limit anywhere**, which is now the fourth department to publish none
+
+`Docs/29 critical bridges list.pdf` additionally names, ward by ward, the bridges under demolition
+and reconstruction — a works list rather than a routing document, but a useful cross-check.

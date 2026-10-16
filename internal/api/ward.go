@@ -20,7 +20,12 @@ type WardProfiles interface {
 // handbook, a deadline with its citation. Nothing here came from a citizen,
 // which is what makes it safe without a sign-in.
 type publicDesk struct {
-	Category         string `json:"category"`
+	Category string `json:"category"`
+	// Covers names the one thing inside the category this desk owns, when it
+	// does not own all of it: the Bridge department holds a cracked bridge
+	// while the ward holds the rest of `structural`. Without it the page lists
+	// two offices under one heading and the resident picks the wrong one.
+	Covers           string `json:"covers,omitempty"`
 	Department       string `json:"department"`
 	Officer          string `json:"officer,omitempty"`
 	Office           string `json:"office,omitempty"`
@@ -64,8 +69,9 @@ func (s *Server) handleWardProfile(w http.ResponseWriter, r *http.Request) {
 	desks := make([]publicDesk, 0, len(profile.Desks))
 	for _, d := range profile.Desks {
 		desks = append(desks, publicDesk{
-			Category: d.Category, Department: d.Department,
-			Officer: d.Officer, Office: d.Office,
+			Category: d.Category, Covers: d.Subcategory,
+			Department: d.Department,
+			Officer:    d.Officer, Office: d.Office,
 			Phone: d.OfficePhone, Email: d.OfficeEmail,
 			Hours: d.OfficeHours, VisitingHours: d.VisitingHours,
 			EscalatesTo:       d.EscalatesTo,

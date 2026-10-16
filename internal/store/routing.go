@@ -129,6 +129,11 @@ func deadlineKeyFor(category, subcategory string) string {
 // is a state the product states plainly rather than hides.
 func (d *DB) RoutingFor(ctx context.Context, authority, ward, category, subcategory string) (Routing, bool, error) {
 	var r Routing
+	// A desk that names this subcategory owns part of the category and wins
+	// over one that owns the whole of it (migration 0035): a cracked footover
+	// bridge is the Bridge department's, while the rest of `structural` is the
+	// ward's. Ordering by the narrower row rather than filtering means a
+	// subcategory nobody has split still finds the category's desk.
 	err := d.pool.QueryRow(ctx, `
 		SELECT department, COALESCE(officer_designation, ''),
 		       COALESCE(pio_address, ''), COALESCE(office_phone, ''),
@@ -137,8 +142,9 @@ func (d *DB) RoutingFor(ctx context.Context, authority, ward, category, subcateg
 		       source_ref
 		  FROM authority_departments
 		 WHERE authority = $1 AND ward = $2 AND category = $3
-		 ORDER BY effective_from DESC, created_at
-		 LIMIT 1`, authority, ward, category).
+		   AND (subcategory IS NULL OR lower(subcategory) = lower($4))
+		 ORDER BY (subcategory IS NOT NULL) DESC, effective_from DESC, created_at
+		 LIMIT 1`, authority, ward, category, strings.TrimSpace(subcategory)).
 		Scan(&r.Department, &r.Officer, &r.Office, &r.OfficePhone,
 			&r.OfficeEmail, &r.OfficeHours, &r.VisitingHours, &r.EscalatesTo,
 			&r.SourceRef)
@@ -201,7 +207,13 @@ func (d *DB) Wards(ctx context.Context) ([]string, error) {
 
 // Desk is one department's published responsibility in a ward.
 type Desk struct {
-	Category         string
+	Category string
+	// Subcategory is empty for a desk that owns the whole category, and names
+	// one thing inside it otherwise — the Bridge department holds
+	// "cracked bridge/FOB" while the ward holds the rest of `structural`
+	// (migration 0035). A page that prints a desk without it tells a resident
+	// the wrong office for three quarters of the category.
+	Subcategory      string
 	Department       string
 	Officer          string
 	Office           string
@@ -244,21 +256,23 @@ func (d *DB) WardProfileFor(ctx context.Context, authority, ward string) (WardPr
 	p := WardProfile{Authority: authority, Ward: ward}
 
 	rows, err := d.pool.Query(ctx, `
-		SELECT category, department, COALESCE(officer_designation, ''),
+		SELECT category, COALESCE(subcategory, ''), department,
+		       COALESCE(officer_designation, ''),
 		       COALESCE(pio_address, ''), COALESCE(office_phone, ''),
 		       COALESCE(office_email, ''), COALESCE(office_hours, ''),
 		       COALESCE(visiting_hours, ''), COALESCE(escalates_to, ''),
 		       source_ref, retrieved_at
 		  FROM authority_departments
 		 WHERE authority = $1 AND ward = $2
-		 ORDER BY category, department`, authority, ward)
+		 ORDER BY category, subcategory NULLS FIRST, department`, authority, ward)
 	if err != nil {
 		return p, fmt.Errorf("ward profile: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var k Desk
-		if err := rows.Scan(&k.Category, &k.Department, &k.Officer, &k.Office,
+		if err := rows.Scan(&k.Category, &k.Subcategory, &k.Department,
+			&k.Officer, &k.Office,
 			&k.OfficePhone, &k.OfficeEmail, &k.OfficeHours, &k.VisitingHours,
 			&k.EscalatesTo, &k.SourceRef, &k.RetrievedAt); err != nil {
 			return p, fmt.Errorf("scan desk: %w", err)

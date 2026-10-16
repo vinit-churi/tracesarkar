@@ -511,6 +511,12 @@ Boundaries v2023 · contracts retrieved 9 Aug 2026 · CC BY-SA 4.0 · [correctio
 The `88 → 12` contrast is the single most important number pair on the platform and is placed
 adjacently by design. The contractors tab is threshold-gated and links to S29.
 
+The same page lists the ward's desks, one card each, from published facts only. A desk that owns
+**part** of a category rather than all of it must say so on the card — `only cracked bridge/FOB`
+beside the category chip — because a category can carry two cards for two different offices and an
+unqualified heading sends the resident to the wrong one. The rule is the same one that governs the
+deadline on the card: a scope narrower than the heading travels with the thing it qualifies.
+
 ---
 
 ### S16 — Rejection · v0.1

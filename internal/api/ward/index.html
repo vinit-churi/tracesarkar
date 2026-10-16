@@ -34,6 +34,8 @@
   .cat{display:inline-block;background:var(--accent-wash);color:var(--accent);
        font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
        padding:3px 9px;border-radius:7px;margin-bottom:10px}
+  .covers{display:inline-block;font-size:12px;color:var(--ink-45);
+          margin:0 0 10px 8px;letter-spacing:.2px}
   .dept{font-size:19px;font-weight:600;margin:0 0 2px}
   .officer{color:var(--ink-70);margin:0 0 12px}
   .rows{display:grid;grid-template-columns:120px 1fr;gap:5px 14px;font-size:15px}
@@ -132,8 +134,17 @@ function desk(d) {
     : '<div class="clock noclock">No deadline is published for this. '
       + 'TraceSarkar will not quote a number it cannot source.</div>';
 
+  // A desk can own one thing inside a category rather than all of it — the
+  // Bridge department holds a cracked bridge while the ward holds the rest of
+  // "Buildings and structures". Two offices under one unqualified heading is
+  // a resident writing to the wrong one.
+  const covers = d.covers
+    ? '<span class="covers">only ' + esc(d.covers) + '</span>'
+    : '';
+
   return '<div class="desk">'
     + '<span class="cat">' + esc(PLAIN[d.category] || d.category.replace(/_/g,' ')) + '</span>'
+    + covers
     + '<p class="dept">' + esc(d.department) + '</p>'
     + (d.officer ? '<p class="officer">' + esc(d.officer) + '</p>' : '')
     + '<dl class="rows">' + rows.join('') + '</dl>'

@@ -53,14 +53,14 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | Department mappings | 4 · road defects, waste, water supply — all sourced |
 | BMC departments registered | 86 · every department BMC lists, with its handbook ([D150](05-decision-log.md)) |
 | Wards with an escalation contact | 24 of 24 · Assistant Commissioner and zone DMC, role mailboxes ([D149](05-decision-log.md)) |
-| Routable categories | 4 of 6 · `road_defect`, `waste`, `water_drainage`, `street_furniture` |
+| Routable categories | 5 of 6 · only `environment` is left ([D157](05-decision-log.md)) |
 | Legal constants | 7 · two pothole clocks, a penalty, and four waste clocks — two of them BMC's own, from its Citizen Charter ([D154](05-decision-log.md)) |
 | Government resolutions watched | 461 |
 | Captures stored | 5 · all real. Six synthetic rows were deleted on 13 Oct ([D129](05-decision-log.md)) |
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
-| Wards with a desk to complain to | 24 of 24, for road defects, waste, water and street furniture · 97 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md)) |
+| Wards with a desk to complain to | 24 of 24, five categories · 145 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md)) |
 | — and an office above it to escalate to | 24 of 24 · 31 rows across 7 zones ([D149](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0034 is current)
+make migrate       # applies anything newer than the deployed schema (0036 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -320,11 +320,17 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       one charter per department and ward. BMC's waste clocks are now its own: 12 hours for the
       category, 48 for a dead animal (migration 0034). Roads & Traffic publishes no pothole clock
       and the Hydraulic Engineer none for a leak, both recorded so nobody looks again
-- [ ] **Seed the footbridge desk from the Bridges handbooks.** `qlCeb` →
-      `Chief Engineer_Bridges_E01…E18.pdf`, clean English, already downloadable. Note the file
-      numbering is offset: `E(n)` is Manual `(n−1)`, so decision process and time limits are
-      **E04**, norms **E05**, officer directory **E10**. Of the three blocked categories this is
-      the one with no jurisdictional ambiguity
+- [x] **Seeded the footbridge desk — and taught routing about subcategories.** Done 16 October
+      ([D156](05-decision-log.md), [D157](05-decision-log.md), migrations 0035 and 0036).
+      `structural` is one category and two authorities: the Chief Engineer (Bridges) holds the
+      structural audit and repair of every MCGM bridge above 6 m of span, the ward's Assistant
+      Engineer (Building & Factory) is the Designated Officer under MMC Act s.354 for a ruinous or
+      dangerous structure. So `authority_departments` gained a nullable `subcategory`, and a
+      cracked bridge now routes differently from a leaning building in all 24 wards. Manual 16 of
+      the Bridges handbook gave a ward-by-ward Assistant Engineer with a role mailbox for every
+      ward. **Left undone on purpose:** a bridge of 6 m span or less belongs to the Chief Engineer
+      (Storm Water Drains) under the same circular, and one in a private layout to the society
+      that owns it — neither desk is seeded, and the row's note says so
 - [ ] **Seed tree felling** — but not from the Garden charter. Its Citizen Charter covers garden
       services only: saplings, plant hire, events. Felling and pruning belong to the **Tree
       Authority** under the Maharashtra (Urban Areas) Protection and Preservation of Trees Act
@@ -334,6 +340,12 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       Gardens, `sg.gardens@mcgm.gov.in` ([A.9](../01-research/08-data-availability-audit.md)).
       `environment` is the category, and like `street_furniture` before migration 0033 it is in
       the taxonomy and routes nowhere
+- [ ] **Seed the Storm Water Drains bridge desk.** The bridge circular gives every bridge of
+      6.00 m span or less to the Chief Engineer (S.W.D.), and migration 0036 knowingly sends those
+      to the Bridge department instead ([D157](05-decision-log.md)). `qlcheswd` is in the register;
+      what is needed is the S.W.D. handbook or its own circular, and a way to tell a resident which
+      side of six metres they are standing on — most likely by naming both desks on the card rather
+      than choosing
 - [ ] **Find what else is notified under the Maharashtra Right to Public Services Act 2015.** Two
       notifications turned up inside the Citizen Charter folder — a sewerage connection in G/South,
       15 days, dated 28 January 2026, with its designated officer and both appellate authorities

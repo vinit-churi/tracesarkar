@@ -201,3 +201,59 @@ func TestLiveTheStreetLightDeskIsMunicipalNotTheLicensee(t *testing.T) {
 		}
 	}
 }
+
+// `structural` is one category and two authorities, which is why routing had
+// to learn about subcategories. BMC's revised bridge circular of 28 June 2019
+// gives the Chief Engineer (Bridges) the structural audit and the repairs of
+// every MCGM bridge above six metres of span; the ward's own Assistant
+// Engineer (Building & Factory) is the Designated Officer under MMC Act s.354
+// for a ruinous or dangerous structure. A photograph of a cracked footover
+// bridge and a photograph of a leaning building are the same category and
+// belong to different desks.
+func TestLiveAStructuralReportSplitsByWhatItIs(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		bridge, found, err := db.RoutingFor(ctx, "BMC", ward, "structural", "cracked bridge/FOB")
+		if err != nil {
+			t.Fatalf("%s: RoutingFor bridge: %v", ward, err)
+		}
+		if !found {
+			t.Errorf("%s: a cracked bridge has no desk", ward)
+		} else {
+			if !strings.Contains(bridge.Department, "Bridges") {
+				t.Errorf("%s: a cracked bridge went to %q", ward, bridge.Department)
+			}
+			if strings.TrimSpace(bridge.SourceRef) == "" {
+				t.Errorf("%s: the bridge desk has no source reference", ward)
+			}
+		}
+
+		building, found, err := db.RoutingFor(ctx, "BMC", ward, "structural", "distressed building")
+		if err != nil {
+			t.Fatalf("%s: RoutingFor building: %v", ward, err)
+		}
+		if !found {
+			t.Errorf("%s: a distressed building has no desk", ward)
+			continue
+		}
+		if strings.Contains(building.Department, "Bridges") {
+			t.Errorf("%s: a building went to the bridge department", ward)
+		}
+		if !strings.Contains(building.Officer, "Building & Factory") {
+			t.Errorf("%s: expected the ward Building & Factory post, got %q",
+				ward, building.Officer)
+		}
+		// A subcategory with no row of its own falls back to the category's
+		// desk rather than to nothing.
+		wall, found, err := db.RoutingFor(ctx, "BMC", ward, "structural", "collapsed wall")
+		if err != nil || !found {
+			t.Errorf("%s: a collapsed wall has no desk (%v)", ward, err)
+			continue
+		}
+		if wall.Department != building.Department {
+			t.Errorf("%s: a collapsed wall went to %q, not the ward desk %q",
+				ward, wall.Department, building.Department)
+		}
+	}
+}
