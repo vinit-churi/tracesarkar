@@ -283,8 +283,11 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00041-725`** (`b8eee24`,
-  16 October) adds `/ops/`, system 8's first surface ([D178](05-decision-log.md)), and takes the
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00042-cnq`** (`ab8a86f`,
+  16 October) lets a reporter answer the question the classifier could not
+  ([D179](05-decision-log.md), migration 0046) — the field kit carries the block, the endpoint is
+  authenticated and scoped to the caller's own captures, and three captures stuck since 5 October
+  are answerable. `00041-725` added `/ops/`, system 8's first surface ([D178](05-decision-log.md)), and takes the
   permalink from `PUBLIC_BASE_URL` rather than from the request's `Host` header
   ([D177](05-decision-log.md)) — now set to the service's own URL, which needs no DNS; change it to
   the custom domain when one exists. Verified after deploy: `/ops/` serves, `/v1/ops/health`
