@@ -224,6 +224,7 @@ orientation; where it and this file disagree, this file wins.
 | S14 | Public issue permalink | v0.1 | Web, no login, 2G |
 | S15 | Ward page | v0.1 | Web, the claimed-vs-confirmed contrast |
 | S16 | Rejection ("not a civic issue") | v0.1 | Specific, never generic |
+| S16b | Which problem is this? | v0.1 | Built into the field kit ([D179](../00-overview/05-decision-log.md)): the classifier's own guess, the options it offered, and the platform's words back — including when the answer is one nobody routes yet |
 | S17 | Offline outbox | v0.2 | Honest queue |
 | S18 | Re-check prompt + capture | v0.2 | The highest-value interaction |
 | S19 | Deadline passed → next actions | v0.2 | Highest leverage first |

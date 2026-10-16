@@ -244,7 +244,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0045 is current)
+make migrate       # applies anything newer than the deployed schema (0046 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -493,6 +493,14 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       `MAIL_FROM` and `PUBLIC_BASE_URL`, or `MAIL_MODE=log` to read your own links out of the log
       at the personal tier. A domain sending password resets also needs an SPF record, or the mail
       is spam ([D171](05-decision-log.md))
+- [x] **Answered the question the platform forgot it asked.** Done 16 October
+      ([D179](05-decision-log.md), migration 0046). The console's "waiting for the citizen" count
+      turned out to be a capture the classifier had asked about with a list of options that
+      `SaveClassification` never persisted — computed, discarded, never shown, and skipped by the
+      sweep for ever. The options are stored now, the field kit asks, and a reporter's answer writes
+      a new classification row marked `source = 'reporter'` rather than editing the model's. Three
+      real captures from 5 and 6 October are answerable
+
 - [ ] **Finish system 8.** The first surface is built ([D178](05-decision-log.md)): `/ops/` shows
       the ratio, the queues with what clears each, and sources and runs. What it does not have is
       anything over time — a failure rate, a trend, a chart — so "collection got slower this week"

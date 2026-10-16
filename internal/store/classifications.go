@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -19,6 +20,11 @@ type NewClassification struct {
 	Prompt   string
 	Latency  time.Duration
 	Err      string
+	// Source is "model" or "reporter". Empty means model, which is every
+	// caller except the confirmation endpoint (migration 0046). A reporter's
+	// answer is the right answer by definition and must never be scored as a
+	// prediction the classifier made.
+	Source string
 }
 
 // SaveClassification records an attempt.
@@ -34,16 +40,20 @@ func (d *DB) SaveClassification(ctx context.Context, in NewClassification) error
 		  water_present, people_present, image_quality, is_civic_issue,
 		  confidence, rationale, outcome, overridden, override_reason,
 		  redaction_required, rejection_reason, model, prompt_version,
-		  latency_ms, error)
+		  latency_ms, error, alternatives, source)
 		VALUES (gen_random_uuid(), $1::uuid, NULLIF($2,''), NULLIF($3,''),
 		        NULLIF($4,''), $5, $6, $7, NULLIF($8,''), $9, $10::numeric,
 		        NULLIF($11,''), $12, $13, NULLIF($14,''), $15, NULLIF($16,''),
-		        $17, $18, $19, NULLIF($20,''))`,
+		        $17, $18, $19, NULLIF($20,''), $21, COALESCE(NULLIF($22,''),'model'))`,
 		in.ReportID, dec.Category, dec.Subcategory, dec.Severity, dec.HazardToLife,
 		dec.WaterPresent, dec.PeoplePresent, dec.ImageQuality, dec.IsCivicIssue,
 		dec.Confidence, dec.Rationale, string(dec.Outcome), dec.Overridden,
 		dec.OverrideReason, dec.RedactionRequired, dec.RejectionReason,
-		in.Model, in.Prompt, in.Latency.Milliseconds(), in.Err)
+		in.Model, in.Prompt, in.Latency.Milliseconds(), in.Err,
+		// The question that was asked, stored rather than recomputed: the
+		// taxonomy changes, and an answer has to come from the list the
+		// person was actually shown.
+		alternativesJSON(dec.Alternatives), in.Source)
 	if err != nil {
 		return fmt.Errorf("save classification for %s: %w", in.ReportID, err)
 	}
@@ -193,4 +203,23 @@ func (d *DB) CoveredCategories(ctx context.Context) ([]string, error) {
 		out = append(out, c)
 	}
 	return out, rows.Err()
+}
+
+// alternativesJSON encodes the options offered, or null when none were.
+//
+// Null rather than an empty array on purpose: "no question was asked" and "a
+// question was asked with no options" are different states, and only the
+// second is a bug.
+func alternativesJSON(alts []string) any {
+	if len(alts) == 0 {
+		return nil
+	}
+	raw, err := json.Marshal(alts)
+	if err != nil {
+		// Marshalling a []string cannot fail. Treated as "no question" rather
+		// than failing the whole save, because losing the classification
+		// would lose more than losing the options.
+		return nil
+	}
+	return raw
 }

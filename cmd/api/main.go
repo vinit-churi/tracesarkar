@@ -263,6 +263,7 @@ func serve(ctx context.Context, args []string) error {
 		Polish:         polisher,
 		Credentials:    db,
 		Operator:       db,
+		Confirmations:  db,
 		Mail:           sender,
 		PublicBaseURL:  publicBaseURL,
 		Blobs:          blobs,

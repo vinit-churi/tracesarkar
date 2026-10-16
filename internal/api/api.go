@@ -92,10 +92,14 @@ type Options struct {
 	// and the claimed-versus-confirmed counts. Optional, like every other
 	// surface that needs a database.
 	Operator Operator
-	Blobs    Blobs
-	Details  Details
-	Issuer   *auth.Issuer
-	Google   *auth.GoogleVerifier
+	// Confirmations lets a reporter answer the question the classifier could
+	// not: which problem this is. Optional, like every other surface that
+	// needs a database.
+	Confirmations Confirmations
+	Blobs         Blobs
+	Details       Details
+	Issuer        *auth.Issuer
+	Google        *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -122,6 +126,7 @@ type Server struct {
 	polish        polish.Polisher
 	credentials   Credentials
 	operator      Operator
+	confirmations Confirmations
 	mail          mail.Sender
 	labels        Labels
 	truth         Truth
@@ -203,6 +208,7 @@ func New(opts Options) (*Server, error) {
 		polish:        opts.Polish,
 		credentials:   opts.Credentials,
 		operator:      opts.Operator,
+		confirmations: opts.Confirmations,
 		mail:          opts.Mail,
 		publicBaseURL: base,
 		labels:        opts.Labels,
@@ -259,6 +265,13 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /v1/reports/{id}", s.authenticated(http.HandlerFunc(s.handleReportDetail)))
 
 	mux.Handle("GET /v1/reports/{id}/media", s.authenticated(http.HandlerFunc(s.handleReportMedia)))
+	// The question the classifier could not answer, and the reporter's reply.
+	// Both scoped to the caller's own captures: a capture carries a position
+	// accurate to metres and a photograph that may not be redacted yet.
+	mux.Handle("GET /v1/reports/awaiting-confirmation",
+		s.authenticated(http.HandlerFunc(s.handleAwaitingConfirmation)))
+	mux.Handle("POST /v1/reports/{id}/confirm",
+		s.authenticated(http.HandlerFunc(s.handleConfirmClassification)))
 	mux.Handle("POST /v1/issues/{id}/lodged", s.authenticated(http.HandlerFunc(s.handleLodged)))
 	// The evidence pack. Signed in, unlike the rest of the share kit: it
 	// carries the exact position and the complaint reference, because it is

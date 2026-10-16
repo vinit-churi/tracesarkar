@@ -186,6 +186,19 @@ It prints `stored|have <key> <url>` per line, and the key is what a migration sh
 Two live tests guard the result: every routing row must carry an `archive_key`, and every cited
 key must actually be in the bucket.
 
+### Captures waiting on the person who took them
+
+The console's **"captures waiting for the citizen to say which problem this is"** row is not a
+backlog you can clear: it is a question only the reporter can answer, and it is answered in the
+field kit at `/` — the block appears above the counters when there is one
+([D179](../00-overview/05-decision-log.md)).
+
+Worth knowing why a capture lands there. The classifier asks when it named a subcategory the
+platform cannot route, when it named a category with no department behind it, or when it scored
+below the confidence floor — the last being the common case, and the right behaviour: it asked
+rather than guessed. An answer writes a new classification row marked `source = 'reporter'`; the
+model's own attempt is kept, because it is the evidence of what the classifier did.
+
 ### The operator console
 
 `/ops/` is the first answer to "is collection healthy and is anything stuck" that does not involve
