@@ -871,3 +871,35 @@ below, and a separate 7-day notice for dead and dangerous trees. Also in it:
 This is the richest stream of named-party data the project has found: each notice names an
 applicant, a ward, a plot and a number of trees. Nothing from it is seeded, and nothing should be
 without reading the Act's publication rules first.
+
+## A.12 The Right to Public Services Act 2015 — found, read, and not what we needed ⚠️
+
+*16 October 2026.* `MCGM Department List/Public Service Charter` holds the consolidated material,
+and several department folders carry their own सूचना फलक (notice board) of notified services. Four
+were read:
+
+| Office | Notified services and statutory limits |
+|---|---|
+| Chief Engineer (Development Planning / Building Proposals) | Zone certificate **7 days**, building permission (IOD) **60 days**, commencement certificate (CC) **15 days** |
+| Garden Department | Letting a ground on hire **7 days**, pruning a tree **7 days**, felling or transplanting **45 days** (₹6,000 processing + ₹6,000 deposit per tree; ₹10,000 deposit to transplant) |
+| K/East ward office | Sewerage connection **15 days** after payment, supervision fee ₹1,002 per metre |
+| Chief Engineer (Building Maintenance) | Registration of a building-construction product, a chain of 7 to 45-day steps |
+
+Each names a designated officer and **two** levels of appeal. That is a stronger instrument than a
+citizen charter: a charter promises, the Act binds.
+
+**And none of it is a complaint.** Every notified service is a permission, a certificate or a
+connection — something a citizen *applies* for. Nothing in the four boards covers answering a
+report of a pothole, a dead animal, a felled tree or a dangerous building. The Act, as BMC has
+notified under it, governs the application counter and not the complaint desk, so it cannot supply
+the deadlines this platform's six categories need. The thread [A.9](#a9-the-km-repository-answers-webdav)
+opened is closed ([D161](../00-overview/05-decision-log.md)).
+
+Two things from it are worth keeping. The Garden figures are now in `legal_constants`, unbound to
+any category, because the price and the statutory decision period for lawful felling are facts the
+platform can state beside a photograph of an unlawful one. And the K/East board corroborates the
+ward appeal ladder — Assistant Engineer, then Ward Executive Engineer, then Assistant Commissioner.
+
+Encoding note: the consolidated `Lokseva Adhyadesh.pdf` is legacy-font Marathi and extracts as
+mojibake; the department boards are scans with no text layer at all. All of them were read as
+images.

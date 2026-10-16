@@ -26,7 +26,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 
 | | Where | State |
 |---|---|---|
-| **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy |
+| **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy · revision `00033-f28`, deployed 16 Oct |
 | **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
 | **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag. v0.1.1 queues captures offline |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
@@ -54,7 +54,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | BMC departments registered | 86 · every department BMC lists, with its handbook ([D150](05-decision-log.md)) |
 | Wards with an escalation contact | 24 of 24 · Assistant Commissioner and zone DMC, role mailboxes ([D149](05-decision-log.md)) |
 | Routable categories | **6 of 6** · `environment` only for tree felling, which is the only part of it BMC owns ([D158](05-decision-log.md)) |
-| Legal constants | 7 · two pothole clocks, a penalty, and four waste clocks — two of them BMC's own, from its Citizen Charter ([D154](05-decision-log.md)) |
+| Legal constants | 12 · two pothole clocks, a penalty, four waste clocks, and five from the Tree Authority — the first that come from a statute ([D154](05-decision-log.md), [D160](05-decision-log.md)) |
 | Government resolutions watched | 461 |
 | Captures stored | 5 · all real. Six synthetic rows were deleted on 13 Oct ([D129](05-decision-log.md)) |
 | — redacted, with a verdict recorded | 5 of 5 |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0037 is current)
+make migrate       # applies anything newer than the deployed schema (0038 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -262,9 +262,10 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision `00032-84w` (`b5c9551`)
-  carries `/truth/`, the share kit, the unfurling permalink, the evidence pack, and obligations
-  shown with the scope they bind
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00033-f28`** (`872945e`,
+  16 October) carries `/truth/`, the share kit, the unfurling permalink, the evidence pack,
+  obligations shown with the scope they bind, and desks shown with the scope *they* bind — the
+  ward page now qualifies a card that owns part of a category ([D156](05-decision-log.md))
 - `tracesarkar-collector` — twice daily, alerts on failure
 - `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image, rebuilt at
   `b1aa75e`: a newly captured photograph is scanned by `edge-density-2` rather than the localiser
@@ -346,29 +347,19 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       has to leave the corporation: the Maharashtra Pollution Control Board, the Mangrove Cell of
       the Forest Department, and the coastal zone authority. Nothing should be seeded against BMC
       for them
-- [ ] **Find what else is notified under the Maharashtra Right to Public Services Act 2015.** Two
-      notifications turned up inside the Citizen Charter folder — a sewerage connection in G/South,
-      15 days, dated 28 January 2026, with its designated officer and both appellate authorities
-      named. A service notified under that Act carries a *statutory* deadline, which is stronger
-      evidence than a charter and stronger than anything in `legal_constants` except the court
-      order. Where BMC publishes the full notified list is not yet known; the WebDAV walk
-      ([D153](05-decision-log.md)) is the tool for finding out
-- [ ] **Read the remaining ward RTI handbooks** for office hours, visiting hours and the
-      per-activity time limits. Five are now read (A, P/North, R/Central, S, N). Finding each one
-      is no longer guesswork: every ward office has a quicklink **`qlac<ward>ward`** —
-      `qlacaward`, `qlackwward`, `qlacrcward` — and that page lists the ward's handbooks as direct
-      PDF links. The file names are not guessable and do not need to be
-      ([A.8](../01-research/08-data-availability-audit.md)). The A-ward handbook gave the real
-      escalation chain and a circular register ([D151](05-decision-log.md)) and P/North confirmed
-      the street-lighting duty ([D152](05-decision-log.md)); `authority_departments.office_hours`
-      and `visiting_hours` are still null for all but two rows. Note the duty lists are **not**
-      uniform — R/Central and S carry a different structure with no numbered duty list at all
-- [ ] **Consider seeding the 227 councillors** — `councillor<N>@mcgm.gov.in` by electoral ward,
-      from the English Diary 2026. This supersedes BMC's own GIS `COUNCILLOR` field, stale since
-      the January 2026 poll. Weigh it first: a councillor is an elected politician rather than an
-      office, so it is closer to a named party under hard rule 2 than the role mailboxes in
-      [D149](05-decision-log.md) are, and the share kit's rule against political reference
-      ([D136](05-decision-log.md)) bears on how it could ever be surfaced
+- [x] **Read what BMC has notified under the Right to Public Services Act 2015 — and closed the
+      thread.** Done 16 October ([D161](05-decision-log.md)). BMC publishes it properly, in
+      `MCGM Department List/Public Service Charter` and in per-department notice boards. Four were
+      read, and every notified service is a **permission, a certificate or a connection** — a zone
+      certificate in 7 days, an IOD in 60, a sewerage connection in 15, tree-felling permission in
+      45. Not one is a complaint, so the Act cannot supply the deadlines this platform's categories
+      need. The Garden figures are seeded as unbound constants ([D160](05-decision-log.md))
+- [ ] **Render the Tree Authority facts on an issue page.** Five constants are recorded and
+      reachable through `store.LegalConstant`, and nothing shows them. The sentence they support —
+      lawful felling needs permission, the permission costs a published fee per tree, and the
+      Authority has 45 days by statute to decide — is the kind of join this platform exists to
+      make, and it belongs beside a photograph of a tree coming down. It must never be rendered as
+      a deadline for answering the report
 - [ ] **Archive what was read into R2.** CONNECT 2026, the English Diary 2026 and the handbooks
       downloaded this session are on a laptop, not in the archive, and the archive — not the parsed
       row — is the evidentiary record. `authority_departments` rows cite an `archive_key`; the new
