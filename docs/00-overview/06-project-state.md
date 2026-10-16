@@ -293,7 +293,7 @@ Three Cloud Run resources in `asia-south1`, all from this repository:
   that says **"Not BMC"** when the office belongs to another body, and an issue block stating
   what the law requires for the thing photographed
   ([D156](05-decision-log.md), [D166](05-decision-log.md), [D168](05-decision-log.md))
-- `tracesarkar-collector` — twice daily, alerts on failure
+- `tracesarkar-collector` — twice daily, alerts on failure. Both jobs now run `3c0d386`
 - `tracesarkar-sweep` — every ten minutes, now with a fifth stage that removes spent
   password-reset and verification links a week after they stop working ([D171](05-decision-log.md));
   it belongs on a job that already runs rather than a timer of its own, and matches nothing most
@@ -455,13 +455,17 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       making it right, and it adds a second artefact for the same reader —
       `internal/polish/prompts/share_polish_v1.md`, whose per-language register rules are claims
       about Marathi and Hindi written by somebody who speaks neither
-- [ ] **Choose the rewording model, and measure it before trusting it.** The machinery is built
-      and off ([D170](05-decision-log.md)). What it has no supply of is a decision:
-      `POLISH_BASE_URL`, `POLISH_API_KEY` and `POLISH_MODEL`, then
-      `TRACESARKAR_LIVE=1 go test ./internal/polish/ -run TestLive -v`, which prints the publish
-      rate, the refusals by kind and every refused post in full. Record the numbers and the model
-      in the decision log; a model picked without that entry is the mistake the classifier already
-      made (`deepseek-flash` is in production with no entry naming it)
+- [ ] **Decide whether to turn the rewording on.** It is measured and off
+      ([D173](05-decision-log.md)). `deepseek-flash` published **92 of 96** corpus posts with
+      **0 invented facts** — no lost span, no changed number, no invented account or link, no tone
+      violation — and changed the vernacular in 49 of 64 posts against English in 9 of 32, which is
+      the asymmetry [ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md)
+      was written about. `deepseek-v4-pro` is ruled out on latency, not fidelity: two minutes a call
+      against an 8-second budget. **`SHARE_POLISH` stays unset until you say otherwise** — turning
+      it on changes what a public surface publishes, which is not a consequence of a good test
+      result. Re-run any candidate with
+      `POLISH_BASE_URL=… POLISH_API_KEY=… POLISH_MODEL=… POLISH_SCHEMA_MODE=json_object \
+      TRACESARKAR_LIVE=1 go test ./internal/polish/ -run TestLive -v` (about 5 minutes, 96 calls)
 - [ ] **Phone OTP, the last of system 5.** Reset, email verification and revocation are done
       ([D171](05-decision-log.md)); phone verification is not, and
       [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) keeps it as the

@@ -188,12 +188,18 @@ key must actually be in the bucket.
 
 ### The sweep job
 
-`tracesarkar-sweep` runs `ingest sweep` every ten minutes: **enrich, redact, classify, issues**.
-It is what makes a capture resolve itself instead of waiting for someone to run a command.
+`tracesarkar-sweep` runs `ingest sweep` every ten minutes: **enrich, redact, classify, issues,
+credentials**. It is what makes a capture resolve itself instead of waiting for someone to run a
+command.
 
-The order matters and is not an implementation detail. Classification is a third-party API, and
-ADR 0008 says an un-redacted photograph of an identifiable person must not reach one — so the
-mosaic is applied first and the classifier reads that copy
+The last stage is the only one that is not about captures: it deletes password-reset and
+verification links a week after they stop working ([D171](../00-overview/05-decision-log.md)). It
+rides this job rather than a timer of its own because a job that already runs needs no second
+schedule, alert or dashboard, and the query matches nothing on most passes.
+
+The order of the first four matters and is not an implementation detail. Classification is a
+third-party API, and ADR 0008 says an un-redacted photograph of an identifiable person must not
+reach one — so the mosaic is applied first and the classifier reads that copy
 ([D128](../00-overview/05-decision-log.md)). The redacted copy is written for *every* capture, not
 only publishable ones, so a held photograph still produces an answer for the person who reported
 it; holding withholds the picture from the public, not from them.
