@@ -450,7 +450,10 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       `internal/share/i18n/share.mr.json` and `share.hi.json`, one file each, and change
       `"review": "pending"` to `"reviewed"` when they have. Both are live and labelled as drafts
       on every issue page, so this is the only outstanding item a user can see
-      ([D137](05-decision-log.md)). **The rewording layer does not close this**
+      ([D137](05-decision-log.md)). **The sheet to send them is
+      [13-vernacular-review-sheet.md](../02-product/13-vernacular-review-sheet.md)**
+      ([D174](05-decision-log.md)) — self-contained, no code knowledge needed, every string with an
+      ID to answer against, and the four questions per language a non-speaker cannot settle. **The rewording layer does not close this**
       ([D170](05-decision-log.md)): it can make a stilted sentence fluent, which is not the same as
       making it right, and it adds a second artefact for the same reader —
       `internal/polish/prompts/share_polish_v1.md`, whose per-language register rules are claims

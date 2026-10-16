@@ -40,6 +40,38 @@
     "damaged manhole cover": "Damaged manhole cover",
     "damaged speed breaker": "Damaged speed breaker",
     "utility-dig damage": "Unrepaired utility dig",
-    "missing/faded markings": "Faded road markings"
+    "missing/faded markings": "Faded road markings",
+
+    "uncollected garbage": "Uncollected garbage",
+    "overflowing bin": "Overflowing bin",
+    "illegal dumping": "Illegal dumping",
+    "debris": "Dumped debris",
+    "burning waste": "Burning waste",
+    "dead animal": "Dead animal",
+
+    "waterlogging": "Waterlogging",
+    "blocked drain": "Blocked drain",
+    "silted nallah": "Silted nallah",
+    "sewage overflow": "Sewage overflow",
+    "burst pipeline": "Burst water pipeline",
+    "leakage": "Water leakage",
+
+    "streetlight out": "Street light not working",
+    "broken footpath": "Broken footpath",
+    "damaged railing": "Damaged railing",
+    "damaged signage": "Damaged signage",
+    "missing bollard": "Missing bollard",
+
+    "cracked bridge/FOB": "Cracked bridge or foot-overbridge",
+    "collapsed wall": "Collapsed wall",
+    "distressed building": "Distressed building",
+    "unsafe scaffolding": "Unsafe scaffolding",
+
+    "tree felling": "Tree felling",
+    "air pollution source": "Air pollution source",
+    "effluent discharge": "Effluent discharge",
+    "creek dumping": "Dumping in a creek",
+    "mangrove destruction": "Mangrove destruction",
+    "encroachment on water body": "Encroachment on a water body"
   }
 }

@@ -312,7 +312,9 @@ who speaks neither.
 
 - **A native speaker reads `internal/share/i18n/share.mr.json` and `share.hi.json`.** Both ship as
   drafts, labelled as drafts in the API and on the page. This is the one outstanding item that a
-  user sees, and the rewording layer above does **not** close it — it makes a stilted sentence
+  user sees. The sheet to hand them is
+  [13-vernacular-review-sheet.md](13-vernacular-review-sheet.md); the rewording layer above does
+  **not** close it — it makes a stilted sentence
   fluent, which is not the same as making it right. The register rules in
   `internal/polish/prompts/share_polish_v1.md` are now part of what that reader should check.
 - **First-hand verification of `@mybmc`**, and a decision on ward handles.

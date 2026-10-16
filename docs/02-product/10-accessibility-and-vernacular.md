@@ -53,6 +53,14 @@ Three rules the share kit's copy follows, which any later vernacular surface sho
 helps nobody in Mumbai, but never silently: the API names the draft languages and the page carries a
 notice above the text. A native speaker reading those two files is the outstanding task.
 
+**The sheet to hand them is [13-vernacular-review-sheet.md](13-vernacular-review-sheet.md)**, added
+16 October 2026. It is written for somebody who knows nothing about the project or about code: what
+the message is for, who reads it, the seven rules the copy has to follow, then every sentence and
+every word with an ID to answer against. It also carries the four questions per language that a
+non-speaker cannot settle — whether the danda belongs, whether `आढळले` agrees with `{n}`, whether a
+bare ward letter joins correctly to `विभागात`, and whether the register is right for a ward office
+*and* a WhatsApp forward.
+
 **A model may now reword that copy at request time, 16 October 2026.** Rule 1 above is unchanged and
 is the reason the layer is shaped the way it is: nothing is translated from a generated English
 string. `internal/polish` takes the *Marathi* lines a Marathi template composed and asks for better
