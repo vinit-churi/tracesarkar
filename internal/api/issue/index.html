@@ -95,6 +95,10 @@
          border-radius:0 8px 8px 0;padding:12px 14px;font-size:15px}
   .clock.running{background:var(--caution-wash);border-left-color:var(--caution)}
   .clock.none{background:var(--evidence);border-left-color:var(--ink-45)}
+  .process{background:var(--evidence);border:1px dashed var(--hairline);
+           border-radius:10px;padding:14px 16px;margin:10px 0}
+  .process > div{margin-bottom:4px}
+  .process .cite{margin:0 0 12px}
   .cite{font-size:12px;color:var(--ink-45);margin-top:6px;line-height:1.45}
   .corrob{background:var(--accent-wash);border-radius:12px;padding:14px 16px;
           color:var(--accent);font-size:15px;margin-bottom:14px}
@@ -372,6 +376,20 @@ function render(d) {
         "No deadline is shown: none is published for this kind of problem, " +
         "or the document that sets one is not yet recorded."));
     }
+    m.append(box);
+  }
+
+  // What the law requires for this kind of thing. Deliberately after the
+  // clock and visually unlike it: these are figures about the lawful process,
+  // not an obligation owed to the person who reported it.
+  if (d.process && (d.process.facts || []).length) {
+    m.append(E("h2", null, d.process.heading));
+    const box = E("div", "process");
+    (d.process.facts || []).forEach(f => {
+      box.append(E("div", null, f.says));
+      box.append(E("p", "cite", f.cite));
+    });
+    box.append(E("p", "cite", d.process.note));
     m.append(box);
   }
 

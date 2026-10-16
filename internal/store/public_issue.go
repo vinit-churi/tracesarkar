@@ -62,6 +62,12 @@ type PublicIssueView struct {
 	// post. Empty means the deadline cannot be stated there at all.
 	DeadlineShortRef string
 
+	// ProcessNotes describe how the thing in the photograph is lawfully done —
+	// the permission it needs, what that permission costs, how long the
+	// authority has to decide. They are not obligations owed to the reporter
+	// and are never rendered as a clock (D160).
+	ProcessNotes []ProcessNote
+
 	// Redaction is the record for the photograph that would be shown. Nil when
 	// no capture of this issue has been through redaction.
 	Redaction *publish.Redaction
@@ -99,6 +105,9 @@ func (d *DB) PublicIssue(ctx context.Context, issueID string) (PublicIssueView, 
 		return PublicIssueView{}, false, err
 	}
 	if err := d.attachPublicEvents(ctx, &v); err != nil {
+		return PublicIssueView{}, false, err
+	}
+	if err := d.attachProcessNotes(ctx, &v); err != nil {
 		return PublicIssueView{}, false, err
 	}
 	if err := d.attachDeadline(ctx, &v); err != nil {
@@ -154,6 +163,46 @@ func (d *DB) attachPublicEvents(ctx context.Context, v *PublicIssueView) error {
 		v.Events = append(v.Events, e)
 	}
 	return rows.Err()
+}
+
+// ProcessNote is one published figure about the lawful process, with the
+// document that publishes it. A note whose figure will not parse, or whose
+// citation is missing, is dropped rather than shown: the same rule the
+// deadline follows, for the same reason.
+type ProcessNote struct {
+	Says     string
+	Citation string
+	ShortRef string
+}
+
+func (d *DB) attachProcessNotes(ctx context.Context, v *PublicIssueView) error {
+	facts := processFactsFor(v.Category, v.Subcategory)
+	for _, f := range facts {
+		var value, citation, short string
+		err := d.pool.QueryRow(ctx, `
+			SELECT value::text, citation, COALESCE(short_citation, '')
+			  FROM legal_constants
+			 WHERE key = $1 AND effective_from <= now()::date
+			   AND (effective_to IS NULL OR effective_to >= now()::date)
+			 ORDER BY effective_from DESC LIMIT 1`, f.key).
+			Scan(&value, &citation, &short)
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("public issue process fact %s: %w", f.key, err)
+		}
+		shown := formatConstantValue(f.key, value)
+		if shown == "" || citation == "" {
+			continue
+		}
+		v.ProcessNotes = append(v.ProcessNotes, ProcessNote{
+			Says:     fmt.Sprintf(f.form, shown),
+			Citation: citation,
+			ShortRef: short,
+		})
+	}
+	return nil
 }
 
 func (d *DB) attachDeadline(ctx context.Context, v *PublicIssueView) error {

@@ -92,6 +92,7 @@ func (s *Server) handlePublicIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	addLodging(body, v)
+	addProcess(body, v)
 
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	writeJSON(w, http.StatusOK, body)
@@ -125,6 +126,33 @@ func addLodging(body map[string]any, v store.PublicIssueView) {
 		lodged["deadline_says"] = reading.Says
 	}
 	body["lodged"] = lodged
+}
+
+// addProcess states how the thing photographed is lawfully done.
+//
+// It sits apart from the clock on purpose. The Tree Authority's forty-five
+// days are the time it has to decide an application to fell a tree, not the
+// time it has to answer a report that one came down (D160), and a figure in
+// the wrong box would say the second. Each note carries the document that
+// publishes it, and a note without one never reaches here.
+func addProcess(body map[string]any, v store.PublicIssueView) {
+	if len(v.ProcessNotes) == 0 {
+		return
+	}
+	notes := make([]map[string]any, 0, len(v.ProcessNotes))
+	for _, n := range v.ProcessNotes {
+		notes = append(notes, map[string]any{
+			"says": n.Says,
+			"cite": n.Citation,
+		})
+	}
+	body["process"] = map[string]any{
+		"heading": "What the law requires for this",
+		"note": "These are published figures about how this is lawfully done. " +
+			"They are not a deadline for answering a report, and they say " +
+			"nothing about whether anybody followed them.",
+		"facts": notes,
+	}
 }
 
 func label(status string) string {

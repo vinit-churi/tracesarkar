@@ -375,12 +375,14 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       certificate in 7 days, an IOD in 60, a sewerage connection in 15, tree-felling permission in
       45. Not one is a complaint, so the Act cannot supply the deadlines this platform's categories
       need. The Garden figures are seeded as unbound constants ([D160](05-decision-log.md))
-- [ ] **Render the Tree Authority facts on an issue page.** Five constants are recorded and
-      reachable through `store.LegalConstant`, and nothing shows them. The sentence they support —
-      lawful felling needs permission, the permission costs a published fee per tree, and the
-      Authority has 45 days by statute to decide — is the kind of join this platform exists to
-      make, and it belongs beside a photograph of a tree coming down. It must never be rendered as
-      a deadline for answering the report
+- [x] **Rendered the Tree Authority facts.** Done 16 October ([D168](05-decision-log.md)). An
+      issue of a felled tree now carries a block headed "What the law requires for this" — the
+      permission, its published fee per tree, and the 45 statutory days to decide an application —
+      each with its citation, apart from the clock and saying in its own words that it is not one
+      and that it says nothing about whether anybody followed it. The share kit is deliberately
+      not given these: a fee beside a photograph of a stump, in a post that travels beyond any
+      page this platform can correct, is an accusation however it is worded
+
 - [x] **Archived what was read.** Done 16 October ([D162](05-decision-log.md), migration 0039).
       Thirty-six documents — every ward and departmental handbook, charter, circular and Right to
       Public Services board this week's work rests on — fetched, hashed and stored by a new

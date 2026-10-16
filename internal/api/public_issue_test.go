@@ -383,3 +383,66 @@ func TestACorruptStoredCopyIsAnErrorRatherThanABrokenImage(t *testing.T) {
 		t.Fatal("bytes that are not an image were served as a photograph")
 	}
 }
+
+// A process fact says how the thing photographed is lawfully done. It must
+// reach the page in its own block, with its citation, and it must never be
+// mistaken for the clock: the Tree Authority's forty-five days are the time to
+// decide an application to fell a tree, not the time to answer a report that
+// one came down.
+func TestPublicIssueStatesTheLawfulProcessApartFromTheClock(t *testing.T) {
+	v := anIssue()
+	v.Category, v.Subcategory = "environment", "tree felling"
+	v.ProcessNotes = []store.ProcessNote{
+		{Says: "Felling or transplanting a tree needs the Tree Authority's " +
+			"permission, and the Authority has 45 days to decide an application.",
+			Citation: "MRTPS Act 2015 notification, Gardens, item 3"},
+		{Says: "The published processing fee is ₹6,000 per tree.",
+			Citation: "MRTPS Act 2015 notification, Gardens, item 3"},
+	}
+	// No deadline is attached: nothing binds a report of felling.
+	v.DeadlineHours, v.DeadlineCitation = 0, ""
+
+	_, body := getPublicIssue(t, &fakePublicIssues{view: v, found: true})
+
+	process, ok := body["process"].(map[string]any)
+	if !ok {
+		t.Fatalf("no process block: %v", body["process"])
+	}
+	facts, _ := process["facts"].([]any)
+	if len(facts) != 2 {
+		t.Fatalf("got %d process fact(s), want 2", len(facts))
+	}
+	for i, raw := range facts {
+		f, _ := raw.(map[string]any)
+		if s, _ := f["says"].(string); strings.TrimSpace(s) == "" {
+			t.Errorf("fact %d says nothing", i)
+		}
+		if c, _ := f["cite"].(string); strings.TrimSpace(c) == "" {
+			t.Errorf("fact %d has no citation, so it must not have been shown", i)
+		}
+	}
+	// The disclaimer is the point of the block, not decoration.
+	note, _ := process["note"].(string)
+	if !strings.Contains(note, "not a deadline") {
+		t.Errorf("the block does not say it is not a deadline: %q", note)
+	}
+	if !strings.Contains(note, "whether anybody followed them") {
+		t.Errorf("the block does not disclaim any finding about a party: %q", note)
+	}
+
+	// And none of it leaked into the clock.
+	lodged, _ := body["lodged"].(map[string]any)
+	if _, present := lodged["deadline_says"]; present {
+		t.Error("a process fact became a deadline")
+	}
+}
+
+// Everything else keeps its silence. A pothole has a clock and no process
+// block, and a block that appeared on every issue would be noise that trains
+// people to skip it.
+func TestPublicIssueHasNoProcessBlockWhenNothingIsPublished(t *testing.T) {
+	_, body := getPublicIssue(t, &fakePublicIssues{view: anIssue(), found: true})
+	if _, present := body["process"]; present {
+		t.Errorf("a pothole grew a process block: %v", body["process"])
+	}
+}
