@@ -1,7 +1,26 @@
 # Project state
 
-**Last updated: 14 October 2026.** Read this first when you pick the project up, on any device.
+**Last updated: 16 October 2026.** Read this first when you pick the project up, on any device.
 It is a snapshot, not a spec: every line links to the document that holds the detail.
+
+## Picking this up cold
+
+If you have no memory of the last session, this is the shortest path back in.
+
+1. **Read this document.** §2 is what is live, §3 is the eight systems, §8 is how to run and deploy
+   it and the things that will otherwise waste an hour.
+2. **Read the last dozen rows of [the decision log](05-decision-log.md).** It is chronological and
+   every row says *why*, which is the part no code comment carries. D169–D180 are 16 October.
+3. **Then [`CLAUDE.md`](../../CLAUDE.md)** for the eight hard rules. They are not style preferences;
+   each one exists because breaking it creates legal or safety exposure.
+
+**Nothing is half-finished in the working tree.** Every change is committed and deployed, `make
+test`, `make lint` and `make docs-check` are green, and the full live suite passes. There is no
+in-progress branch and no stash.
+
+**What is waiting on a decision rather than on work** is in §6. Four of those only the owner can
+make, and one of them has a clock on it: posts shared today carry a Cloud Run hostname in their
+permalink, and every forwarded post keeps whatever link it was created with.
 
 ---
 
@@ -26,7 +45,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 
 | | Where | State |
 |---|---|---|
-| **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy · revision `00035-66c`, deployed 16 Oct |
+| **API** | `https://tracesarkar-api-198090766679.asia-south1.run.app` | Cloud Run, `asia-south1`, healthy · revision `00043-5j4`, deployed 16 Oct. **No custom domain yet**, which is why `PUBLIC_BASE_URL` is set to this hostname ([D177](05-decision-log.md)) |
 | **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
 | **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag. v0.1.1 queues captures offline |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
@@ -36,7 +55,8 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | **Issue** | `…run.app/issue/{id}` | Public, no sign-in — one problem: what, roughly where, how many sightings, whether it was lodged. A bare link unfurls into the facts and the card |
 | **Share kit** | on `…run.app/issue/{id}` | Public — the post, written for you in English, Marathi or Hindi, editable, WhatsApp first. The card comes in feed and 9:16, and a signed-in reporter can compile the record as a PDF |
 | **Mark up** | `…run.app/truth/` | Drag a box round every face and plate, so the detector can be graded. Signed-in only |
-| **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in |
+| **Field kit** | `…run.app/` | Capture with ground truth recorded on the spot; signs in. Also where a reporter answers "which problem is this?" when the classifier could not tell ([D179](05-decision-log.md)) |
+| **Operator console** | `…run.app/ops/` | Signed-in — the claimed-versus-confirmed counts, what is waiting with what clears each row, sources and runs, and activity per day over 7/30/90 days ([D178](05-decision-log.md), [D180](05-decision-log.md)). Counts only; it writes nothing |
 | **Collector** | Cloud Run job, `asia-south1` | Twice daily, alerting on failure |
 | **Sweep** | Cloud Run job, `asia-south1` | Every 10 min — enrich, redact, classify, issues. A capture resolves itself |
 
@@ -186,6 +206,22 @@ any is wrong, say so and it gets reversed with a new log row.**
 Also chosen, not logged as decisions: the verticals order (drains first, then construction sites,
 building safety and hoardings behind a flag, then trees), and starting with personal tools.
 
+### Waiting on the owner, 16 October 2026
+
+Nothing below is blocked on work. Each one is a decision, and the code for it is built, tested and
+off.
+
+| | What is decided | What happens when you answer |
+|---|---|---|
+| **`SHARE_POLISH`** | Whether a model words the posts the public sees | Measured and off ([D173](05-decision-log.md)): `deepseek-flash` published 92 of 96 corpus posts with **0 invented facts**, and changed the vernacular in 49 of 64 posts against English in 9 of 32. Turning it on is `SHARE_POLISH=1` with `POLISH_BASE_URL`, `POLISH_API_KEY`, `POLISH_MODEL`, `POLISH_SCHEMA_MODE=json_object`. The guard protects *facts* and not *register* — the prompt's own Hindi guidance was wrong until the review caught it ([D175](05-decision-log.md)) — so this is a judgement about public copy, not about correctness |
+| **`reviewed_by`** | Whether the reviewer is named | `internal/share/i18n/share.{mr,hi}.json` read *"a native speaker of Marathi, via the project owner"*. This is a public repository; a name goes in only if they want it |
+| **A domain** | The permalink in every shared post | **This one has a clock.** `PUBLIC_BASE_URL` is set to the Cloud Run hostname, so posts shared today carry it, and a forwarded post keeps whatever link it was created with for ever ([D177](05-decision-log.md)). Buy the domain, map it, change the variable |
+| **A mail route** | Password reset and address verification | Built and refusing cleanly with 501 ([D171](05-decision-log.md)). Needs `MAIL_MODE=smtp` with `SMTP_HOST`, `MAIL_FROM` and `PUBLIC_BASE_URL`, plus an SPF record on the sending domain or the mail is spam. `MAIL_MODE=log` works today at the personal tier and writes the link to the log |
+| **Phone OTP** | The gate on the public tier | Procurement before code: a DLT-registered sender ID and a paid SMS route in India ([ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md)) |
+| **The 227 councillors** | Whether to seed elected politicians | Hard rule 2 and [D136](05-decision-log.md) apply. A scope call, not a data problem |
+| **Moderation in system 8** | Whether v1 needs more than the three narrow surfaces | The console deliberately writes nothing ([D178](05-decision-log.md)). `/review/`, `/label/` and `/truth/` take the verdicts. Whether that is enough is a product call |
+| **Queue depth over time** | Whether to start recording it | Not derivable retrospectively ([D180](05-decision-log.md)): a queue is counted by asking what is unfinished *now*, and that was never stored. It needs the sweep to write a snapshot row — about 144 a day — and it only starts accumulating from the day it ships |
+
 ### Two model choices that are not decisions yet, and should be
 
 `CLAUDE.md` says the default model is `claude-opus-5`, and that a cheaper tier is permitted on the
@@ -261,6 +297,59 @@ certificate is sitting in the repository root. Point it at an absolute path when
 POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 ```
 
+### Deploying
+
+Three resources, one command each. The runbook has the full procedure; these are the lines that
+matter and the traps around them.
+
+```bash
+# The API. Note the repository name: cloud-run-source-deploy, NOT tracesarkar.
+IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/tracesarkar-api:$(git rev-parse --short HEAD)"
+gcloud builds submit --config deploy/cloudrun/api.cloudbuild.yaml \
+  --substitutions "_IMAGE=$IMAGE" --region asia-south1
+gcloud run deploy tracesarkar-api --image "$IMAGE" --region asia-south1
+
+# Collector and sweep share one image.
+IMAGE="asia-south1-docker.pkg.dev/cloud-mcp-501616/cloud-run-source-deploy/tracesarkar-collector:$(git rev-parse --short HEAD)"
+gcloud builds submit --tag "$IMAGE" --region asia-south1 .
+gcloud run jobs update tracesarkar-collector --image "$IMAGE" --region asia-south1
+gcloud run jobs update tracesarkar-sweep      --image "$IMAGE" --region asia-south1
+```
+
+### Things that will otherwise waste an hour
+
+Each of these cost time on 16 October and none of them is discoverable from the code.
+
+- **The Artifact Registry repository is `cloud-run-source-deploy`.** Guessing `tracesarkar` builds
+  fine and then fails at the push with `name unknown: Repository "tracesarkar" not found`. Read the
+  real path off the running service rather than guessing:
+  `gcloud run services describe tracesarkar-api --region asia-south1 --format='value(spec.template.spec.containers[0].image)'`
+- **`gcloud builds list --limit 1` is not your build.** Polling it reports whichever build the API
+  returns first, which raced three times in one session and once reported SUCCESS for an unrelated
+  build, so the deploy then failed with `Image ... not found`. Capture the id with
+  `--async --format='value(id)'` and poll `gcloud builds describe <id>`.
+- **An embedded prompt is a `.md` file, and `.gcloudignore` / `.dockerignore` exclude `*.md`.** The
+  exception is written for `internal/*/prompts/` so any package works, but if you add an embedded
+  asset with another extension the build fails with `pattern X: cannot embed directory X: contains
+  no embeddable files`. That failure names the embed, not the ignore file, which is why it has now
+  happened twice.
+- **`API_TOKEN` on the service is a Secret Manager reference, not a literal**, so it cannot be read
+  out of `gcloud run services describe` and the `.env` copy is a *different* token. Authenticated
+  endpoints therefore cannot be smoke-tested from the shell without deliberately fetching a secret;
+  the live store tests cover that data instead.
+- **The Vercel AI Gateway key in `.env` does not work.** It answers
+  `customer_verification_required` — the account needs a card on file even for free models. Only
+  the DeepSeek direct route is usable today.
+- **DeepSeek serves two models and only one can see images.** `deepseek-flash` has vision;
+  `deepseek-v4-pro` replies "No image provided". `v4-pro` is also a slow reasoning model — roughly
+  two minutes a call — and is unusable for anything on a page load ([D173](05-decision-log.md)).
+  Both reject `json_schema`, so `*_SCHEMA_MODE=json_object`.
+- **`POSTGRES_CA_PATH` in `.env.example` is relative**, and `go test ./internal/store/` runs in that
+  package's directory. Live tests need `POSTGRES_CA_PATH=$PWD/ca.pem`.
+- **Migrations are not checksummed.** Editing an applied migration's SQL does nothing to the
+  database, so a correction has to be a new migration. Editing only its *comments* is fine and was
+  done once, for 0046, when the reasoning turned out to be overstated.
+
 ### Where the code actually is
 
 | Want to change | Look in |
@@ -275,7 +364,7 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 | A reset or verification link, and how it is delivered | `internal/mail/` — plain text, no tracking; `internal/auth/onetime.go` mints the credential, `internal/store/credentials.go` holds the hash |
 | What a public surface may show | `internal/publish/` |
 | The next step a report earns | `internal/action/` |
-| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/ and the share kit's\nvocabulary in `internal/share/i18n/`` |
+| HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth,ops}/`, and the share kit's vocabulary in `internal/share/i18n/` |
 | SQL | `internal/store/` — hand-written, no ORM. Migrations are forward-only and numbered |
 | Who a complaint escalates to | `internal/store/escalation.go` — `EscalationFor` (ward + zone), `Departments` (the BMC register) |
 
@@ -330,6 +419,50 @@ detail is in [the runbook §2](../06-operations/01-runbook.md).
 **The archive bucket is private and must stay that way.** It holds photographs taken by people who
 did not agree to publish them. It was briefly public and was closed; the public page serves the
 *redacted copy* through the API, never a bucket URL, so that the gate sits in front of every read.
+
+---
+
+## 8b. What changed on 16 October 2026
+
+One session, twelve decisions, D169–D180. Recorded here because the next reader will want to know
+why so much moved at once, and because five of the twelve were **defects found while building
+something adjacent** rather than by looking for them — which is the pattern worth carrying forward.
+
+### Built
+
+- **A model may reword a generated post, never author one** — `internal/polish`, [D170](05-decision-log.md),
+  [ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md). Off by
+  default. The eval set [ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md)
+  demanded exists first: 16 fact sets, 96 posts, and `Score.InventedFacts`.
+- **System 5 finished but for phone OTP** — reset, verification, revocation, [D171](05-decision-log.md),
+  migration 0044. Revocation is a `token_version` on the account rather than a list of dead tokens.
+- **Marathi and Hindi reviewed** by native speakers, [D175](05-decision-log.md). 19 of 43 Marathi
+  strings changed and 20 of 43 Hindi; all 36 subcategories now have a word in all three languages.
+  The record is [the review sheet](../02-product/13-vernacular-review-sheet.md).
+- **System 8 started** — `/ops/`, [D178](05-decision-log.md) and [D180](05-decision-log.md).
+- **A reporter can answer the classifier's question** — [D179](05-decision-log.md), migration 0046.
+
+### Found while building something else
+
+| Found while | The defect |
+|---|---|
+| Rendering the share kit to put it in front of a reviewer | A citation ran into the next sentence in all three languages ([D169](05-decision-log.md)) |
+| Measuring line length after the review lengthened some lines | On X, *the authority says attended*, *a resident photographed fixed* and *seen again* were **byte-identical posts** — G14 and [D007](05-decision-log.md), live for a month because the test checked English on WhatsApp only ([D176](05-decision-log.md)) |
+| Writing about forwarded posts | The permalink came from the `Host` header, which a caller of a public endpoint chooses ([D177](05-decision-log.md)) |
+| Adding a "what clears it" column for honesty | A queue count disagreed with the stage that clears it ([D178](05-decision-log.md)) |
+| Reading why that queue said 3 | The platform computed a question, discarded it, and left three captures unfinishable since 5 October — hard rule 7 ([D179](05-decision-log.md)) |
+
+Two smaller ones: seven Dependabot advisories in the deploy toolchain, and R/C carrying two
+spellings of its own name in every escalation line ([D172](05-decision-log.md)).
+
+### Open threads that are not decisions
+
+- **Mangrove destruction, creek dumping, encroachment on a water body** still answer "not known".
+  The routing machinery handles cross-authority desks since [D166](05-decision-log.md); what is
+  missing is Forest Department Mangrove Cell and MCZMA documents. Hard rule 8 points at RTI when a
+  source will not yield.
+- **Three captures await their reporter's answer** at `…run.app/` — confidence 0.50, 0.62, 0.50,
+  from 5 and 6 October. Three taps each, then the next sweep attaches them.
 
 ---
 
