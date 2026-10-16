@@ -188,14 +188,43 @@ func TestEveryPostLinksToThePageThatCarriesItsSources(t *testing.T) {
 
 // An unreviewed translation is offered but never silently: the client has to
 // be able to mark it so a user can read it before sending.
-func TestTheKitSaysWhichLanguagesAreStillDrafts(t *testing.T) {
+//
+// Asserted against share.Review() rather than against a list of languages, so
+// signing one off is a change to one JSON file and not to this test.
+func TestTheKitReportsEachLanguagesReviewState(t *testing.T) {
 	_, body := getKit(t, &fakePublicIssues{view: anIssue(), found: true}, &fakeHandles{})
 	posts := body["posts"].(map[string]any)
-	if got := posts["en.x"].(map[string]any)["review"]; got != "reviewed" {
-		t.Errorf("English is %v, want reviewed", got)
+
+	states := share.Review()
+	var unreviewed []string
+	for _, lang := range share.Languages() {
+		for _, ch := range share.Channels() {
+			p, ok := posts[string(lang)+"."+string(ch)].(map[string]any)
+			if !ok {
+				t.Fatalf("no %s.%s post", lang, ch)
+			}
+			if got := p["review"]; got != string(states[lang]) {
+				t.Errorf("%s.%s says %v, want %q", lang, ch, got, states[lang])
+			}
+		}
+		if states[lang] == share.Draft {
+			unreviewed = append(unreviewed, string(lang))
+		}
 	}
-	if got := posts["mr.x"].(map[string]any)["review"]; got != "draft" {
-		t.Errorf("Marathi is %v, want draft", got)
+
+	// draft_languages is present exactly when something is a draft, and names
+	// exactly those. An empty list must be absent rather than empty, or a
+	// client renders a notice for nothing.
+	got, present := body["draft_languages"]
+	if len(unreviewed) == 0 {
+		if present {
+			t.Errorf("nothing is a draft but draft_languages is %v", got)
+		}
+		return
+	}
+	list, ok := got.([]any)
+	if !ok || len(list) != len(unreviewed) {
+		t.Errorf("draft_languages is %v, want %v", got, unreviewed)
 	}
 }
 

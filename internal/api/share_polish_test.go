@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -120,18 +121,33 @@ func TestAPolishedPostIsLabelledAndNamesTheModel(t *testing.T) {
 	}
 }
 
-// Polishing must never make an unreviewed language look reviewed.
+// Polishing must never change the review state — in particular it must never
+// make an unreviewed language look reviewed.
+//
+// Compared before against after rather than against a fixed expectation. The
+// claim is about what polishing does to the field, not about which languages
+// are drafts, and Marathi and Hindi stopped being drafts on 16 October 2026
+// ([D175](../../docs/00-overview/05-decision-log.md)).
 func TestPolishingDoesNotChangeTheReviewState(t *testing.T) {
-	body := polishedKit(t, &upper{})
-	for _, key := range []string{"mr.whatsapp", "mr.x", "hi.whatsapp", "hi.x"} {
-		p := post(t, body, key)
-		if got := p["review"]; got != string(share.Draft) {
-			t.Errorf("%s review is %v, want %q", key, got, share.Draft)
+	plain := polishedKit(t, nil)
+	polished := polishedKit(t, &upper{})
+
+	for _, lang := range share.Languages() {
+		for _, ch := range share.Channels() {
+			key := string(lang) + "." + string(ch)
+			before, after := post(t, plain, key), post(t, polished, key)
+			if before["review"] != after["review"] {
+				t.Errorf("%s review went from %v to %v when a model reworded it",
+					key, before["review"], after["review"])
+			}
+			// And the two really are different posts, or this proves nothing.
+			if after["wording"] != string(share.WordedByModel) {
+				t.Errorf("%s was not reworded, so the comparison is vacuous", key)
+			}
 		}
 	}
-	d, ok := body["draft_languages"].([]any)
-	if !ok || len(d) != 2 {
-		t.Errorf("draft_languages is %v, want Marathi and Hindi", body["draft_languages"])
+	if a, b := plain["draft_languages"], polished["draft_languages"]; fmt.Sprint(a) != fmt.Sprint(b) {
+		t.Errorf("draft_languages went from %v to %v when a model reworded the posts", a, b)
 	}
 }
 

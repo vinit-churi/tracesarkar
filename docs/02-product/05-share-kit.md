@@ -310,13 +310,15 @@ who speaks neither.
 
 ### What has to happen before this is finished
 
-- **A native speaker reads `internal/share/i18n/share.mr.json` and `share.hi.json`.** Both ship as
-  drafts, labelled as drafts in the API and on the page. This is the one outstanding item that a
-  user sees. The sheet to hand them is
-  [13-vernacular-review-sheet.md](13-vernacular-review-sheet.md); the rewording layer above does
-  **not** close it — it makes a stilted sentence
-  fluent, which is not the same as making it right. The register rules in
-  `internal/polish/prompts/share_polish_v1.md` are now part of what that reader should check.
+- ~~A native speaker reads `internal/share/i18n/share.mr.json` and `share.hi.json`.~~ **Done 16
+  October 2026** ([D175](../00-overview/05-decision-log.md)). Both read `"reviewed"`, no post
+  carries a draft notice, and all 36 subcategories now have a word in all three languages — before
+  this, 27 of them fell back to the category word and a felled tree composed as "Environment in H/W
+  ward". The record of what changed and why is
+  [13-vernacular-review-sheet.md](13-vernacular-review-sheet.md). The rewording layer did **not**
+  close this and was never going to: it makes a stilted sentence fluent, which is not the same as
+  making it right. What it did do is fight it — its Hindi guidance told a model to use the danda,
+  which the review settled the other way, and that is now corrected.
 - **First-hand verification of `@mybmc`**, and a decision on ward handles.
 - **A WhatsApp intake bot** (§5.5), which is a distribution unlock rather than a share artefact,
   and the only item in this document that has not been started.

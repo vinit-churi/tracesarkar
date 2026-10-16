@@ -49,9 +49,22 @@ Three rules the share kit's copy follows, which any later vernacular surface sho
 - **A missing term falls back to the category's word and says so**, rather than being guessed at or
   left as English in the middle of a Marathi sentence.
 
-**`share.mr.json` and `share.hi.json` are unreviewed.** They are served, because withholding them
-helps nobody in Mumbai, but never silently: the API names the draft languages and the page carries a
-notice above the text. A native speaker reading those two files is the outstanding task.
+**Reviewed, 16 October 2026.** `share.mr.json` and `share.hi.json` were served as labelled drafts
+for two days and have now been read by native speakers; both say `"review": "reviewed"` and no post
+carries a draft notice. The review changed **19 of 43** Marathi strings and **20 of 43** Hindi ones,
+and the record of every change with its reason is
+[13-vernacular-review-sheet.md](13-vernacular-review-sheet.md)
+([D175](../00-overview/05-decision-log.md)).
+
+Four findings generalise beyond the share kit and should shape any vernacular surface built next.
+**`प्राधिकरण` is not a word people use** — the natural form is `संबंधित विभाग`, and this is the
+single most common defect in the draft. **A category word needs `समस्या`**, because an adjective or
+an abstract noun does not read as a problem in a sentence frame. **"Repaired" does not fit most of
+what this platform reports**, so the status copy says "the work being completed" instead and
+sidesteps gender agreement at the same time. And **English relative clauses must not be translated
+literally** — `तो ज्या कागदपत्रातून आला आहे त्यासह` became `मूळ कागदपत्रांसह`, a third of the
+length. Punctuation is the **full stop in both languages**: modern Marathi uses it exclusively, and
+for Hindi either is correct but `.` is what urban Mumbai writes beside Latin ward codes.
 
 **The sheet to hand them is [13-vernacular-review-sheet.md](13-vernacular-review-sheet.md)**, added
 16 October 2026. It is written for somebody who knows nothing about the project or about code: what
@@ -73,8 +86,9 @@ line that alters one is discarded.
 Two things this does not do, both worth stating plainly.
 
 - **It does not make a language reviewed.** A fluent sentence nobody who speaks Marathi has read is
-  still an unreviewed sentence. `review: "pending"` stays, `draft_languages` still names `mr` and
-  `hi`, and a test fails if rewording ever flips either.
+  still an unreviewed sentence — which is why rewording may not touch the field. A test compares the
+  review state before and after rather than asserting a value, so signing a language off is a change
+  to one JSON file and not to any test.
 - **It adds a second artefact for the same reviewer.**
   `internal/polish/prompts/share_polish_v1.md` carries the per-language register rules — that BMC's
   word for an administrative ward is विभाग and never प्रभाग, that Mumbai Hindi is neither
@@ -190,7 +204,7 @@ bureaucratic register.
 |---|---|
 | Screen reader pass (TalkBack, NVDA) | Per release |
 | Low-end device test (₹8,000-class Android, throttled network) | Per release |
-| Marathi and Hindi native-speaker review of all user-facing copy | Per release · **overdue**: `internal/share/i18n/share.{mr,hi}.json` ship as drafts |
+| Marathi and Hindi native-speaker review of all user-facing copy | Per release · **done for the share kit** 16 October 2026 ([D175](../00-overview/05-decision-log.md)); every later vernacular surface needs its own pass |
 | Voice input in each supported language | Per release |
 | 2G throughput test on the public page | Per release |
 | Accessibility audit (automated + manual) | Quarterly |

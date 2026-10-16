@@ -41,49 +41,72 @@ func LoadPrompt(name string) (Prompt, error) {
 	return Prompt{Name: name, Version: version, Text: text}, nil
 }
 
-// register is what each language needs said about it that the general
-// instructions cannot say.
+// register is what each language needs said that the general instructions
+// cannot say.
 //
-// These are the things a stilted draft gets wrong, written down from the
-// glossary and from BMC's own usage rather than from a sense of good style —
-// so the prompt can be reviewed against a document, and so a native speaker
-// reading `internal/share/i18n` and a native speaker reading this file are
-// being asked to check the same claims.
+// Every claim here now comes from the native-speaker review of 16 October
+// 2026 ([D175]) rather than from a non-speaker's sense of good style, which is
+// what it was built on and which was wrong in at least one place: it told the
+// model to use the danda in Hindi, and the review settled that the platform's
+// copy uses the full stop in both languages. A prompt that fights the reviewed
+// vocabulary produces a post in two registers, and the guard cannot see it
+// because punctuation is neither a span nor a number.
+//
+// [D175]: ../../docs/00-overview/05-decision-log.md
 var register = map[share.Lang]string{
 	share.EN: "The English is already written by a person and is usually fine. " +
 		"Change a line only where it is genuinely ungrammatical or ambiguous.",
 
 	share.MR: "Write Marathi as it is written in Mumbai, for a municipal " +
-		"office.\n\n" +
-		"- The corporation's own word for an administrative ward is **विभाग**. " +
-		"**प्रभाग** is an *electoral* division and is a different thing: never " +
-		"use it here, however natural it sounds.\n" +
-		"- Prefer the plain word over the Sanskritised one where both exist and " +
-		"the plain one is what people say. This is a complaint, not an " +
-		"application.\n" +
-		"- Punctuate as Marathi is punctuated in print today. Do not carry " +
-		"English punctuation across mechanically.\n" +
-		"- Keep case endings and postpositions correct on place names and ward " +
-		"codes — a ward code is a Latin-script token with a Marathi " +
+		"office. Every point below was settled by a native speaker reviewing " +
+		"this platform's own copy; follow them rather than your own " +
+		"preference.\n\n" +
+		"- **Punctuate with the full stop `.`** Modern Marathi — newspapers, " +
+		"government circulars, WhatsApp — uses it exclusively. The danda `।` " +
+		"belongs to Sanskrit and old poetry and is wrong here. Never convert " +
+		"a `.` to a `।`.\n" +
+		"- The corporation's own word for an administrative ward is " +
+		"**विभाग**. **प्रभाग** is an *electoral* division and is a different " +
+		"thing: never use it here, however natural it sounds.\n" +
+		"- **Do not use प्राधिकरण in running prose.** Nobody says it. The " +
+		"natural form is संबंधित विभाग / संबंधित विभागास — \"the concerned " +
+		"department\". यंत्रणा: is the label beside the authority's name.\n" +
+		"- Civic and administrative vocabulary — प्रलंबित, दखल, मुदत, " +
+		"कार्यवाही — is right for this reader and is understood by ordinary " +
+		"residents. Do not simplify it away.\n" +
+		"- Prefer the plain word over the Sanskritised one where both exist " +
+		"and the plain one is what people say: सांडपाणी or ड्रेनेज, not " +
+		"मलनिस्सारण.\n" +
+		"- Keep case endings and postpositions correct on place names and " +
+		"ward codes. A ward code is a Latin-script token with a Marathi " +
 		"postposition attached, and getting that join right is most of what " +
-		"makes the line read naturally.\n" +
-		"- Do not translate an English department name, court name or citation " +
-		"into Marathi. Leave it in English inside the Marathi sentence, which " +
-		"is how it is written and said.",
+		"makes a line read naturally.\n" +
+		"- Do not translate an English department name, court name or " +
+		"citation into Marathi. Leave it in English inside the Marathi " +
+		"sentence, which is how it is written and said.",
 
 	share.HI: "Write Hindi as it is written in Mumbai, for a municipal " +
-		"office.\n\n" +
+		"office. Every point below was settled by a native speaker reviewing " +
+		"this platform's own copy; follow them rather than your own " +
+		"preference.\n\n" +
+		"- **Punctuate with the full stop `.`, not the danda `।`.** The danda " +
+		"is correct standard Hindi and either is acceptable in principle, but " +
+		"this platform uses `.` throughout — it is what urban Mumbai Hindi " +
+		"uses beside Latin ward codes and URLs, and it matches the Marathi. " +
+		"Never convert a `.` to a `।`.\n" +
+		"- **Do not use प्राधिकरण.** Nobody in Mumbai says प्राधिकरण को बताया " +
+		"गया. Use संबंधित विभाग, and सूचित किया गया rather than बताया गया. " +
+		"विभाग: is the label beside the authority's name.\n" +
 		"- Everyday Mumbai Hindi, not Sanskritised Hindi and not Urdu-leaning " +
-		"Hindustani. A reader at a ward office and a neighbour on WhatsApp " +
-		"should both find it ordinary.\n" +
-		"- Use the punctuation Hindi actually uses, including the danda (।) " +
-		"where a full stop belongs, unless the line ends in a Latin-script " +
-		"reference, in which case end the sentence before the reference " +
-		"instead of putting a danda after it.\n" +
+		"Hindustani. A ward officer and a neighbour on WhatsApp should both " +
+		"find it ordinary.\n" +
+		"- Avoid literal renderings of English grammar. A relative clause " +
+		"translated word for word (\"the document it came from\") reads as " +
+		"translationese; say it the way Hindi says it.\n" +
 		"- Keep postpositions and gender agreement correct, including on words " +
 		"borrowed from English.\n" +
-		"- Do not translate an English department name, court name or citation " +
-		"into Hindi. Leave it in English inside the Hindi sentence.",
+		"- Do not translate an English department name, court name or " +
+		"citation into Hindi. Leave it in English inside the Hindi sentence.",
 }
 
 // WithLanguage appends what this language needs said, plus the channel's own

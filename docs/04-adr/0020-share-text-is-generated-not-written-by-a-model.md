@@ -63,7 +63,7 @@ prove, by code, in `internal/share`.**
 | **A model writes the post from the fact set** | Better prose, and an unbounded surface. The thing that must never happen — an asserted fact about a named party in a forwarded image — is exactly what a fluent generator is good at producing, and no amount of prompt instruction converts into a test. Revisit only with an eval set that measures invented facts, not tone. **That condition was met on 16 October 2026 for the narrower question of *rewording*, and only that: see [ADR 0021](0021-a-model-may-reword-a-generated-post-never-author-one.md). Authorship from the fact set remains refused.** |
 | **A model writes it, then the prohibited-pattern list filters it** | The list catches accusation, insult and party reference. It does not catch a confident, well-worded, wrong contract number. Filtering catches the vocabulary of a bad post, not its claims. |
 | **Machine-translate the English post into Marathi and Hindi** | Explicitly rejected by the vernacular doc, and obviously so for text carrying hashtags, handles and a court citation. |
-| **Withhold Marathi and Hindi until a native speaker has reviewed them** | Helps nobody in Mumbai in the meantime. They ship as drafts, labelled in the API and on the page, and editable. |
+| **Withhold Marathi and Hindi until a native speaker has reviewed them** | Helps nobody in Mumbai in the meantime. They shipped as drafts, labelled in the API and on the page, and editable — for two days. The review happened on 16 October 2026 ([D175](../00-overview/05-decision-log.md)) and found 19 Marathi and 20 Hindi strings worth changing, which is both an argument for shipping the drafts and an argument for not leaving them. |
 | **Burn the fact block onto the image in all three languages** | The Go fonts carry no Devanagari and nothing in the standard library shapes a complex script, so conjuncts and matras would misplace. A card with broken Marathi is worse than an English card beside a Marathi post. |
 
 ## Amendment, 16 October 2026
@@ -81,6 +81,10 @@ broad version fell almost entirely on Marathi and Hindi.
   font, which is a deliberate decision to take later.
 - **The vocabulary is a review task, not a code task.** `internal/share/i18n/share.mr.json` and
   `share.hi.json` are what a native speaker is handed, and `review: "pending"` is what they change.
+  **Both were reviewed on 16 October 2026** and now read `"reviewed"`
+  ([D175](../00-overview/05-decision-log.md)); the record of what changed and why is
+  [13-vernacular-review-sheet.md](../02-product/13-vernacular-review-sheet.md). The design held:
+  nobody had to read Go to check Marathi.
 - **The handle registry is a maintenance commitment.** Rows carry a `verify_by` date and stop being
   served when it passes, so a registry nobody re-checks degrades into silence rather than into
   tagging a stranger ([D136](../00-overview/05-decision-log.md)).

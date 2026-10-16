@@ -71,18 +71,32 @@ func TestACleanAnswerIsPublishedAndSaysSo(t *testing.T) {
 	}
 }
 
-// The one rule that must not bend: a model is not a native speaker. A
-// model-worded Marathi post is still a draft, and anything that flipped that
-// would make the review look done when nobody has done it.
-func TestAModelDoesNotMakeALanguageReviewed(t *testing.T) {
-	for _, lang := range []share.Lang{share.MR, share.HI} {
-		p := baseline(t, lang, share.WhatsApp)
-		segs := Split(facts(), p)
-		got := Apply(context.Background(), echo(segs), facts(), p)
-		if got.Post.Review != share.Draft {
-			t.Errorf("%s became %q after polishing, want %q",
-				lang, got.Post.Review, share.Draft)
+// The one rule that must not bend: a model is not a native speaker. Whatever
+// the review state of a language is, rewording must leave it exactly as it
+// was — in particular it must never turn a draft into reviewed, which would
+// make the review look done when nobody had done it.
+//
+// Compared before against after rather than against a fixed value. Marathi
+// and Hindi were drafts until 16 October 2026 and are not now
+// ([D175](../../docs/00-overview/05-decision-log.md)); the claim being tested
+// is about what Apply does to the field, not about today's answer.
+func TestAModelDoesNotChangeALanguagesReviewState(t *testing.T) {
+	for _, lang := range share.Languages() {
+		base := baseline(t, lang, share.WhatsApp)
+		segs := Split(facts(), base)
+		got := Apply(context.Background(), echo(segs), facts(), base)
+		if got.Post.Review != base.Review {
+			t.Errorf("%s went from %q to %q after polishing",
+				lang, base.Review, got.Post.Review)
 		}
+		if got.Post.Wording != share.WordedByModel {
+			t.Errorf("%s was not reworded, so the comparison is vacuous", lang)
+		}
+	}
+	// And the cautious default survives whatever the files say: a vocabulary
+	// that does not claim to be reviewed is a draft.
+	if got := (&share.Post{}).Review; got != "" {
+		t.Errorf("a zero Post claims review state %q", got)
 	}
 }
 

@@ -179,20 +179,48 @@ func TestMarathiDoesNotCallAnAdministrativeWardAPrabhag(t *testing.T) {
 
 // An unreviewed translation may be offered as a draft, but never silently: a
 // caller has to be able to tell it apart from reviewed copy.
-func TestAnUnreviewedLanguageIsLabelledADraft(t *testing.T) {
-	p, err := Compose(lodgedFacts(), MR, WhatsApp)
-	if err != nil {
-		t.Fatalf("Compose: %v", err)
+//
+// This asserts the mechanism rather than which languages happen to be
+// reviewed today. Marathi and Hindi were drafts until 16 October 2026 and are
+// not now ([D175](../../docs/00-overview/05-decision-log.md)); a test that
+// hard-coded that state would have to be edited every time a language is
+// signed off, which is exactly when nobody wants to be editing tests.
+func TestEveryPostCarriesTheReviewStateOfTheFileBehindIt(t *testing.T) {
+	states := Review()
+	for _, lang := range Languages() {
+		p, err := Compose(lodgedFacts(), lang, WhatsApp)
+		if err != nil {
+			t.Fatalf("Compose(%s): %v", lang, err)
+		}
+		switch p.Review {
+		case Reviewed, Draft:
+		default:
+			t.Errorf("%s carries review state %q, which is neither known value",
+				lang, p.Review)
+		}
+		if p.Review != states[lang] {
+			t.Errorf("%s composed as %q but Review() says %q",
+				lang, p.Review, states[lang])
+		}
 	}
-	if p.Review == "" {
-		t.Error("a post carries no review state")
+	// English is the language the other two are checked against; it cannot be
+	// a draft.
+	if states[EN] != Reviewed {
+		t.Errorf("English is %q, want %q", states[EN], Reviewed)
 	}
-	en, err := Compose(lodgedFacts(), EN, WhatsApp)
-	if err != nil {
-		t.Fatalf("Compose: %v", err)
+}
+
+// The cautious default, which is the half of this that cannot be read off the
+// files: anything that does not say "reviewed" is a draft, so a new language
+// cannot ship as reviewed by omission or by a typo in that field.
+func TestAnythingButReviewedIsADraft(t *testing.T) {
+	for _, word := range []string{"", "pending", "Reviewed", "reviewed ", "in progress", "yes"} {
+		if got := (&vocab{Review: word}).state(); got != Draft {
+			t.Errorf("review %q yielded %q, want %q", word, got, Draft)
+		}
 	}
-	if en.Review != Reviewed {
-		t.Errorf("English is %q, want %q", en.Review, Reviewed)
+	if got := (&vocab{Review: "reviewed"}).state(); got != Reviewed {
+		t.Errorf("review \"reviewed\" yielded %q", got)
 	}
 }
 

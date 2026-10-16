@@ -101,7 +101,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built, surfaced, and now public.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies, and is readable at `/issue/{id}` without the actor |
 | 5 | Accounts — OTP, rate limits, reset, revocation | **Built but for phone OTP.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)), and now password reset, email verification and token revocation ([D171](05-decision-log.md), migration 0044). Revocation is a `token_version` on the account rather than a list of dead tokens: bumping it invalidates every token at once, which is what a reset and "sign out everywhere" both need. Mail is plain text through any SMTP server, or written to the log at the personal tier; with `MAIL_MODE` unset the two mail endpoints answer 501 rather than minting a credential nobody will receive. **Missing: phone OTP**, which [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) keeps as the gate on the public tier and which needs a DLT-registered sender ID and a paid SMS route |
 | **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). The detector is now gradable: `/truth/` records what a person can see in a photograph and `make redact-eval` scores both detectors against it ([D132](05-decision-log.md), [D133](05-decision-log.md)). Remaining, and still the gate: photographs with faces and plates in them. Five captures measured no recall because none contains either ([D127](05-decision-log.md)) |
-| **7** | **Share kit** — annotated image, per-language text | **Mostly built.** The post is assembled from the fact set with no model in the path, in three languages and two channels, and the annotated image puts the facts under the photograph rather than across it ([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md), [D135](05-decision-log.md)). A handle is printed only with its source and a re-verification date ([D136](05-decision-log.md)). Marathi and Hindi ship as **drafts** until a native speaker reads them, labelled as such in the API and on the page ([D137](05-decision-log.md)). A link pasted in any chat unfurls into the facts and the annotated card, which meant moving the redaction gate ahead of the first byte rather than relaxing it ([D139](05-decision-log.md)), and the card is drawn in 9:16 for Status and Stories ([D140](05-decision-log.md)). The evidence pack compiles the record as a deterministic, stamped PDF — the one artefact here that is signed in, because it carries the exact position and the reference a complaint needs ([D141](05-decision-log.md), [D142](05-decision-log.md)). Not built: the WhatsApp intake bot |
+| **7** | **Share kit** — annotated image, per-language text | **Mostly built.** The post is assembled from the fact set with no model in the path, in three languages and two channels, and the annotated image puts the facts under the photograph rather than across it ([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md), [D135](05-decision-log.md)). A handle is printed only with its source and a re-verification date ([D136](05-decision-log.md)). **All three languages are native-speaker reviewed** as of 16 October 2026 ([D137](05-decision-log.md), [D175](05-decision-log.md)); the review changed 19 of 43 Marathi strings and 20 of 43 Hindi ones, and all 36 subcategories now have a word in each language — before it, 27 fell back to the category word and a felled tree composed as "Environment in H/W ward". A link pasted in any chat unfurls into the facts and the annotated card, which meant moving the redaction gate ahead of the first byte rather than relaxing it ([D139](05-decision-log.md)), and the card is drawn in 9:16 for Status and Stories ([D140](05-decision-log.md)). The evidence pack compiles the record as a deterministic, stamped PDF — the one artefact here that is signed in, because it carries the exact position and the reference a complaint needs ([D141](05-decision-log.md), [D142](05-decision-log.md)). Not built: the WhatsApp intake bot |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
 
 **The first real captures landed on 5 October 2026, and earned their keep.** Two photographs of a
@@ -412,6 +412,19 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       not given these: a fee beside a photograph of a stump, in a post that travels beyond any
       page this platform can correct, is an accusation however it is worded
 
+- [x] **Marathi and Hindi are reviewed.** Done 16 October ([D175](05-decision-log.md)). A native
+      speaker read both files: 19 of 43 Marathi strings changed and 20 of 43 Hindi ones, and the
+      verdict was that the Marathi was close to the mark while the Hindi was "Google Translate
+      syndrome" — over-relying on `प्राधिकरण`, which nobody in Mumbai says, and on literal
+      renderings of English grammar. Four findings generalise to any later vernacular surface and
+      are recorded in [the review sheet](../02-product/13-vernacular-review-sheet.md). Punctuation
+      is the full stop in both languages, which also means the rewording prompt's instruction to use
+      the danda in Hindi was wrong and is corrected. **All 36 subcategories now have a word in all
+      three languages** — including English, which was missing 27 of them, so a felled tree
+      composed as "Environment in H/W ward" in every language. The three tests that hard-coded
+      "Marathi is a draft" now compare the review state before and after instead, so signing off a
+      language is a change to one JSON file and to no test
+
 - [x] **Finished system 5 but for phone OTP.** Done 16 October ([D171](05-decision-log.md),
       migration 0044). Password reset, email verification and token revocation, with the design
       decision in the middle: revocation is a `token_version` on the account rather than a list of
@@ -446,18 +459,6 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
 
 ### Next in the code
 
-- [ ] **Have a native speaker read the share kit's Marathi and Hindi** —
-      `internal/share/i18n/share.mr.json` and `share.hi.json`, one file each, and change
-      `"review": "pending"` to `"reviewed"` when they have. Both are live and labelled as drafts
-      on every issue page, so this is the only outstanding item a user can see
-      ([D137](05-decision-log.md)). **The sheet to send them is
-      [13-vernacular-review-sheet.md](../02-product/13-vernacular-review-sheet.md)**
-      ([D174](05-decision-log.md)) — self-contained, no code knowledge needed, every string with an
-      ID to answer against, and the four questions per language a non-speaker cannot settle. **The rewording layer does not close this**
-      ([D170](05-decision-log.md)): it can make a stilted sentence fluent, which is not the same as
-      making it right, and it adds a second artefact for the same reader —
-      `internal/polish/prompts/share_polish_v1.md`, whose per-language register rules are claims
-      about Marathi and Hindi written by somebody who speaks neither
 - [ ] **Decide whether to turn the rewording on.** It is measured and off
       ([D173](05-decision-log.md)). `deepseek-flash` published **92 of 96** corpus posts with
       **0 invented facts** — no lost span, no changed number, no invented account or link, no tone
