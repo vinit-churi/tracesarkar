@@ -18,8 +18,11 @@ data/archive/
 data/raw/
 *.md
 
-# The classifier's prompt is a .md file that the binary embeds. Excluding it
-# makes the build fail with "contains no embeddable files", which is a
-# confusing way to learn that a prompt is source code rather than prose.
-!internal/classify/prompts/
-!internal/classify/prompts/*.md
+# A prompt is a .md file that a binary embeds, which makes it source code
+# rather than prose. Excluding one fails the build with "contains no
+# embeddable files" — a confusing way to find that out, and it has now
+# happened twice: once for the classifier, once for internal/polish. So the
+# exception is written for any package's prompts directory rather than named
+# package by package, and the next one needs no edit here.
+!internal/*/prompts/
+!internal/*/prompts/*.md

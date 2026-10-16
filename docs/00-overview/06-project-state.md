@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0044 is current)
+make migrate       # applies anything newer than the deployed schema (0045 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database

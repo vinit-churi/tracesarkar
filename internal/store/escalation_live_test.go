@@ -132,3 +132,47 @@ func TestLiveDepartmentRegisterIsSourced(t *testing.T) {
 		t.Error("no Bridges department in the register")
 	}
 }
+
+// An escalation line is printed on the public ward page under a heading that
+// carries the ward's own code, and the one thing it has to be is unambiguous
+// about which office to write to. Two spellings of one ward read as two
+// wards: R/C carried both "R/C Ward" and "R/Central Ward" until migration
+// 0045, and a resident reading the second under a heading saying the first
+// had no way to tell they were the same office.
+//
+// The check is "names its own ward" rather than "names no other", because a
+// row may legitimately carry another ward's office *address* — the Dy.
+// Hydraulic Engineer for the Western Suburbs sits in the K/West ward office.
+func TestLiveAnEscalationNamesItsOwnWardAndOnlyOneSpellingOfIt(t *testing.T) {
+	ctx, pool, _ := liveDB(t)
+
+	rows, err := pool.Query(ctx, `
+		SELECT ward, category, COALESCE(subcategory,''), escalates_to
+		  FROM authority_departments
+		 WHERE escalates_to ILIKE '%ward%'
+		   AND escalates_to NOT LIKE '%' || ward || ' Ward%'
+		   AND escalates_to NOT LIKE '%' || ward || ' ward%'
+		 ORDER BY ward, category`)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	defer rows.Close()
+
+	var bad int
+	for rows.Next() {
+		var ward, category, subcategory, escalation string
+		if err := rows.Scan(&ward, &category, &subcategory, &escalation); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		bad++
+		t.Errorf("%s/%s%s escalates to a line that does not name %s Ward:\n  %s",
+			ward, category, map[bool]string{true: " (" + subcategory + ")"}[subcategory != ""],
+			ward, escalation)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	if bad == 0 {
+		t.Log("every escalation that names a ward names its own")
+	}
+}
