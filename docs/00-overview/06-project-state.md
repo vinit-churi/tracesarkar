@@ -504,10 +504,19 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       a new classification row marked `source = 'reporter'` rather than editing the model's. Three
       real captures from 5 and 6 October are answerable
 
-- [ ] **Finish system 8.** The first surface is built ([D178](05-decision-log.md)): `/ops/` shows
-      the ratio, the queues with what clears each, and sources and runs. What it does not have is
-      anything over time — a failure rate, a trend, a chart — so "collection got slower this week"
-      is still a question for the logs. Roles and permissions are explicitly out of v1 scope
+- [x] **Activity over time in the console.** Done 16 October ([D180](05-decision-log.md)).
+      `/ops/` draws fetches, collector runs, captures and issues per day over 7, 30 or 90 days,
+      from timestamps the rows already carried — no new storage, so the history was already there.
+      A quiet day is drawn as a hairline rather than omitted, and *never returned* stays separate
+      from *failed*. It found two failed collector runs on 24 and 25 September that nothing had
+      surfaced. **Queue depth has no history and cannot be given one retrospectively**, because a
+      queue is counted by asking what is unfinished now and that answer was never recorded; the page
+      says so rather than drawing arrivals as if they were depth
+- [ ] **Finish system 8.** What is left is moderation — which is deliberately *not* in the console
+      ([D178](05-decision-log.md)), so the question is whether the existing narrow surfaces
+      (`/review/`, `/label/`, `/truth/`) are enough or whether v1 wants something more. Roles and
+      permissions are explicitly out of v1 scope. If queue depth over time is ever wanted, it needs
+      the sweep to start writing a snapshot row; that is a decision, not a backlog
 
 ### Yours, in the field
 

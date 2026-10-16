@@ -46,6 +46,27 @@
   .big.conf .v{color:var(--confirm)}
   .note{font-size:13px;color:var(--ink-45);margin:10px 0 0;line-height:1.45}
   .bad{color:var(--alert)}
+  /* A chart of divs rather than a library: this page is embedded in the
+     binary and loads no script from anywhere. */
+  .chart{display:flex;align-items:flex-end;gap:2px;height:74px;margin:2px 0 0}
+  .col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;
+       justify-content:flex-end;height:100%;position:relative}
+  .col i{display:block;width:100%}
+  .col i.ok{background:var(--accent-wash)}
+  .col i.warn{background:var(--caution)}
+  .col i.fail{background:var(--alert)}
+  .col i.none{background:var(--hairline);height:2px}
+  .col:hover i{outline:1px solid var(--ink-45)}
+  .axis{display:flex;justify-content:space-between;font-size:11px;
+        color:var(--ink-45);margin-top:5px;font-variant-numeric:tabular-nums}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;
+          color:var(--ink-70);margin:9px 0 0}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend b{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .win{display:flex;gap:6px;margin:0 0 10px}
+  .win button{padding:5px 11px;font-size:13px;font-weight:500}
+  .win button[aria-pressed="true"]{background:var(--accent-wash);
+       color:var(--accent);border-color:var(--accent);font-weight:600}
   .signin{max-width:360px;margin:56px auto;background:var(--surface);
           border:1px solid var(--hairline);border-radius:12px;padding:20px}
   label{display:block;font-size:13px;color:var(--ink-70);margin:0 0 4px}
@@ -92,6 +113,13 @@
       <p class="note">A queue whose answer is a person, or nothing, is not a
         backlog. Each row says which, so a number nobody can act on is not
         mistaken for one somebody should.</p>
+    </section>
+
+    <section>
+      <h2>Is this getting worse</h2>
+      <div class="win" id="win"></div>
+      <div id="trend"></div>
+      <p class="note" id="trendNote"></p>
     </section>
 
     <section>
@@ -217,6 +245,91 @@ function draw(h) {
   $('app').hidden = false;
 }
 
+// A bar per day, oldest left. Each column is drawn from the bottom up so a
+// stack reads as parts of one day rather than as three series.
+function bars(rows, parts, label) {
+  const total = r => parts.reduce((n, p) => n + (r[p.key] || 0), 0);
+  const peak = Math.max(1, ...rows.map(total));
+  const cols = rows.map(r => {
+    const t = total(r);
+    if (t === 0) {
+      // A day on which nothing happened is the most important day in the
+      // window. Drawn as a hairline rather than as absence.
+      return '<div class="col" title="' + esc(r.day) + ': nothing">' +
+             '<i class="none"></i></div>';
+    }
+    const title = esc(r.day) + ': ' + parts.filter(p => r[p.key])
+      .map(p => r[p.key] + ' ' + p.name).join(', ');
+    const stack = parts.map(p => {
+      const v = r[p.key] || 0;
+      if (!v) return '';
+      return '<i class="' + p.cls + '" style="height:' +
+             (v / peak * 100).toFixed(1) + '%"></i>';
+    }).reverse().join('');
+    return '<div class="col" title="' + title + '">' + stack + '</div>';
+  }).join('');
+  const first = rows.length ? rows[0].day : '';
+  const last = rows.length ? rows[rows.length - 1].day : '';
+  return '<div style="margin:0 0 16px">' +
+    '<div class="muted" style="font-size:13px;margin:0 0 3px">' + esc(label) +
+      ' <span class="stamp">peak ' + peak + '/day</span></div>' +
+    '<div class="chart">' + cols + '</div>' +
+    '<div class="axis"><span>' + esc(first) + '</span><span>' + esc(last) + '</span></div>' +
+    '<div class="legend">' + parts.map(p =>
+      '<span><b class="' + p.cls + '" style="background:var(--' + p.swatch + ')"></b>' +
+      esc(p.name) + '</span>').join('') + '</div></div>';
+}
+
+let window_ = 30;
+
+function drawTrend(t) {
+  els('trend').innerHTML =
+    // attempts already includes the failures, so the stack draws the
+    // remainder: a column whose two parts added up to more than the day's
+    // fetches would overstate the activity it is there to measure.
+    bars((t.fetches || []).map(f => ({
+      day: f.day, failures: f.failures, ok: f.attempts - f.failures
+    })), [
+      {key: 'failures', name: 'failed', cls: 'fail', swatch: 'alert'},
+      {key: 'ok', name: 'fetched', cls: 'ok', swatch: 'accent-wash'}
+    ], 'Fetches per day') +
+    bars(t.runs || [], [
+      {key: 'never_returned', name: 'never returned', cls: 'fail', swatch: 'alert'},
+      {key: 'failed', name: 'failed', cls: 'warn', swatch: 'caution'},
+      {key: 'ok', name: 'ok', cls: 'ok', swatch: 'accent-wash'}
+    ], 'Collector runs per day') +
+    bars(t.captures || [], [
+      {key: 'issues', name: 'issues formed', cls: 'warn', swatch: 'caution'},
+      {key: 'captures', name: 'captures', cls: 'ok', swatch: 'accent-wash'}
+    ], 'Captures and issues per day');
+  els('trendNote').textContent = 'No history for ' + (t.no_history_for || '');
+}
+
+els('win').innerHTML = [7, 30, 90].map(d =>
+  '<button class="quiet" data-days="' + d + '" aria-pressed="' +
+  (d === window_) + '">' + d + ' days</button>').join('');
+els('win').querySelectorAll('button').forEach(b => {
+  b.onclick = () => {
+    window_ = Number(b.getAttribute('data-days'));
+    els('win').querySelectorAll('button').forEach(x =>
+      x.setAttribute('aria-pressed', String(x === b)));
+    loadTrend();
+  };
+});
+
+async function loadTrend() {
+  if (!token) return;
+  try {
+    const res = await fetch(API + '/v1/ops/trend?days=' + window_,
+      {headers: {Authorization: 'Bearer ' + token}});
+    if (!res.ok) throw new Error('could not read collection history');
+    drawTrend(await res.json());
+  } catch (e) {
+    els('trend').innerHTML = '';
+    els('trendNote').innerHTML = '<span class="bad">' + esc(e.message) + '</span>';
+  }
+}
+
 async function load() {
   if (!token) return showSignIn();
   try {
@@ -229,6 +342,7 @@ async function load() {
     const body = await res.json();
     if (!res.ok) throw new Error(body?.error?.message || 'Could not read collection health.');
     draw(body);
+    loadTrend();
   } catch (e) {
     // Said out loud rather than drawn as zeros: a dashboard that silently
     // shows nothing is worse than one that says it could not count.

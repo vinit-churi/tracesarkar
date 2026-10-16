@@ -255,6 +255,7 @@ func (s *Server) Handler() http.Handler {
 	// operational signal, and the published version of the ratio belongs on a
 	// surface built for publishing it.
 	mux.Handle("GET /v1/ops/health", s.authenticated(http.HandlerFunc(s.handleOperatorHealth)))
+	mux.Handle("GET /v1/ops/trend", s.authenticated(http.HandlerFunc(s.handleOperatorTrend)))
 
 	mux.Handle("POST /v1/reports", s.authenticated(http.HandlerFunc(s.handlePostReport)))
 

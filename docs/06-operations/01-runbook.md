@@ -205,7 +205,14 @@ model's own attempt is kept, because it is the evidence of what the classifier d
 reading logs ([D178](../00-overview/05-decision-log.md)). Sign in with the operator account; the
 page reads `GET /v1/ops/health`, which is authenticated.
 
-Read it in this order. **Waiting** is the one that tells you whether to act, and every row names
+**"Is this getting worse"** draws fetches, collector runs, captures and issues per day over 7, 30
+or 90 days ([D180](../00-overview/05-decision-log.md)). A day with no activity is a hairline, not a
+gap — that is the day worth noticing. In the runs chart, **never returned** is a process that died
+and is a different event from **failed**, which is a job that returned an error. There is no queue
+depth over time and there cannot be retrospectively: a queue is counted by asking what is unfinished
+now, and that has never been recorded.
+
+Read the rest in this order. **Waiting** is the one that tells you whether to act, and every row names
 what clears it: a row cleared by *the sweep* is a backlog, and a row cleared by *a person* or by
 *nothing* is not. **Sources** and **Recent runs** tell you whether collection is still happening —
 a run shown as *never returned* is a process that died rather than a job that failed, and the two

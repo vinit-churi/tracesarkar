@@ -194,3 +194,142 @@ func (d *DB) OperatorHealth(ctx context.Context, runLimit int) (Health, error) {
 	}
 	return h, nil
 }
+
+// A day bucket in each series. One shape, three uses: a chart with three
+// different row types is three charts, and a reader has to learn each.
+type FetchDay struct {
+	Day      string `json:"day"`
+	Attempts int    `json:"attempts"`
+	Failures int    `json:"failures"`
+}
+
+type RunDay struct {
+	Day string `json:"day"`
+	OK  int    `json:"ok"`
+	// Failed is a run that returned an error. NeverReturned is a run with no
+	// finish time, which is a process that died — a different event needing a
+	// different response, and the two must not be added together.
+	Failed        int `json:"failed"`
+	NeverReturned int `json:"never_returned"`
+}
+
+type CaptureDay struct {
+	Day      string `json:"day"`
+	Captures int    `json:"captures"`
+	Issues   int    `json:"issues"`
+}
+
+// Trend is activity per day, for the question the point-in-time counts cannot
+// answer: is this getting worse.
+//
+// Every series is derived from a timestamp a row already carries, so none of
+// it needed new storage and all of it is retrospective — a window can be
+// widened later and the history is already there.
+//
+// What is **not** here, and cannot be: **queue depth over time**. A queue is
+// counted by asking the database what is unfinished right now, and nothing
+// has ever recorded that answer, so "the backlog is growing" is not a
+// question this data can be made to answer. Arrivals are the honest
+// substitute — captures and issues per day — and the gap is named here rather
+// than papered over with a series that looks like depth and is not.
+type Trend struct {
+	Days     int          `json:"days"`
+	Fetches  []FetchDay   `json:"fetches"`
+	Runs     []RunDay     `json:"runs"`
+	Captures []CaptureDay `json:"captures"`
+}
+
+// OperatorTrend reports the last `days` days, oldest first.
+//
+// Days with no activity are returned as zeros rather than omitted. A sparse
+// series lies by omission: a day on which collection did not run at all is
+// the most important day in the window, and leaving it out draws it as if it
+// never existed.
+func (d *DB) OperatorTrend(ctx context.Context, days int) (Trend, error) {
+	if days <= 0 || days > 180 {
+		days = 30
+	}
+	t := Trend{Days: days}
+
+	// One day axis, generated in SQL and left-joined, so every series has the
+	// same length and the same days in the same order. Doing it in Go would
+	// mean three chances to get the zero-filling subtly different.
+	const axis = `
+		SELECT to_char(d::date, 'YYYY-MM-DD') AS day, d::date AS at
+		  FROM generate_series(
+		         (now() AT TIME ZONE 'UTC')::date - ($1::int - 1),
+		         (now() AT TIME ZONE 'UTC')::date, interval '1 day') AS d`
+
+	rows, err := d.pool.Query(ctx, `
+		WITH axis AS (`+axis+`)
+		SELECT a.day,
+		       count(f.id) AS attempts,
+		       count(f.id) FILTER (WHERE f.error IS NOT NULL
+		                              OR COALESCE(f.status_code, 0) >= 400) AS failures
+		  FROM axis a
+		  LEFT JOIN fetch_log f
+		    ON (f.requested_at AT TIME ZONE 'UTC')::date = a.at
+		 GROUP BY a.day, a.at ORDER BY a.at`, days)
+	if err != nil {
+		return t, fmt.Errorf("operator trend: fetches: %w", err)
+	}
+	for rows.Next() {
+		var f FetchDay
+		if err := rows.Scan(&f.Day, &f.Attempts, &f.Failures); err != nil {
+			rows.Close()
+			return t, fmt.Errorf("operator trend: scan fetch day: %w", err)
+		}
+		t.Fetches = append(t.Fetches, f)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return t, fmt.Errorf("operator trend: fetches: %w", err)
+	}
+
+	rows, err = d.pool.Query(ctx, `
+		WITH axis AS (`+axis+`)
+		SELECT a.day,
+		       count(r.id) FILTER (WHERE r.finished_at IS NOT NULL AND r.ok) AS ok,
+		       count(r.id) FILTER (WHERE r.finished_at IS NOT NULL AND NOT r.ok) AS failed,
+		       count(r.id) FILTER (WHERE r.finished_at IS NULL) AS never_returned
+		  FROM axis a
+		  LEFT JOIN collector_runs r
+		    ON (r.started_at AT TIME ZONE 'UTC')::date = a.at
+		 GROUP BY a.day, a.at ORDER BY a.at`, days)
+	if err != nil {
+		return t, fmt.Errorf("operator trend: runs: %w", err)
+	}
+	for rows.Next() {
+		var r RunDay
+		if err := rows.Scan(&r.Day, &r.OK, &r.Failed, &r.NeverReturned); err != nil {
+			rows.Close()
+			return t, fmt.Errorf("operator trend: scan run day: %w", err)
+		}
+		t.Runs = append(t.Runs, r)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return t, fmt.Errorf("operator trend: runs: %w", err)
+	}
+
+	rows, err = d.pool.Query(ctx, `
+		WITH axis AS (`+axis+`)
+		SELECT a.day,
+		       (SELECT count(*) FROM reports p
+		         WHERE (p.captured_at AT TIME ZONE 'UTC')::date = a.at) AS captures,
+		       (SELECT count(*) FROM issues i
+		         WHERE (i.created_at AT TIME ZONE 'UTC')::date = a.at) AS issues
+		  FROM axis a ORDER BY a.at`, days)
+	if err != nil {
+		return t, fmt.Errorf("operator trend: captures: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c CaptureDay
+		if err := rows.Scan(&c.Day, &c.Captures, &c.Issues); err != nil {
+			return t, fmt.Errorf("operator trend: scan capture day: %w", err)
+		}
+		t.Captures = append(t.Captures, c)
+	}
+	return t, rows.Err()
+}

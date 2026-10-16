@@ -142,3 +142,109 @@ func TestLiveAQueueCountsWhatItsStageActuallyPicksUp(t *testing.T) {
 		}
 	}
 }
+
+// A sparse series lies by omission. A day on which collection did not run at
+// all is the most important day in the window, and leaving it out draws it as
+// if it never existed — so every day in the window is present, in order, with
+// zeros where nothing happened.
+func TestLiveTheTrendHasEveryDayInTheWindow(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, days := range []int{1, 7, 30} {
+		tr, err := db.OperatorTrend(ctx, days)
+		if err != nil {
+			t.Fatalf("OperatorTrend(%d): %v", days, err)
+		}
+		if tr.Days != days {
+			t.Errorf("asked for %d days and got %d", days, tr.Days)
+		}
+		for name, n := range map[string]int{
+			"fetches": len(tr.Fetches), "runs": len(tr.Runs), "captures": len(tr.Captures),
+		} {
+			if n != days {
+				t.Errorf("%d-day window: %s has %d buckets, want %d", days, name, n, days)
+			}
+		}
+		// Same days, in the same order, across all three — a chart drawn from
+		// three series with different axes is three charts.
+		for i := range tr.Fetches {
+			if i >= len(tr.Runs) || i >= len(tr.Captures) {
+				break
+			}
+			if tr.Fetches[i].Day != tr.Runs[i].Day || tr.Fetches[i].Day != tr.Captures[i].Day {
+				t.Errorf("bucket %d: fetches=%s runs=%s captures=%s",
+					i, tr.Fetches[i].Day, tr.Runs[i].Day, tr.Captures[i].Day)
+			}
+		}
+		// Oldest first, strictly increasing.
+		for i := 1; i < len(tr.Fetches); i++ {
+			if tr.Fetches[i].Day <= tr.Fetches[i-1].Day {
+				t.Errorf("days are not oldest-first: %s then %s",
+					tr.Fetches[i-1].Day, tr.Fetches[i].Day)
+			}
+		}
+	}
+
+	// A silly window falls back rather than scanning a decade.
+	tr, err := db.OperatorTrend(ctx, 10000)
+	if err != nil {
+		t.Fatalf("OperatorTrend(10000): %v", err)
+	}
+	if tr.Days != 30 || len(tr.Fetches) != 30 {
+		t.Errorf("an out-of-range window gave %d days and %d buckets",
+			tr.Days, len(tr.Fetches))
+	}
+}
+
+// Failures are counted, never inferred from a gap, and the three run outcomes
+// stay separate: a process that died is not a job that returned an error.
+func TestLiveTheTrendCountsWhatItSaysItCounts(t *testing.T) {
+	ctx, pool, db := liveDB(t)
+
+	tr, err := db.OperatorTrend(ctx, 30)
+	if err != nil {
+		t.Fatalf("OperatorTrend: %v", err)
+	}
+
+	var attempts, failures, runs int
+	for _, f := range tr.Fetches {
+		if f.Failures > f.Attempts {
+			t.Errorf("%s: %d failures of %d attempts", f.Day, f.Failures, f.Attempts)
+		}
+		attempts += f.Attempts
+		failures += f.Failures
+	}
+	for _, r := range tr.Runs {
+		runs += r.OK + r.Failed + r.NeverReturned
+	}
+
+	// The totals have to match the tables, which is the cheapest check that
+	// the day buckets are not dropping or double-counting rows.
+	var wantFetches, wantRuns int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM fetch_log
+		 WHERE (requested_at AT TIME ZONE 'UTC')::date
+		       > (now() AT TIME ZONE 'UTC')::date - 30`).Scan(&wantFetches); err != nil {
+		t.Fatalf("count fetches: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM collector_runs
+		 WHERE (started_at AT TIME ZONE 'UTC')::date
+		       > (now() AT TIME ZONE 'UTC')::date - 30`).Scan(&wantRuns); err != nil {
+		t.Fatalf("count runs: %v", err)
+	}
+	if attempts != wantFetches {
+		t.Errorf("the trend counts %d fetches in 30 days; the table has %d",
+			attempts, wantFetches)
+	}
+	if runs != wantRuns {
+		t.Errorf("the trend counts %d runs in 30 days; the table has %d", runs, wantRuns)
+	}
+	t.Logf("30 days: %d fetches (%d failed), %d runs", attempts, failures, runs)
+	for _, r := range tr.Runs {
+		if r.Failed > 0 || r.NeverReturned > 0 {
+			t.Logf("  %s  ok=%d failed=%d never_returned=%d",
+				r.Day, r.OK, r.Failed, r.NeverReturned)
+		}
+	}
+}
