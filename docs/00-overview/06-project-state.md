@@ -46,7 +46,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 |---|---|
 | Road works archived | 4,878 |
 | Observed changes | 12,062 |
-| Raw documents archived | 594 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
+| Raw documents archived | 596 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
 | Road segments in PostGIS | 2,404 · **778 km** of carriageway |
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
@@ -60,7 +60,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
-| Wards with a desk to complain to | 24 of 24, six categories · 289 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md), [D158](05-decision-log.md), [D163](05-decision-log.md), [D165](05-decision-log.md)) |
+| Wards with a desk to complain to | 24 of 24, six categories · 337 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md), [D158](05-decision-log.md), [D163](05-decision-log.md), [D165](05-decision-log.md), [D167](05-decision-log.md)) |
 | — and an office above it to escalate to | 24 of 24 · 31 rows across 7 zones, every one with both a mailbox and an address ([D149](05-decision-log.md), [D159](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0041 is current)
+make migrate       # applies anything newer than the deployed schema (0043 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -354,12 +354,19 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       Engineer (Sewerage Operation). One honest gap recorded with it — the department's English
       directory has no Eastern Suburbs divisional office, so every ward points at the head of
       department rather than at two divisions out of three
-- [ ] **Find the desks for the rest of `environment`.** Five subcategories route nowhere —
-      mangrove destruction, creek dumping, effluent discharge, air pollution source, encroachment
-      on a water body — and most of them are not BMC's at all. This is the first routing work that
-      has to leave the corporation: the Maharashtra Pollution Control Board, the Mangrove Cell of
-      the Forest Department, and the coastal zone authority. Nothing should be seeded against BMC
-      for them
+- [x] **Taught routing that a desk need not be the corporation's — and seeded the pollution
+      control board.** Done 16 October ([D166](05-decision-log.md), [D167](05-decision-log.md),
+      migrations 0042 and 0043). `covers_authority` separates who a desk *serves* from who it
+      *belongs to*, so an effluent discharge or an air pollution source inside a BMC ward now
+      names the Maharashtra Pollution Control Board, and the ward page says **"Not BMC — this is
+      MPCB"** on that card. Two wards the Board's own sub-regional lists omit, E and R/Central,
+      are given its Regional Office rather than an inferred one
+- [ ] **The last three subcategories of `environment`.** Mangrove destruction and encroachment on
+      a water body belong to the Forest Department's Mangrove Cell and the coastal zone authority
+      (MCZMA); creek dumping is shared between the board and the corporation on a basis no
+      document in hand settles. The machinery to record them exists now; the sources do not. All
+      three still answer "not known"
+
 - [x] **Read what BMC has notified under the Right to Public Services Act 2015 — and closed the
       thread.** Done 16 October ([D161](05-decision-log.md)). BMC publishes it properly, in
       `MCGM Department List/Public Service Charter` and in per-department notice boards. Four were

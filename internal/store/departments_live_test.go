@@ -286,10 +286,24 @@ func TestLiveTreeFellingRoutesAndTheRestOfEnvironmentDoesNot(t *testing.T) {
 		if strings.TrimSpace(tree.EscalatesTo) == "" {
 			t.Errorf("%s: the tree desk has no office above it", ward)
 		}
-		// Nothing else in the category may inherit it.
-		for _, sub := range []string{"mangrove destruction", "effluent discharge", "air pollution source"} {
+		// Nothing else in the category may inherit the Tree Authority, and the
+		// three subcategories nobody has researched must still answer "not
+		// known" rather than borrowing a desk. Effluent and air are no longer
+		// among them: they belong to the pollution control board, which is not
+		// BMC at all (migration 0043).
+		for _, sub := range []string{"mangrove destruction", "creek dumping",
+			"encroachment on water body"} {
 			if _, found, err := db.RoutingFor(ctx, "BMC", ward, "environment", sub); err == nil && found {
-				t.Errorf("%s: %q was routed to a desk BMC has not claimed", ward, sub)
+				t.Errorf("%s: %q was routed to a desk nobody has researched", ward, sub)
+			}
+		}
+		for _, sub := range []string{"effluent discharge", "air pollution source"} {
+			r, found, err := db.RoutingFor(ctx, "BMC", ward, "environment", sub)
+			if err != nil || !found {
+				continue
+			}
+			if r.Authority == "BMC" {
+				t.Errorf("%s: %q was claimed for BMC", ward, sub)
 			}
 		}
 	}
@@ -454,5 +468,46 @@ func TestLiveSewageOverflowReachesTheSewerageDepartment(t *testing.T) {
 		if r.OfficeEmail == "" {
 			t.Errorf("%s: no mailbox to write to", ward)
 		}
+	}
+}
+
+// Not every desk belongs to the corporation. An effluent discharge is the
+// Maharashtra Pollution Control Board's — it is constituted under section 4 of
+// the Water (Prevention and Control of Pollution) Act 1974 and is the state
+// board under section 5 of the Air Act 1981 — and a platform that can only
+// name BMC would have to answer "not known" for something it knows.
+func TestLiveAStateBoardCanOwnASubcategory(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		for _, sub := range []string{"effluent discharge", "air pollution source"} {
+			r, found, err := db.RoutingFor(ctx, "BMC", ward, "environment", sub)
+			if err != nil {
+				t.Fatalf("%s/%s: %v", ward, sub, err)
+			}
+			if !found {
+				t.Errorf("%s: %q has no desk", ward, sub)
+				continue
+			}
+			if r.Authority != "MPCB" {
+				t.Errorf("%s: %q belongs to %q, want MPCB", ward, sub, r.Authority)
+			}
+			if r.OfficeEmail == "" {
+				t.Errorf("%s: %q has no mailbox", ward, sub)
+			}
+			if strings.TrimSpace(r.SourceRef) == "" {
+				t.Errorf("%s: %q has no source", ward, sub)
+			}
+		}
+	}
+
+	// A desk belonging to another body must not leak into the corporation's
+	// own categories. Asking BMC for a pothole still gets BMC.
+	r, found, err := db.RoutingFor(ctx, "BMC", "R/C", "road_defect", "pothole")
+	if err != nil || !found {
+		t.Fatalf("RoutingFor pothole: %v (found=%v)", err, found)
+	}
+	if r.Authority != "BMC" {
+		t.Errorf("a pothole is now %q's", r.Authority)
 	}
 }

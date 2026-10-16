@@ -36,6 +36,8 @@
        padding:3px 9px;border-radius:7px;margin-bottom:10px}
   .covers{display:inline-block;font-size:12px;color:var(--ink-45);
           margin:0 0 10px 8px;letter-spacing:.2px}
+  .elsewhere{font-size:12px;font-weight:600;color:var(--accent);margin:0 0 6px;
+             text-transform:uppercase;letter-spacing:.4px}
   .dept{font-size:19px;font-weight:600;margin:0 0 2px}
   .officer{color:var(--ink-70);margin:0 0 12px}
   .rows{display:grid;grid-template-columns:120px 1fr;gap:5px 14px;font-size:15px}
@@ -142,9 +144,18 @@ function desk(d) {
     ? '<span class="covers">only ' + esc(d.covers) + '</span>'
     : '';
 
+  // Some of these offices are not the corporation's at all. Saying so is the
+  // difference between a resident writing to the right body and writing to a
+  // council that has no power over what they photographed.
+  const elsewhere = d.authority
+    ? '<p class="elsewhere">Not ' + esc(AUTHORITY) + ' — this is '
+      + esc(d.authority) + '</p>'
+    : '';
+
   return '<div class="desk">'
     + '<span class="cat">' + esc(PLAIN[d.category] || d.category.replace(/_/g,' ')) + '</span>'
     + covers
+    + elsewhere
     + '<p class="dept">' + esc(d.department) + '</p>'
     + (d.officer ? '<p class="officer">' + esc(d.officer) + '</p>' : '')
     + '<dl class="rows">' + rows.join('') + '</dl>'

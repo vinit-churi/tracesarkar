@@ -20,7 +20,11 @@ type WardProfiles interface {
 // handbook, a deadline with its citation. Nothing here came from a citizen,
 // which is what makes it safe without a sign-in.
 type publicDesk struct {
-	Category string `json:"category"`
+	// Authority is the body the desk belongs to. It is rendered only when it
+	// differs from the one whose page this is, because a resident reading a
+	// BMC ward page has to be told when an office is not BMC's.
+	Authority string `json:"authority,omitempty"`
+	Category  string `json:"category"`
 	// Covers names the one thing inside the category this desk owns, when it
 	// does not own all of it: the Bridge department holds a cracked bridge
 	// while the ward holds the rest of `structural`. Without it the page lists
@@ -69,7 +73,9 @@ func (s *Server) handleWardProfile(w http.ResponseWriter, r *http.Request) {
 	desks := make([]publicDesk, 0, len(profile.Desks))
 	for _, d := range profile.Desks {
 		desks = append(desks, publicDesk{
-			Category: d.Category, Covers: d.Subcategory,
+			Authority:  otherAuthority(d.Authority, authority),
+			Category:   d.Category,
+			Covers:     d.Subcategory,
 			Department: d.Department,
 			Officer:    d.Officer, Office: d.Office,
 			Phone: d.OfficePhone, Email: d.OfficeEmail,
@@ -106,4 +112,15 @@ func (s *Server) handleWardProfile(w http.ResponseWriter, r *http.Request) {
 				"the platform produces is a draft a person reviews and sends.",
 		},
 	})
+}
+
+// otherAuthority returns the desk's authority when it is not the one the page
+// is about, and empty when it is. Printing "BMC" against every desk on a BMC
+// ward page is noise; printing nothing against a state board's desk is a lie
+// by omission.
+func otherAuthority(deskAuthority, pageAuthority string) string {
+	if strings.EqualFold(strings.TrimSpace(deskAuthority), strings.TrimSpace(pageAuthority)) {
+		return ""
+	}
+	return deskAuthority
 }

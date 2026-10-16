@@ -13,6 +13,10 @@ import (
 
 // Routing is the desk a problem belongs to, and what obliges it.
 type Routing struct {
+	// Authority is the body the desk belongs to, which is not always the one
+	// the report was resolved to: a mangrove or an effluent discharge inside a
+	// BMC ward is a state authority's, not the corporation's (migration 0042).
+	Authority        string
 	Department       string
 	Officer          string
 	Office           string
@@ -135,17 +139,18 @@ func (d *DB) RoutingFor(ctx context.Context, authority, ward, category, subcateg
 	// ward's. Ordering by the narrower row rather than filtering means a
 	// subcategory nobody has split still finds the category's desk.
 	err := d.pool.QueryRow(ctx, `
-		SELECT department, COALESCE(officer_designation, ''),
+		SELECT authority, department, COALESCE(officer_designation, ''),
 		       COALESCE(pio_address, ''), COALESCE(office_phone, ''),
 		       COALESCE(office_email, ''), COALESCE(office_hours, ''),
 		       COALESCE(visiting_hours, ''), COALESCE(escalates_to, ''),
 		       source_ref
 		  FROM authority_departments
-		 WHERE authority = $1 AND ward = $2 AND category = $3
+		 WHERE COALESCE(covers_authority, authority) = $1
+		   AND ward = $2 AND category = $3
 		   AND (subcategory IS NULL OR lower(subcategory) = lower($4))
 		 ORDER BY (subcategory IS NOT NULL) DESC, effective_from DESC, created_at
 		 LIMIT 1`, authority, ward, category, strings.TrimSpace(subcategory)).
-		Scan(&r.Department, &r.Officer, &r.Office, &r.OfficePhone,
+		Scan(&r.Authority, &r.Department, &r.Officer, &r.Office, &r.OfficePhone,
 			&r.OfficeEmail, &r.OfficeHours, &r.VisitingHours, &r.EscalatesTo,
 			&r.SourceRef)
 	if err != nil {
@@ -207,7 +212,12 @@ func (d *DB) Wards(ctx context.Context) ([]string, error) {
 
 // Desk is one department's published responsibility in a ward.
 type Desk struct {
-	Category string
+	// Authority is the body the desk belongs to. A page that lists it beside
+	// the corporation's own desks has to say when one is not the
+	// corporation's, or it tells a resident the council is responsible for
+	// something no council controls.
+	Authority string
+	Category  string
 	// Subcategory is empty for a desk that owns the whole category, and names
 	// one thing inside it otherwise — the Bridge department holds
 	// "cracked bridge/FOB" while the ward holds the rest of `structural`
@@ -256,14 +266,14 @@ func (d *DB) WardProfileFor(ctx context.Context, authority, ward string) (WardPr
 	p := WardProfile{Authority: authority, Ward: ward}
 
 	rows, err := d.pool.Query(ctx, `
-		SELECT category, COALESCE(subcategory, ''), department,
+		SELECT authority, category, COALESCE(subcategory, ''), department,
 		       COALESCE(officer_designation, ''),
 		       COALESCE(pio_address, ''), COALESCE(office_phone, ''),
 		       COALESCE(office_email, ''), COALESCE(office_hours, ''),
 		       COALESCE(visiting_hours, ''), COALESCE(escalates_to, ''),
 		       source_ref, retrieved_at
 		  FROM authority_departments
-		 WHERE authority = $1 AND ward = $2
+		 WHERE COALESCE(covers_authority, authority) = $1 AND ward = $2
 		 ORDER BY category, subcategory NULLS FIRST, department`, authority, ward)
 	if err != nil {
 		return p, fmt.Errorf("ward profile: %w", err)
@@ -271,7 +281,7 @@ func (d *DB) WardProfileFor(ctx context.Context, authority, ward string) (WardPr
 	defer rows.Close()
 	for rows.Next() {
 		var k Desk
-		if err := rows.Scan(&k.Category, &k.Subcategory, &k.Department,
+		if err := rows.Scan(&k.Authority, &k.Category, &k.Subcategory, &k.Department,
 			&k.Officer, &k.Office,
 			&k.OfficePhone, &k.OfficeEmail, &k.OfficeHours, &k.VisitingHours,
 			&k.EscalatesTo, &k.SourceRef, &k.RetrievedAt); err != nil {
