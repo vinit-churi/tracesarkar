@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/share"
@@ -37,6 +38,22 @@ type Refusal struct {
 	Got      map[int]string `json:"got"`
 }
 
+// Accepted is one case the guard passed and the model actually changed.
+//
+// Kept because the harness deliberately refuses to score whether the Marathi
+// reads better — that judgement belongs to a native speaker — and a
+// measurement that reports only refusals says nothing about what the model
+// produced when it worked. These are what that person reads.
+//
+// Unchanged posts are not kept: "the model returned the template" is a
+// number, not something worth anybody's reading time.
+type Accepted struct {
+	Case     string     `json:"case"`
+	Lang     share.Lang `json:"lang"`
+	Baseline string     `json:"baseline"`
+	Polished string     `json:"polished"`
+}
+
 // Score is the measurement.
 type Score struct {
 	Posts     int            `json:"posts"`
@@ -45,6 +62,8 @@ type Score struct {
 	Unchanged int            `json:"unchanged"`
 	Errors    int            `json:"errors"`
 	ByKind    map[string]int `json:"by_kind"`
+	// Accepted holds every published post the model actually reworded.
+	Accepted []Accepted `json:"accepted"`
 }
 
 // factKinds are the faults that mean the model changed what the post claims,
@@ -75,46 +94,96 @@ func (s Score) String() string {
 		kinds = append(kinds, k)
 	}
 	sort.Strings(kinds)
-	out := fmt.Sprintf("%d posts: %d published (%d unchanged), %d refused, %d errors",
-		s.Posts, s.Published, s.Unchanged, s.Refused, s.Errors)
+	out := fmt.Sprintf("%d posts: %d published (%d reworded, %d returned unchanged), "+
+		"%d refused, %d of those a provider failure",
+		s.Posts, s.Published, len(s.Accepted), s.Unchanged, s.Refused, s.Errors)
 	for _, k := range kinds {
 		out += fmt.Sprintf("\n  %-22s %d", k, s.ByKind[k])
 	}
+	// The number the ADR asked for, named rather than left to be worked out
+	// from the list above.
+	out += fmt.Sprintf("\n  %-22s %d", "invented a fact", s.InventedFacts())
 	return out
 }
 
+// MeasureConcurrency is how many cases are in flight at once.
+//
+// Chosen for the measurement, not for production: a provider worth evaluating
+// is one a page load will call once, and the eval calls it ninety-six times.
+// The first real run of this harness was sequential and spent its whole
+// window on 21 of 96 cases against a model at two minutes a call, reporting
+// almost nothing about fidelity because it never got to ask. Low enough not
+// to look like an attack on the provider.
+const MeasureConcurrency = 6
+
 // Measure runs every case and reports what the guard decided.
+//
+// Cases are independent — each composes its own baseline and asks its own
+// question — so they run concurrently. The result is assembled in the
+// corpus's order afterwards, because a measurement that reads differently
+// between runs cannot be diffed.
 func Measure(ctx context.Context, p Polisher, cases []Case) (Score, []Refusal, error) {
+	type outcome struct {
+		base share.Post
+		res  Result
+		err  error
+	}
+	out := make([]outcome, len(cases))
+
+	var wg sync.WaitGroup
+	gate := make(chan struct{}, MeasureConcurrency)
+	for i, c := range cases {
+		wg.Add(1)
+		go func(i int, c Case) {
+			defer wg.Done()
+			gate <- struct{}{}
+			defer func() { <-gate }()
+
+			base, err := share.Compose(c.Facts, c.Lang, c.Chan)
+			if err != nil {
+				out[i] = outcome{err: fmt.Errorf("compose %s/%s/%s: %w",
+					c.Name, c.Lang, c.Chan, err)}
+				return
+			}
+			out[i] = outcome{base: base, res: Apply(ctx, p, c.Facts, base)}
+		}(i, c)
+	}
+	wg.Wait()
+
 	s := Score{ByKind: map[string]int{}}
 	var refusals []Refusal
-
-	for _, c := range cases {
-		base, err := share.Compose(c.Facts, c.Lang, c.Chan)
-		if err != nil {
-			return s, refusals, fmt.Errorf("compose %s/%s/%s: %w", c.Name, c.Lang, c.Chan, err)
+	for i, c := range cases {
+		o := out[i]
+		if o.err != nil {
+			return s, refusals, o.err
 		}
 		s.Posts++
+		name := c.Name + " " + string(c.Chan)
 
-		res := Apply(ctx, p, c.Facts, base)
-		switch {
-		case len(res.Faults) == 0:
+		if len(o.res.Faults) == 0 {
 			s.Published++
-			if res.Post.Text == base.Text {
+			if o.res.Post.Text == o.base.Text {
 				s.Unchanged++
+				continue
 			}
-		default:
-			s.Refused++
-			for _, f := range res.Faults {
-				s.ByKind[f.Kind]++
-				if f.Kind == "model_error" {
-					s.Errors++
-				}
-			}
-			refusals = append(refusals, Refusal{
-				Case: c.Name + " " + string(c.Chan), Lang: c.Lang,
-				Baseline: base.Text, Faults: res.Faults, Got: res.Got,
+			s.Accepted = append(s.Accepted, Accepted{
+				Case: name, Lang: c.Lang,
+				Baseline: o.base.Text, Polished: o.res.Post.Text,
 			})
+			continue
 		}
+
+		s.Refused++
+		for _, f := range o.res.Faults {
+			s.ByKind[f.Kind]++
+			if f.Kind == "model_error" {
+				s.Errors++
+			}
+		}
+		refusals = append(refusals, Refusal{
+			Case: name, Lang: c.Lang,
+			Baseline: o.base.Text, Faults: o.res.Faults, Got: o.res.Got,
+		})
 	}
 	return s, refusals, nil
 }

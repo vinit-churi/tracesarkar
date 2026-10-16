@@ -65,6 +65,14 @@ func TestLiveTheModelIsMeasuredBeforeItIsTrusted(t *testing.T) {
 			r.Case, r.Lang, r.Baseline, r.Faults)
 	}
 
+	// What the model actually wrote when it worked. The harness does not
+	// score this and must not: whether the Marathi reads better is a native
+	// speaker's judgement, and this is the text to hand them.
+	for _, a := range score.Accepted {
+		t.Logf("\n--- reworded: %s / %s ---\nwas:\n%s\nnow:\n%s",
+			a.Case, a.Lang, a.Baseline, a.Polished)
+	}
+
 	// The invariant, independent of Apply: anything that was published must
 	// still verify clean when checked again from scratch. A bug in Apply that
 	// published a faulty candidate would be invisible to every other test.

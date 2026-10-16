@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/share"
 )
@@ -176,6 +177,80 @@ func TestScoreReadsAsAReport(t *testing.T) {
 		"number_changed", "line_too_long"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the report does not mention %q:\n%s", want, out)
+		}
+	}
+}
+
+// A slow provider must not make the measurement unusable. The first real run
+// of this harness spent a 40-minute window on 21 of 96 cases against a
+// reasoning model at roughly two minutes a call, and reported almost nothing
+// about the model's fidelity because it never got to ask.
+func TestMeasureRunsCasesConcurrently(t *testing.T) {
+	const delay = 60 * time.Millisecond
+	slow := &fn{name: "slow", f: func(lines []Segment) map[int]string {
+		time.Sleep(delay)
+		out := map[int]string{}
+		for _, l := range lines {
+			out[l.Index] = l.Text
+		}
+		return out
+	}}
+	cases := Corpus()
+	start := time.Now()
+	s, _, err := Measure(context.Background(), slow, cases)
+	if err != nil {
+		t.Fatalf("Measure: %v", err)
+	}
+	if s.Posts != len(cases) {
+		t.Fatalf("measured %d of %d", s.Posts, len(cases))
+	}
+	// Sequentially this would be len(cases) * delay. Half of that is a
+	// generous bar and still impossible without concurrency.
+	if took, sequential := time.Since(start), time.Duration(len(cases))*delay; took > sequential/2 {
+		t.Errorf("%d cases at %v each took %v; sequential would be %v, so nothing ran in parallel",
+			len(cases), delay, took, sequential)
+	}
+}
+
+// The harness refuses to score whether the Marathi reads better — that
+// judgement belongs to a native speaker. What it must do is hand that person
+// the text: a measurement that reports only refusals says nothing about what
+// the model actually produced when it worked.
+func TestMeasureKeepsWhatTheModelActuallyWrote(t *testing.T) {
+	reworder := &fn{name: "reworder", f: func(lines []Segment) map[int]string {
+		out := map[int]string{}
+		for _, l := range lines {
+			out[l.Index] = l.Text
+		}
+		// Change exactly one line, in a way the guard has no reason to
+		// refuse. What the change is does not matter here — only that there
+		// is one, and that it survives Reassemble, which trims the ends.
+		for _, l := range lines {
+			if strings.Contains(l.Text, " ") && !strings.Contains(l.Text, "@") &&
+				!digits.MatchString(l.Text) {
+				out[l.Index] = strings.Replace(l.Text, " ", "  ", 1)
+				break
+			}
+		}
+		return out
+	}}
+	s, _, err := Measure(context.Background(), reworder, Corpus())
+	if err != nil {
+		t.Fatalf("Measure: %v", err)
+	}
+	if s.Published == 0 {
+		t.Fatal("nothing was published, so there is nothing to read")
+	}
+	if len(s.Accepted) == 0 {
+		t.Error("Measure kept no accepted post, so a native speaker has nothing to read")
+	}
+	for _, a := range s.Accepted {
+		if a.Baseline == "" || a.Polished == "" {
+			t.Errorf("%s/%s was kept without both texts", a.Case, a.Lang)
+		}
+		if a.Baseline == a.Polished {
+			t.Errorf("%s/%s was kept although nothing changed; only changes are "+
+				"worth a reader's time", a.Case, a.Lang)
 		}
 	}
 }
