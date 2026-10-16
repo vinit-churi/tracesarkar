@@ -426,3 +426,33 @@ func TestLiveBothBridgeDesksStateTheirSpan(t *testing.T) {
 		}
 	}
 }
+
+// Sewage overflow was the last thing in `water_drainage` still falling back to
+// the water supply desk. The Sewerage Operation department's own Section 4
+// handbook says it "operates and maintains the Sewerage Network, Sewage
+// Pumping Stations, Sewage Treatment Plants" and attends "day-to-day
+// complaints related to sewer lines", which is what a photograph of a sewer
+// backing up into a street is about.
+func TestLiveSewageOverflowReachesTheSewerageDepartment(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		r, found, err := db.RoutingFor(ctx, "BMC", ward, "water_drainage", "sewage overflow")
+		if err != nil {
+			t.Fatalf("%s: %v", ward, err)
+		}
+		if !found {
+			t.Errorf("%s: sewage overflow has no desk", ward)
+			continue
+		}
+		if !strings.Contains(r.Department, "Sewerage Operation") {
+			t.Errorf("%s: sewage overflow went to %q", ward, r.Department)
+		}
+		if strings.Contains(r.Department, "Water Works") {
+			t.Errorf("%s: sewage overflow is still at the water supply desk", ward)
+		}
+		if r.OfficeEmail == "" {
+			t.Errorf("%s: no mailbox to write to", ward)
+		}
+	}
+}

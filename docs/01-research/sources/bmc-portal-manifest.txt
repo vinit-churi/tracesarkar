@@ -41,3 +41,7 @@ https://portal.mcgm.gov.in/irj/go/km/docs/documents/MCGM%20Department%20List/Pub
 # Storm Water Drains, read 16 October 2026 to split water_drainage
 https://portal.mcgm.gov.in/irj/go/km/docs/documents/MCGM%20Department%20List/Chief%20Engineer%20%28Storm%20Water%20Drains%29/RTI%20Manuals/Ch%20Engineer_SWD_RTI_E02.pdf
 https://portal.mcgm.gov.in/irj/go/km/docs/documents/MCGM%20Department%20List/Chief%20Engineer%20%28Storm%20Water%20Drains%29/RTI%20Manuals/Ch%20Engineer_SWD_RTI_E10.pdf
+
+# Sewerage Operation, read 16 October 2026 for the sewage overflow desk
+https://portal.mcgm.gov.in/irj/go/km/docs/documents/MCGM%20Department%20List/Chief%20Engineer%20%28Sewerage%20Operations%29/RTI%20Manuals/ChEngineer_S0_RTI_E02.pdf
+https://portal.mcgm.gov.in/irj/go/km/docs/documents/MCGM%20Department%20List/Chief%20Engineer%20%28Sewerage%20Operations%29/RTI%20Manuals/ChEngineer_S0_RTI_E10.pdf

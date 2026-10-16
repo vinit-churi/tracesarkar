@@ -46,7 +46,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 |---|---|
 | Road works archived | 4,878 |
 | Observed changes | 12,062 |
-| Raw documents archived | 592 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
+| Raw documents archived | 594 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
 | Road segments in PostGIS | 2,404 · **778 km** of carriageway |
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
@@ -60,7 +60,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
-| Wards with a desk to complain to | 24 of 24, six categories · 265 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md), [D158](05-decision-log.md), [D163](05-decision-log.md)) |
+| Wards with a desk to complain to | 24 of 24, six categories · 289 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md), [D158](05-decision-log.md), [D163](05-decision-log.md), [D165](05-decision-log.md)) |
 | — and an office above it to escalate to | 24 of 24 · 31 rows across 7 zones, every one with both a mailbox and an address ([D149](05-decision-log.md), [D159](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0040 is current)
+make migrate       # applies anything newer than the deployed schema (0041 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -348,9 +348,12 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       flooding spots, missing manholes — and the Storm Water Drains handbook claims the network
       and the major nallas. Waterlogging and blocked drains now go to the ward, a silted nallah to
       the SWD department by division, and burst pipelines and leaks stay where they belonged
-- [ ] **Find the desk for sewage overflow.** The last subcategory in `water_drainage` still
-      falling back to the water-supply desk. Sewerage Operation has its own folder, a citizen
-      charter in English and Marathi, and a contact list; none of it is read yet
+- [x] **Seeded the sewage overflow desk.** Done 16 October ([D165](05-decision-log.md),
+      migration 0041). `water_drainage` is now fully split: supply to Water Works, the street to
+      the ward, the network and major nallas to Storm Water Drains, and the sewers to the Chief
+      Engineer (Sewerage Operation). One honest gap recorded with it — the department's English
+      directory has no Eastern Suburbs divisional office, so every ward points at the head of
+      department rather than at two divisions out of three
 - [ ] **Find the desks for the rest of `environment`.** Five subcategories route nowhere —
       mangrove destruction, creek dumping, effluent discharge, air pollution source, encroachment
       on a water body — and most of them are not BMC's at all. This is the first routing work that
