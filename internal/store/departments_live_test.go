@@ -328,3 +328,101 @@ func TestLiveEveryDeskCitesAnArchivedDocument(t *testing.T) {
 		t.Errorf("and %d more rows with no archive key", unarchived-5)
 	}
 }
+
+// `water_drainage` has held one desk for everything since migration 0019, and
+// that desk is Water Works — the water *supply* department. It is right for a
+// burst main and wrong for everything that drains: BMC's own ward handbooks
+// give the ward Assistant Engineer (Maintenance & Repair) "desilting of minor
+// nallas and road side SWD" and "to minimise flooding spots during monsoon",
+// while the Chief Engineer (Storm Water Drains) handbook claims the SWD
+// network and the desilting of **major** nallas. A photograph of a flooded
+// lane arriving at the water-supply counter is the misroute this splits.
+func TestLiveDrainageDoesNotGoToTheWaterSupplyDesk(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		for _, sub := range []string{"waterlogging", "blocked drain"} {
+			r, found, err := db.RoutingFor(ctx, "BMC", ward, "water_drainage", sub)
+			if err != nil {
+				t.Fatalf("%s/%s: %v", ward, sub, err)
+			}
+			if !found {
+				t.Errorf("%s: %q has no desk", ward, sub)
+				continue
+			}
+			if strings.Contains(r.Department, "Water Works") {
+				t.Errorf("%s: %q went to the water supply desk %q", ward, sub, r.Department)
+			}
+			if !strings.Contains(r.Officer, "Maintenance & Repair") {
+				t.Errorf("%s: %q expected the ward maintenance post, got %q",
+					ward, sub, r.Officer)
+			}
+		}
+
+		nallah, found, err := db.RoutingFor(ctx, "BMC", ward, "water_drainage", "silted nallah")
+		if err != nil || !found {
+			t.Errorf("%s: a silted nallah has no desk (%v)", ward, err)
+		} else if !strings.Contains(nallah.Department, "Storm Water Drains") {
+			t.Errorf("%s: a silted nallah went to %q", ward, nallah.Department)
+		}
+
+		// What the category-wide desk is actually right for must not move.
+		for _, sub := range []string{"burst pipeline", "leakage"} {
+			r, found, err := db.RoutingFor(ctx, "BMC", ward, "water_drainage", sub)
+			if err != nil || !found {
+				t.Errorf("%s: %q has no desk (%v)", ward, sub, err)
+				continue
+			}
+			if !strings.Contains(r.Department, "Water Works") {
+				t.Errorf("%s: %q should still be the water supply desk, got %q",
+					ward, sub, r.Department)
+			}
+		}
+	}
+}
+
+// The bridge circular splits at exactly six metres of span, and a resident
+// cannot measure span from a photograph. The platform answers with the desk
+// that is right for every footover bridge and says, on the card, which side of
+// six metres each desk owns — so a person standing at a small culvert can read
+// that the other one is theirs rather than being quietly misrouted.
+func TestLiveBothBridgeDesksStateTheirSpan(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		p, err := db.WardProfileFor(ctx, "BMC", ward)
+		if err != nil {
+			t.Fatalf("%s: WardProfileFor: %v", ward, err)
+		}
+		var bridges, swd int
+		for _, d := range p.Desks {
+			if d.Subcategory != "cracked bridge/FOB" {
+				continue
+			}
+			if !strings.Contains(d.Department, "6 m") {
+				t.Errorf("%s: bridge desk %q does not say which spans it owns",
+					ward, d.Department)
+			}
+			switch {
+			case strings.Contains(d.Department, "Bridges"):
+				bridges++
+			case strings.Contains(d.Department, "Storm Water Drains"):
+				swd++
+			}
+		}
+		if bridges != 1 || swd != 1 {
+			t.Errorf("%s: %d bridge desk(s) and %d storm-water desk(s), want 1 of each",
+				ward, bridges, swd)
+		}
+
+		// The one answer a single-desk caller gets stays the Bridge
+		// department: it is right for every footover bridge, flyover and
+		// skywalk in the city.
+		r, found, err := db.RoutingFor(ctx, "BMC", ward, "structural", "cracked bridge/FOB")
+		if err != nil || !found {
+			t.Errorf("%s: no bridge desk (%v)", ward, err)
+		} else if !strings.Contains(r.Department, "Chief Engineer (Bridges)") {
+			t.Errorf("%s: the single answer became %q", ward, r.Department)
+		}
+	}
+}

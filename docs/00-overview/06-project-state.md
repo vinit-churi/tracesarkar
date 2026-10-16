@@ -46,7 +46,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 |---|---|
 | Road works archived | 4,878 |
 | Observed changes | 12,062 |
-| Raw documents archived | 590 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
+| Raw documents archived | 592 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
 | Road segments in PostGIS | 2,404 · **778 km** of carriageway |
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
@@ -60,7 +60,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 | — redacted, with a verdict recorded | 5 of 5 |
 | Issues formed | 2 |
 | Captures labelled for the eval set | 5 |
-| Wards with a desk to complain to | 24 of 24, six categories · 169 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md), [D158](05-decision-log.md)) |
+| Wards with a desk to complain to | 24 of 24, six categories · 265 rows, from 4 ([D145](05-decision-log.md), [D147](05-decision-log.md), [D152](05-decision-log.md), [D156](05-decision-log.md), [D158](05-decision-log.md), [D163](05-decision-log.md)) |
 | — and an office above it to escalate to | 24 of 24 · 31 rows across 7 zones, every one with both a mailbox and an address ([D149](05-decision-log.md), [D159](05-decision-log.md)) |
 | Captures marked up for faces and plates | 0 · the set exists, the photographs do not |
 | Attribution verdicts by a human | 50 |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0039 is current)
+make migrate       # applies anything newer than the deployed schema (0040 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -329,9 +329,9 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       dangerous structure. So `authority_departments` gained a nullable `subcategory`, and a
       cracked bridge now routes differently from a leaning building in all 24 wards. Manual 16 of
       the Bridges handbook gave a ward-by-ward Assistant Engineer with a role mailbox for every
-      ward. **Left undone on purpose:** a bridge of 6 m span or less belongs to the Chief Engineer
-      (Storm Water Drains) under the same circular, and one in a private layout to the society
-      that owns it — neither desk is seeded, and the row's note says so
+      ward. The Storm Water Drains desk for spans of 6 m and under followed on the same day
+      ([D164](05-decision-log.md)); a bridge in a private layout belongs to the society that owns
+      it and is still not seeded, because nothing in it is a public desk
 - [x] **Seeded tree felling, and `environment` with it.** Done 16 October
       ([D158](05-decision-log.md), migration 0037). Not from the Garden charter, which covers
       saplings and plant hire — from the Garden Department's own Section 4 handbook, whose stated
@@ -341,6 +341,16 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       the pollution board's, so the category stays empty and those still answer "not known".
       **All six categories now reach a desk.** The same manual closed migration 0031's two open
       addresses ([D159](05-decision-log.md))
+- [x] **Split `water_drainage`, which had been routing to the water supply desk.** Done 16
+      October ([D163](05-decision-log.md), migration 0040). Since migration 0019 a photograph of a
+      flooded lane in any of the twenty-four wards was addressed to Water Works, the supply
+      department. The ward maintenance handbooks give duties 32–34 — minor nallas, road-side SWD,
+      flooding spots, missing manholes — and the Storm Water Drains handbook claims the network
+      and the major nallas. Waterlogging and blocked drains now go to the ward, a silted nallah to
+      the SWD department by division, and burst pipelines and leaks stay where they belonged
+- [ ] **Find the desk for sewage overflow.** The last subcategory in `water_drainage` still
+      falling back to the water-supply desk. Sewerage Operation has its own folder, a citizen
+      charter in English and Marathi, and a contact list; none of it is read yet
 - [ ] **Find the desks for the rest of `environment`.** Five subcategories route nowhere —
       mangrove destruction, creek dumping, effluent discharge, air pollution source, encroachment
       on a water body — and most of them are not BMC's at all. This is the first routing work that
