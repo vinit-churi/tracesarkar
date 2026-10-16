@@ -257,3 +257,40 @@ func TestLiveAStructuralReportSplitsByWhatItIs(t *testing.T) {
 		}
 	}
 }
+
+// Tree felling is the one thing inside `environment` that BMC owns. The Garden
+// Department's own Section 4 handbook states the mission — "To Control illegal
+// tree cutting" — and lists, under TREE AUTHORITY, taking action against
+// illegal tree cutting, removal of dead and dangerous trees, and inspection of
+// trees on complaint. The rest of the category is somebody else's: a mangrove
+// is the Forest Department's, an effluent discharge the pollution board's. So
+// the desk is recorded against the subcategory, and the category stays empty.
+func TestLiveTreeFellingRoutesAndTheRestOfEnvironmentDoesNot(t *testing.T) {
+	ctx, _, db := liveDB(t)
+
+	for _, ward := range jurisdiction.KnownWards() {
+		tree, found, err := db.RoutingFor(ctx, "BMC", ward, "environment", "tree felling")
+		if err != nil {
+			t.Fatalf("%s: RoutingFor: %v", ward, err)
+		}
+		if !found {
+			t.Errorf("%s: tree felling has no desk", ward)
+			continue
+		}
+		if !strings.Contains(tree.Officer, "Gardens") {
+			t.Errorf("%s: expected the ward Gardens post, got %q", ward, tree.Officer)
+		}
+		if strings.TrimSpace(tree.SourceRef) == "" {
+			t.Errorf("%s: the tree desk has no source reference", ward)
+		}
+		if strings.TrimSpace(tree.EscalatesTo) == "" {
+			t.Errorf("%s: the tree desk has no office above it", ward)
+		}
+		// Nothing else in the category may inherit it.
+		for _, sub := range []string{"mangrove destruction", "effluent discharge", "air pollution source"} {
+			if _, found, err := db.RoutingFor(ctx, "BMC", ward, "environment", sub); err == nil && found {
+				t.Errorf("%s: %q was routed to a desk BMC has not claimed", ward, sub)
+			}
+		}
+	}
+}

@@ -40,18 +40,19 @@ func TestLiveRoutingFindsTheDeskAndTheClock(t *testing.T) {
 	})
 
 	// This case used to read "a ward with nothing recorded". No ward is in
-	// that state any more — migrations 0029 to 0036 gave all twenty-four a
-	// desk for five categories — so the honest version of the same assertion
-	// is a category nobody has researched yet. `environment` is the last one,
-	// and holds tree felling. Not found must stay an ordinary answer: the
-	// platform says it does not know rather than guessing.
-	t.Run("a category with nothing recorded is not an error", func(t *testing.T) {
-		_, ok, err := db.RoutingFor(ctx, "BMC", "R/N", "environment", "tree felling")
+	// that state any more, and no category is either — so the honest version
+	// of the same assertion is one thing inside a category that nobody owns
+	// here. `environment` routes tree felling to the Tree Authority and
+	// nothing else: a mangrove is the Forest Department's and an effluent
+	// discharge the pollution board's, neither of them BMC. Not found must
+	// stay an ordinary answer rather than a guess.
+	t.Run("a subcategory nobody owns here is not an error", func(t *testing.T) {
+		_, ok, err := db.RoutingFor(ctx, "BMC", "R/N", "environment", "mangrove destruction")
 		if err != nil {
 			t.Fatalf("RoutingFor: %v", err)
 		}
 		if ok {
-			t.Error("no environment desk is recorded anywhere; it must not be found")
+			t.Error("BMC has no mangrove desk; it must not be found")
 		}
 	})
 }

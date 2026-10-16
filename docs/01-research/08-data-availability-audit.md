@@ -838,3 +838,36 @@ The department's own Section 4 handbooks add the inventory and the people:
 
 `Docs/29 critical bridges list.pdf` additionally names, ward by ward, the bridges under demolition
 and reconstruction — a works list rather than a routing document, but a useful cross-check.
+
+## A.11 Gardens and the Tree Authority ✅
+
+*16 October 2026.* Two folders, and the useful one is not the one named after the charter.
+
+`MCGM Department List/Garden Department` holds the Section 4 handbook twice over —
+`Garden_Department_E01…E18.pdf` in **English** and `M01…M18` in Marathi. Clean text, no legacy
+font. Manual 1 states the department's mission in three lines, one of which is "To Control illegal
+tree cutting", and separates GARDEN functions from TREE AUTHORITY functions. Manual 4 names the
+statute — the **Maharashtra (Urban Areas) Protection and Preservation of Trees Act, 1975**, as
+amended to 1 January 2016 — and, like Bridges, Roads & Traffic, the ward maintenance handbooks and
+Mechanical & Electrical before it, **sets no time limit for anything**.
+
+Manual 16 is the valuable one: an Assistant Superintendent of Gardens for each of the twenty-four
+wards, with the ward's Assistant Commissioner as First Appellate Authority, each with an address
+and most with a role mailbox. Sixteen `*.garden@mcgm.gov.in` addresses exist in the document; eight
+wards have none printed, and B Ward's row prints A Ward's.
+
+`MCGM Department List/Gardens and Tree Authority/Docs` is an operational folder rather than a
+reference one, and it is large. What it contains is the **public notice stream for tree cutting**:
+hundreds of files named `TA-<n>-<zone>-<ward>-<applicant>-21 days` and `Adv…-7 days`, which are the
+statutory objection periods under the 1975 Act — 21 days for an application above 25 trees, 7 days
+below, and a separate 7-day notice for dead and dangerous trees. Also in it:
+
+- `लोकसेवा हक्क अधिनियम २०१५ अंतर्गत सेवा.pdf` — the Garden Department's services notified under
+  the Right to Public Services Act, the second such notification found ([A.9](#a9-the-km-repository-answers-webdav)).
+  It is a scan with no text layer and has not been read yet
+- a `Tree Permission` folder, and `Caretaker plots`
+- `WS<n>-<ward>.pdf` — a numbered series of ward-wise notices
+
+This is the richest stream of named-party data the project has found: each notice names an
+applicant, a ward, a plot and a number of trees. Nothing from it is seeded, and nothing should be
+without reading the Act's publication rules first.

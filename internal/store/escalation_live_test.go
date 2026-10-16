@@ -3,6 +3,8 @@ package store_test
 import (
 	"strings"
 	"testing"
+
+	"github.com/vinit-churi/tracesarkar/internal/jurisdiction"
 )
 
 // Every one of the twenty-four wards must have somewhere to send the second
@@ -72,22 +74,29 @@ func TestLiveEscalationContactsCarryProvenance(t *testing.T) {
 	}
 }
 
-// The two wards whose pages could not be attributed keep their mailbox and
-// lose only the address. Seeding a guessed address would be worse.
-func TestLiveAmbiguousWardsKeepMailboxWithoutAddress(t *testing.T) {
+// K/East and P/North were seeded with a mailbox and no address, because the
+// consolidated PIO list gave those two wards two-column pages headed with ward
+// names BMC does not use officially. A second document closed the gap: Manual
+// 16 of the Garden Department's handbook prints the Assistant Commissioner's
+// address for every ward in its own column (migration 0037). Every ward now
+// has both, and a refusal that was right at the time is a refusal that could
+// be lifted by better evidence rather than by a guess.
+func TestLiveEveryWardHasBothAMailboxAndAnAddress(t *testing.T) {
 	ctx, _, db := liveDB(t)
 
-	for _, w := range []string{"K/E", "P/N"} {
+	for _, w := range jurisdiction.KnownWards() {
 		c, err := db.EscalationFor(ctx, "BMC", w)
 		if err != nil {
 			t.Fatalf("EscalationFor(%s): %v", w, err)
 		}
 		if c.Ward.OfficeEmail == "" {
-			t.Errorf("ward %s lost its mailbox", w)
+			t.Errorf("ward %s has no mailbox", w)
 		}
-		if c.Ward.OfficeAddress != "" {
-			t.Errorf("ward %s has an address the source cannot attribute: %q",
-				w, c.Ward.OfficeAddress)
+		if c.Ward.OfficeAddress == "" {
+			t.Errorf("ward %s has no office address", w)
+		}
+		if c.Ward.SourceRef == "" {
+			t.Errorf("ward %s has an address with no document behind it", w)
 		}
 	}
 }
