@@ -186,6 +186,25 @@ any is wrong, say so and it gets reversed with a new log row.**
 Also chosen, not logged as decisions: the verticals order (drains first, then construction sites,
 building safety and hoardings behind a flag, then trees), and starting with personal tools.
 
+### Two model choices that are not decisions yet, and should be
+
+`CLAUDE.md` says the default model is `claude-opus-5`, and that a cheaper tier is permitted on the
+batch path *where the eval set shows no quality loss* — explicitly "a documented decision, not an
+implementation detail". Neither of the two models in the codebase has that document.
+
+- **The classifier runs `deepseek-flash`** (`CLASSIFY_BASE_URL=https://api.deepseek.com/v1`), chosen
+  because it was the vision model available without a card on file and because DeepSeek's own
+  listing does not say which of its two models can see images — that much is recorded in
+  `.env.example`. What is **not** recorded anywhere is a decision naming it, or a comparison against
+  the default on the eval set. [D114](05-decision-log.md) has the measurement (5 cases, category
+  5/5, subcategory 4/5) and does not name a model as the choice.
+- **The rewording model is unchosen**, deliberately: `SHARE_POLISH` without `POLISH_MODEL` is a
+  startup error precisely so this does not happen twice ([D170](05-decision-log.md)).
+
+What this needs is one decision-log row per model, naming it, saying what it was compared against,
+and saying what would change the answer. Until then the classifier's model is a configuration value
+nobody decided on, which is the state `CLAUDE.md` says it must not be in.
+
 ---
 
 ## 7. The plan
@@ -264,8 +283,12 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00035-66c`** (`17c05f4`,
-  16 October) carries `/truth/`, the share kit, the unfurling permalink, the evidence pack,
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00036-x6t`** (`58ace5a`,
+  16 October) adds password reset, email verification and session revocation
+  ([D171](05-decision-log.md), migration 0044 — the two mail endpoints answer 501 until `MAIL_MODE`
+  is set), the share kit's `wording` field and the rewording layer it belongs to
+  ([D170](05-decision-log.md), off until `SHARE_POLISH` is set), and one spelling per ward in every
+  escalation line ([D172](05-decision-log.md), migration 0045). It carries `/truth/`, the share kit, the unfurling permalink, the evidence pack,
   obligations shown with the scope they bind, desks shown with the scope *they* bind, and a card
   that says **"Not BMC"** when the office belongs to another body, and an issue block stating
   what the law requires for the thing photographed
