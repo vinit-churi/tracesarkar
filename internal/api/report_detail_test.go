@@ -46,7 +46,7 @@ func detailServer(t *testing.T, d *fakeDetails) (*Server, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := issuer.Issue("person-1", "p@example.org")
+	token, err := issuer.Issue("person-1", "p@example.org", 0)
 	if err != nil {
 		t.Fatal(err)
 	}

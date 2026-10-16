@@ -40,11 +40,16 @@ func TestLiveTheModelIsMeasuredBeforeItIsTrusted(t *testing.T) {
 		t.Fatalf("NewGateway: %v", err)
 	}
 
+	// Cached, exactly as production wraps it. The re-verification pass below
+	// asks the same questions again, and paying twice to learn the same thing
+	// is the mistake the cache exists to prevent.
+	p := Cached(g, time.Hour, 4096)
+
 	cases := Corpus()
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Minute)
 	defer cancel()
 
-	score, refusals, err := Measure(ctx, g, cases)
+	score, refusals, err := Measure(ctx, p, cases)
 	if err != nil {
 		t.Fatalf("Measure: %v", err)
 	}
@@ -68,7 +73,7 @@ func TestLiveTheModelIsMeasuredBeforeItIsTrusted(t *testing.T) {
 		if err != nil {
 			t.Fatalf("compose %s: %v", c.Name, err)
 		}
-		res := Apply(ctx, g, c.Facts, base)
+		res := Apply(ctx, p, c.Facts, base)
 		if res.Post.Wording != share.WordedByModel {
 			continue
 		}

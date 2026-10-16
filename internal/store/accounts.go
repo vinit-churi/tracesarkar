@@ -22,6 +22,9 @@ type AccountAuth struct {
 	Email        string
 	PasswordHash []byte
 	DisplayName  string
+	// TokenVersion is minted into the session token so it can be revoked
+	// later (migration 0044).
+	TokenVersion int64
 }
 
 // AccountInfo is what a client may see about itself. The tags matter: this
@@ -31,6 +34,10 @@ type AccountInfo struct {
 	Email         string   `json:"email"`
 	DisplayName   string   `json:"name"`
 	AuthProviders []string `json:"auth_providers"`
+	// EmailVerified is whether the address has been proved to reach the
+	// person holding the account. False means unproved, which is not the same
+	// as absent, and ADR 0017's gate on the public tier needs the difference.
+	EmailVerified bool `json:"email_verified"`
 }
 
 // CreateEmailAccount registers a password account.
@@ -57,9 +64,9 @@ func (d *DB) FindAccountByEmail(ctx context.Context, email string) (AccountAuth,
 	var a AccountAuth
 	var displayName *string
 	err := d.pool.QueryRow(ctx, `
-		SELECT id::text, COALESCE(email,''), password_hash, display_name
+		SELECT id::text, COALESCE(email,''), password_hash, display_name, token_version
 		FROM accounts WHERE email_normalised = $1`, auth.NormaliseEmail(email)).
-		Scan(&a.ID, &a.Email, &a.PasswordHash, &displayName)
+		Scan(&a.ID, &a.Email, &a.PasswordHash, &displayName, &a.TokenVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AccountAuth{}, ErrNoAccount
 	}
@@ -93,10 +100,15 @@ func (d *DB) UpsertGoogleAccount(ctx context.Context, identity auth.Identity) (i
 			UPDATE accounts
 			SET google_sub = $1,
 			    display_name = COALESCE(display_name, NULLIF($3,'')),
+			    -- Google has already proved this address reaches its holder,
+			    -- so asking the person to prove it again would be theatre.
+			    email_verified_at = CASE WHEN $4 THEN COALESCE(email_verified_at, now())
+			                             ELSE email_verified_at END,
 			    auth_providers = (
 			      SELECT array_agg(DISTINCT p) FROM unnest(auth_providers || ARRAY['google']) AS p)
 			WHERE email_normalised = $2 AND google_sub IS NULL
-			RETURNING id::text`, identity.Subject, email, identity.Name).Scan(&id)
+			RETURNING id::text`, identity.Subject, email, identity.Name,
+			identity.EmailVerified).Scan(&id)
 		if err == nil {
 			return id, false, nil
 		}
@@ -107,11 +119,13 @@ func (d *DB) UpsertGoogleAccount(ctx context.Context, identity auth.Identity) (i
 
 	err = d.pool.QueryRow(ctx, `
 		INSERT INTO accounts (id, email, email_normalised, google_sub, display_name,
-		                      display_handle, auth_providers)
+		                      display_handle, auth_providers, email_verified_at)
 		VALUES (gen_random_uuid(), NULLIF($1,''), NULLIF($2,''), $3, NULLIF($4,''),
-		        NULLIF($2,''), ARRAY['google'])
+		        NULLIF($2,''), ARRAY['google'],
+		        CASE WHEN $5 THEN now() ELSE NULL END)
 		RETURNING id::text`,
-		identity.Email, email, identity.Subject, identity.Name).Scan(&id)
+		identity.Email, email, identity.Subject, identity.Name,
+		identity.EmailVerified).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return "", false, ErrEmailTaken
@@ -126,9 +140,10 @@ func (d *DB) GetAccount(ctx context.Context, id string) (AccountInfo, error) {
 	var info AccountInfo
 	var email, displayName *string
 	err := d.pool.QueryRow(ctx, `
-		SELECT id::text, email, display_name, auth_providers
+		SELECT id::text, email, display_name, auth_providers,
+		       email_verified_at IS NOT NULL
 		FROM accounts WHERE id = $1::uuid`, id).
-		Scan(&info.ID, &email, &displayName, &info.AuthProviders)
+		Scan(&info.ID, &email, &displayName, &info.AuthProviders, &info.EmailVerified)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AccountInfo{}, ErrNoAccount
 	}

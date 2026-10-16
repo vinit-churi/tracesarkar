@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -17,7 +18,7 @@ func testIssuer(t *testing.T) *Issuer {
 func TestIssueThenVerify(t *testing.T) {
 	iss := testIssuer(t)
 
-	token, err := iss.Issue("account-123", "person@example.com")
+	token, err := iss.Issue("account-123", "person@example.com", 0)
 	if err != nil {
 		t.Fatalf("Issue: %v", err)
 	}
@@ -36,7 +37,7 @@ func TestIssueThenVerify(t *testing.T) {
 
 func TestVerifyRejectsATamperedToken(t *testing.T) {
 	iss := testIssuer(t)
-	token, err := iss.Issue("account-123", "person@example.com")
+	token, err := iss.Issue("account-123", "person@example.com", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +56,7 @@ func TestVerifyRejectsATokenFromAnotherSecret(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, err := theirs.Issue("account-123", "x@example.com")
+	token, err := theirs.Issue("account-123", "x@example.com", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +70,7 @@ func TestVerifyRejectsAnExpiredToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := iss.Issue("account-123", "x@example.com")
+	token, err := iss.Issue("account-123", "x@example.com", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,5 +82,43 @@ func TestVerifyRejectsAnExpiredToken(t *testing.T) {
 func TestShortSecretsAreRefused(t *testing.T) {
 	if _, err := NewIssuer("too-short", time.Hour); err == nil {
 		t.Fatal("a short signing secret must be refused, not silently accepted")
+	}
+}
+
+// A signed token cannot be withdrawn, which is the price of not reading the
+// database on every request. The version claim is how it is withdrawn anyway:
+// the account holds a number, the token carries the number it was minted
+// with, and bumping the account's number invalidates every token in
+// existence at once. Signing out everywhere, and a password change, both have
+// to be able to do that.
+func TestATokenCarriesTheVersionItWasMintedWith(t *testing.T) {
+	iss, err := NewIssuer(strings.Repeat("s", MinSecretBytes), time.Hour)
+	if err != nil {
+		t.Fatalf("NewIssuer: %v", err)
+	}
+	token, err := iss.Issue("account-123", "person@example.com", 7)
+	if err != nil {
+		t.Fatalf("Issue: %v", err)
+	}
+	claims, err := iss.Verify(token)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	if claims.TokenVersion != 7 {
+		t.Errorf("token version is %d, want 7", claims.TokenVersion)
+	}
+
+	// Version zero is the state every account starts in, and it has to
+	// survive the round trip rather than being indistinguishable from absent.
+	zero, err := iss.Issue("account-123", "", 0)
+	if err != nil {
+		t.Fatalf("Issue: %v", err)
+	}
+	zc, err := iss.Verify(zero)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	if zc.TokenVersion != 0 {
+		t.Errorf("version zero came back as %d", zc.TokenVersion)
 	}
 }

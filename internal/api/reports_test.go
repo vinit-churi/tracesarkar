@@ -341,7 +341,7 @@ func TestPostReportAttributesTheCaptureToTheSignedInAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, err := issuer.Issue("person-42", "someone@example.org")
+	token, err := issuer.Issue("person-42", "someone@example.org", 0)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/auth"
+	"github.com/vinit-churi/tracesarkar/internal/mail"
 	"github.com/vinit-churi/tracesarkar/internal/polish"
 	"github.com/vinit-churi/tracesarkar/internal/store"
 )
@@ -74,11 +75,22 @@ type Options struct {
 	// Polish rewords the prose lines of a generated post. Optional, and off
 	// unless configured: without it every post is the deterministic
 	// composition, which is what ADR 0020 shipped and is always correct.
-	Polish  polish.Polisher
-	Blobs   Blobs
-	Details Details
-	Issuer  *auth.Issuer
-	Google  *auth.GoogleVerifier
+	Polish polish.Polisher
+	// Credentials persists one-time links and the token version behind
+	// revocation. Optional: without it the reset and verification endpoints
+	// refuse cleanly rather than half-working.
+	Credentials Credentials
+	// Mail delivers a reset or verification link. Optional, and the reset
+	// endpoints refuse without it rather than minting a credential nobody
+	// will ever receive.
+	Mail mail.Sender
+	// PublicBaseURL is where the client lives, used to build the link in a
+	// reset mail. Without it a link cannot be built and the mail is not sent.
+	PublicBaseURL string
+	Blobs         Blobs
+	Details       Details
+	Issuer        *auth.Issuer
+	Google        *auth.GoogleVerifier
 	// AllowedOrigins are the browser origins permitted to call this API. The
 	// Flutter web client runs on a different origin, so without this it cannot.
 	AllowedOrigins []string
@@ -93,28 +105,31 @@ type Options struct {
 
 // Server is the HTTP surface.
 type Server struct {
-	reports      Reports
-	media        Media
-	accounts     Accounts
-	reviews      Reviews
-	wards        WardProfiles
-	issues       Issues
-	publicIssues PublicIssues
-	handles      Handles
-	evidence     Evidence
-	polish       polish.Polisher
-	labels       Labels
-	truth        Truth
-	blobs        Blobs
-	details      Details
-	issuer       *auth.Issuer
-	google       *auth.GoogleVerifier
-	origins      []string
-	token        string
-	account      string
-	maxSize      int64
-	throttle     *throttles
-	log          *slog.Logger
+	reports       Reports
+	media         Media
+	accounts      Accounts
+	reviews       Reviews
+	wards         WardProfiles
+	issues        Issues
+	publicIssues  PublicIssues
+	handles       Handles
+	evidence      Evidence
+	polish        polish.Polisher
+	credentials   Credentials
+	mail          mail.Sender
+	labels        Labels
+	truth         Truth
+	blobs         Blobs
+	details       Details
+	issuer        *auth.Issuer
+	google        *auth.GoogleVerifier
+	origins       []string
+	token         string
+	account       string
+	publicBaseURL string
+	maxSize       int64
+	throttle      *throttles
+	log           *slog.Logger
 }
 
 // contextKey is unexported so nothing outside this package can collide with it.
@@ -151,28 +166,31 @@ func New(opts Options) (*Server, error) {
 		log = slog.Default()
 	}
 	return &Server{
-		reports:      opts.Reports,
-		media:        opts.Media,
-		accounts:     opts.Accounts,
-		throttle:     newThrottles(),
-		reviews:      opts.Reviews,
-		wards:        opts.Wards,
-		issues:       opts.Issues,
-		publicIssues: opts.PublicIssues,
-		handles:      opts.Handles,
-		evidence:     opts.Evidence,
-		polish:       opts.Polish,
-		labels:       opts.Labels,
-		truth:        opts.Truth,
-		blobs:        opts.Blobs,
-		details:      opts.Details,
-		issuer:       opts.Issuer,
-		google:       opts.Google,
-		origins:      opts.AllowedOrigins,
-		token:        opts.Token,
-		account:      opts.Account,
-		maxSize:      size,
-		log:          log,
+		reports:       opts.Reports,
+		media:         opts.Media,
+		accounts:      opts.Accounts,
+		throttle:      newThrottles(),
+		reviews:       opts.Reviews,
+		wards:         opts.Wards,
+		issues:        opts.Issues,
+		publicIssues:  opts.PublicIssues,
+		handles:       opts.Handles,
+		evidence:      opts.Evidence,
+		polish:        opts.Polish,
+		credentials:   opts.Credentials,
+		mail:          opts.Mail,
+		publicBaseURL: strings.TrimSpace(opts.PublicBaseURL),
+		labels:        opts.Labels,
+		truth:         opts.Truth,
+		blobs:         opts.Blobs,
+		details:       opts.Details,
+		issuer:        opts.Issuer,
+		google:        opts.Google,
+		origins:       opts.AllowedOrigins,
+		token:         opts.Token,
+		account:       opts.Account,
+		maxSize:       size,
+		log:           log,
 	}, nil
 }
 
@@ -190,6 +208,17 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /v1/auth/google", s.handleGoogle)
 	mux.Handle("GET /v1/auth/me", s.authenticated(http.HandlerFunc(s.handleMe)))
+	// Unauthenticated, because somebody who cannot sign in is exactly who
+	// needs them. The one-time token is the whole proof.
+	mux.HandleFunc("POST /v1/auth/password/forgot", s.handleForgotPassword)
+	mux.HandleFunc("POST /v1/auth/password/reset", s.handleResetPassword)
+	mux.HandleFunc("POST /v1/auth/email/verify", s.handleVerifyEmail)
+	// Authenticated: there is no reason for a stranger to be able to send
+	// mail to somebody else's address, or to end their sessions.
+	mux.Handle("POST /v1/auth/email/verify/request",
+		s.authenticated(http.HandlerFunc(s.handleRequestEmailVerification)))
+	mux.Handle("POST /v1/auth/sessions/revoke",
+		s.authenticated(http.HandlerFunc(s.handleRevokeSessions)))
 
 	mux.Handle("POST /v1/reports", s.authenticated(http.HandlerFunc(s.handlePostReport)))
 
@@ -329,13 +358,41 @@ func (s *Server) authenticated(next http.Handler) http.Handler {
 			return
 		}
 		if s.issuer != nil {
-			if claims, err := s.issuer.Verify(presented); err == nil {
+			if claims, err := s.issuer.Verify(presented); err == nil && s.sessionIsCurrent(r, claims) {
 				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
 				return
 			}
 		}
 		writeError(w, http.StatusUnauthorized, "that token is not valid")
 	})
+}
+
+// sessionIsCurrent is the revocation check: the version in the token against
+// the version on the account (migration 0044).
+//
+// This is the one database read the signed-token design was meant to avoid,
+// and it is worth it. Without it "sign out everywhere" and "reset my
+// password" cannot end a session before its own expiry, which is thirty days
+// — so a stolen token stays good for a month after the theft is noticed. One
+// row by primary key is the cheapest form that answer comes in; a deny list
+// of revoked tokens would be a read too, and would grow forever.
+//
+// A read that fails refuses the request. Treating a database blip as "the
+// session is fine" would mean a revoked token working again whenever the
+// database hiccups.
+func (s *Server) sessionIsCurrent(r *http.Request, claims auth.Claims) bool {
+	if s.credentials == nil {
+		return true
+	}
+	version, err := s.credentials.TokenVersion(r.Context(), claims.AccountID)
+	if err != nil {
+		if !errors.Is(err, ErrNoAccount) {
+			s.log.Error("could not check whether a session is current",
+				"error", err.Error())
+		}
+		return false
+	}
+	return claims.TokenVersion == version
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {

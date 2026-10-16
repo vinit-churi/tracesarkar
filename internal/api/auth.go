@@ -77,7 +77,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.issueSession(w, http.StatusCreated, id, auth.NormaliseEmail(in.Email), strings.TrimSpace(in.Name))
+	s.issueSession(w, r, http.StatusCreated, id, auth.NormaliseEmail(in.Email), strings.TrimSpace(in.Name))
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +119,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.issueSession(w, http.StatusOK, account.ID, account.Email, account.DisplayName)
+	s.issueSession(w, r, http.StatusOK, account.ID, account.Email, account.DisplayName)
 }
 
 func (s *Server) handleGoogle(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +169,7 @@ func (s *Server) handleGoogle(w http.ResponseWriter, r *http.Request) {
 	if created {
 		status = http.StatusCreated
 	}
-	s.issueSession(w, status, id, identity.Email, identity.Name)
+	s.issueSession(w, r, status, id, identity.Email, identity.Name)
 }
 
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
@@ -191,8 +191,31 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"account": info})
 }
 
-func (s *Server) issueSession(w http.ResponseWriter, status int, accountID, email, name string) {
-	token, err := s.issuer.Issue(accountID, email)
+// issueSession mints the session token and writes the sign-in response.
+//
+// The token version is read here rather than passed in, so that no sign-in
+// path can forget it. A token minted at the wrong version either stops
+// working immediately or — worse — cannot be revoked, and a caller that has
+// to remember to look it up is a caller that will eventually not.
+//
+// Without a Credentials implementation the version is zero, which is the
+// version every account starts at: revocation is simply unavailable on that
+// deployment, rather than silently broken on this one.
+func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, status int, accountID, email, name string) {
+	var version int64
+	if s.credentials != nil {
+		v, err := s.credentials.TokenVersion(r.Context(), accountID)
+		if err != nil {
+			// Refusing the sign-in is the safe direction: a token issued
+			// without the account's version is a token nothing can withdraw.
+			s.log.Error("could not read the token version", "error", err.Error())
+			writeError(w, http.StatusInternalServerError, "could not complete sign-in")
+			return
+		}
+		version = v
+	}
+
+	token, err := s.issuer.Issue(accountID, email, version)
 	if err != nil {
 		s.log.Error("could not issue token", "error", err.Error())
 		writeError(w, http.StatusInternalServerError, "could not complete sign-in")

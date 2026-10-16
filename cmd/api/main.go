@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/vinit-churi/tracesarkar/internal/archive"
 	"github.com/vinit-churi/tracesarkar/internal/auth"
 	"github.com/vinit-churi/tracesarkar/internal/config"
+	"github.com/vinit-churi/tracesarkar/internal/mail"
 	"github.com/vinit-churi/tracesarkar/internal/polish"
 	"github.com/vinit-churi/tracesarkar/internal/store"
 )
@@ -181,6 +183,58 @@ func serve(ctx context.Context, args []string) error {
 		slog.Info("share kit rewording disabled", "reason", "SHARE_POLISH is not set")
 	}
 
+	// How a reset or verification link gets to a person. Three states, and
+	// the default is the honest one: with no MAIL_MODE the endpoints refuse
+	// rather than mint a credential nobody will ever receive.
+	var sender mail.Sender
+	switch mode := os.Getenv("MAIL_MODE"); mode {
+	case "smtp":
+		port, err := strconv.Atoi(envOr("SMTP_PORT", "0"))
+		if err != nil {
+			return fmt.Errorf("SMTP_PORT is not a number: %w", err)
+		}
+		sender, err = mail.NewSMTPSender(mail.SMTPOptions{
+			Host:     os.Getenv("SMTP_HOST"),
+			Port:     port,
+			Username: os.Getenv("SMTP_USERNAME"),
+			Password: os.Getenv("SMTP_PASSWORD"),
+			From:     os.Getenv("MAIL_FROM"),
+			FromName: envOr("MAIL_FROM_NAME", "TraceSarkar"),
+			TLS:      os.Getenv("SMTP_TLS"),
+		})
+		if err != nil {
+			return err
+		}
+	case "log":
+		// The personal tier: under ADR 0017 the only account is the
+		// operator's own, and the operator can read their own link out of the
+		// log. It writes a one-time credential to the log, which is why it
+		// has to be asked for by name.
+		sender = mail.NewLogSender(slog.Default())
+		slog.Warn("mail is going to the log, not to a mailbox",
+			"why", "MAIL_MODE=log", "cost", "one-time credentials appear in the log")
+	case "":
+	default:
+		return fmt.Errorf("MAIL_MODE is %q; use smtp, log, or leave it unset", mode)
+	}
+
+	publicBaseURL := strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL"))
+	if sender != nil {
+		if publicBaseURL == "" {
+			return errors.New("MAIL_MODE is set but PUBLIC_BASE_URL is not; a reset " +
+				"link cannot be built without knowing where the client lives")
+		}
+		// Fail at startup rather than on the first reset somebody needs.
+		if _, err := mail.Link(publicBaseURL, auth.PasswordReset, "startup-check"); err != nil {
+			return err
+		}
+		slog.Info("password resets and email verification enabled",
+			"mail", sender.Describe(), "links", publicBaseURL)
+	} else {
+		slog.Info("password resets and email verification disabled",
+			"reason", "MAIL_MODE is not set")
+	}
+
 	origins := splitList(envOr("ALLOWED_ORIGINS",
 		"http://localhost:8080,http://localhost:5000,http://127.0.0.1:5000"))
 
@@ -197,6 +251,9 @@ func serve(ctx context.Context, args []string) error {
 		Handles:        db,
 		Evidence:       db,
 		Polish:         polisher,
+		Credentials:    db,
+		Mail:           sender,
+		PublicBaseURL:  publicBaseURL,
 		Blobs:          blobs,
 		Details:        db,
 		Issuer:         issuer,

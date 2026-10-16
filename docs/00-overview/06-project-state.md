@@ -99,7 +99,7 @@ v1 is eight systems, built strictly one at a time ([D063](05-decision-log.md)). 
 | **2** | **Jurisdiction** — ward, department, confidence gate | **Bar met.** 98.17%. Road defects, waste and water now route to a named desk in **all 24 wards** — 73 rows, up from 4 — read out of BMC's own PIO list ([D145](05-decision-log.md), [D147](05-decision-log.md)) |
 | 3 | **Classification** — what is in the photograph | **Built, measurement running.** Six categories, versioned prompt, guardrails. `ingest eval` scores whatever is labelled and re-runs as the set grows; 5 cases on 12 Oct — category 5/5, subcategory 4/5, no hazards missed. The ≥90% bar accrues from use ([D114](05-decision-log.md)) |
 | **4** | **Issues** — dedup, corroboration, SLA clock, hash-chained timeline | **Built, surfaced, and now public.** A second sighting joins the first and is shown as corroboration; the clock starts only when the reporter records the complaint reference; history is hash-chained and verifies, and is readable at `/issue/{id}` without the actor |
-| 5 | Accounts — OTP, rate limits, reset, revocation | **Partly built.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)) work. Missing: reset, email verification, revocation, phone OTP |
+| 5 | Accounts — OTP, rate limits, reset, revocation | **Built but for phone OTP.** Email/password, Google, sessions, forgery resistance and throttling ([D113](05-decision-log.md)), and now password reset, email verification and token revocation ([D171](05-decision-log.md), migration 0044). Revocation is a `token_version` on the account rather than a list of dead tokens: bumping it invalidates every token at once, which is what a reset and "sign out everywhere" both need. Mail is plain text through any SMTP server, or written to the log at the personal tier; with `MAIL_MODE` unset the two mail endpoints answer 501 rather than minting a credential nobody will receive. **Missing: phone OTP**, which [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) keeps as the gate on the public tier and which needs a DLT-registered sender ID and a paid SMS route |
 | **6** | **Public surface** — redaction, coarsening, permalink, ward page | **Mostly built.** Coarsening, the ward page, and both detectors — faces on an embedded Pico cascade, plates on an edge-density localiser, neither leaving the process ([D124](05-decision-log.md)). Scan, verdict and output object are recorded on `report_media`, and the database refuses a published verdict with no object. The permalink is live at `/issue/{id}`: coarsened position, hash-chained history with no actor, and a photograph only behind a completed redaction ([D130](05-decision-log.md)). Images are fitted to the 150 KB budget on the way out — 2.5 MB became 135 KB on a live issue ([D131](05-decision-log.md)). The detector is now gradable: `/truth/` records what a person can see in a photograph and `make redact-eval` scores both detectors against it ([D132](05-decision-log.md), [D133](05-decision-log.md)). Remaining, and still the gate: photographs with faces and plates in them. Five captures measured no recall because none contains either ([D127](05-decision-log.md)) |
 | **7** | **Share kit** — annotated image, per-language text | **Mostly built.** The post is assembled from the fact set with no model in the path, in three languages and two channels, and the annotated image puts the facts under the photograph rather than across it ([ADR 0020](../04-adr/0020-share-text-is-generated-not-written-by-a-model.md), [D135](05-decision-log.md)). A handle is printed only with its source and a re-verification date ([D136](05-decision-log.md)). Marathi and Hindi ship as **drafts** until a native speaker reads them, labelled as such in the API and on the page ([D137](05-decision-log.md)). A link pasted in any chat unfurls into the facts and the annotated card, which meant moving the redaction gate ahead of the first byte rather than relaxing it ([D139](05-decision-log.md)), and the card is drawn in 9:16 for Status and Stories ([D140](05-decision-log.md)). The evidence pack compiles the record as a deterministic, stamped PDF — the one artefact here that is signed in, because it carries the exact position and the reference a complaint needs ([D141](05-decision-log.md), [D142](05-decision-log.md)). Not built: the WhatsApp intake bot |
 | 8 | Operator console — moderation, collection health, metrics | Waiting |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0043 is current)
+make migrate       # applies anything newer than the deployed schema (0044 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -253,6 +253,7 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 | Faces, plates, the mosaic, the hold | `internal/redact/` |
 | Grading the detector against marked-up photographs | `internal/redact/eval.go`, `cmd/ingest/redact_eval.go` |
 | The one place a model may touch a generated post | `internal/polish/` — rewords composed lines, never composes one; `Verify` is the gate, `Corpus`/`Measure` the eval set |
+| A reset or verification link, and how it is delivered | `internal/mail/` — plain text, no tracking; `internal/auth/onetime.go` mints the credential, `internal/store/credentials.go` holds the hash |
 | What a public surface may show | `internal/publish/` |
 | The next step a report earns | `internal/action/` |
 | HTTP, and every page | `internal/api/` — static pages are embedded under `internal/api/{ward,issue,label,review,methodology,fieldkit,truth}/ and the share kit's\nvocabulary in `internal/share/i18n/`` |
@@ -385,6 +386,15 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       not given these: a fee beside a photograph of a stump, in a post that travels beyond any
       page this platform can correct, is an accusation however it is worded
 
+- [x] **Finished system 5 but for phone OTP.** Done 16 October ([D171](05-decision-log.md),
+      migration 0044). Password reset, email verification and token revocation, with the design
+      decision in the middle: revocation is a `token_version` on the account rather than a list of
+      dead tokens, so bumping it kills every session at once and a reset and "sign out everywhere"
+      are the same operation. A one-time credential is 256 random bits stored as a SHA-256 hash and
+      nothing else; the purpose is part of the lookup, so a verification link cannot reset a
+      password. The forgotten-password endpoint answers 202 with an identical body whether or not
+      the address is registered, and a successful reset returns no session
+
 - [x] **Put a model in the share path, for rewording only.** Done 16 October
       ([D170](05-decision-log.md),
       [ADR 0021](../04-adr/0021-a-model-may-reword-a-generated-post-never-author-one.md)).
@@ -426,9 +436,15 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       rate, the refusals by kind and every refused post in full. Record the numbers and the model
       in the decision log; a model picked without that entry is the mistake the classifier already
       made (`deepseek-flash` is in production with no entry naming it)
-- [ ] **Finish system 5** — password reset, email verification, token revocation. Throttling is
-      done ([D113](05-decision-log.md)); the rest is not, and the public tier needs it
-      ([ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md))
+- [ ] **Phone OTP, the last of system 5.** Reset, email verification and revocation are done
+      ([D171](05-decision-log.md)); phone verification is not, and
+      [ADR 0017](../04-adr/0017-email-and-google-identity-before-public-tier.md) keeps it as the
+      gate on the public tier. It is a procurement task before it is a coding one: a
+      DLT-registered sender ID and a paid SMS route in India
+- [ ] **Choose a mail route.** The code is done and off: `MAIL_MODE=smtp` with `SMTP_HOST`,
+      `MAIL_FROM` and `PUBLIC_BASE_URL`, or `MAIL_MODE=log` to read your own links out of the log
+      at the personal tier. A domain sending password resets also needs an SPF record, or the mail
+      is spam ([D171](05-decision-log.md))
 - [ ] **System 8, the operator console** — collection health is currently read from logs
 
 ### Yours, in the field

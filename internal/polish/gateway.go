@@ -159,7 +159,12 @@ func (g *Gateway) Reword(ctx context.Context, lang share.Lang, ch share.Channel,
 		// numbered lines fails silently, and a silently mis-numbered line puts
 		// one fact's wording on another fact.
 		"response_format": responseFormat,
-		"max_tokens":      2000,
+		// Generous for the size of the answer, because a reasoning model
+		// spends this budget thinking first and a budget that runs out
+		// returns finish_reason "length" with empty content — which reads as
+		// a broken provider rather than a budget mistake (the same trap
+		// internal/classify documents).
+		"max_tokens": 4000,
 		// The job is to reword a fixed set of sentences, not to explore. A low
 		// temperature also makes the eval set mean something between runs.
 		"temperature": 0.2,

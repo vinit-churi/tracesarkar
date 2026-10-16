@@ -8,8 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/vinit-churi/tracesarkar/internal/auth"
+	"github.com/vinit-churi/tracesarkar/internal/store"
 )
 
 type fakeAccounts struct {
@@ -17,10 +19,77 @@ type fakeAccounts struct {
 	created  []string
 	nextID   string
 	takenErr bool
+
+	// The credential half, so one double can stand in for both interfaces —
+	// which is also what the real DB does.
+	tokens     map[string]credential
+	versions   map[string]int64
+	verified   map[string]bool
+	versionErr error
+}
+
+type credential struct {
+	accountID string
+	purpose   auth.Purpose
+	expires   time.Time
+	used      bool
 }
 
 func newFakeAccounts() *fakeAccounts {
-	return &fakeAccounts{byEmail: map[string]Account{}, nextID: "account-new"}
+	return &fakeAccounts{
+		byEmail: map[string]Account{}, nextID: "account-new",
+		tokens: map[string]credential{}, versions: map[string]int64{},
+		verified: map[string]bool{},
+	}
+}
+
+func (f *fakeAccounts) CreateAuthToken(_ context.Context, accountID string, purpose auth.Purpose, hash []byte, expiresAt time.Time) error {
+	f.tokens[string(hash)] = credential{accountID: accountID, purpose: purpose, expires: expiresAt}
+	return nil
+}
+
+func (f *fakeAccounts) ConsumeAuthToken(_ context.Context, purpose auth.Purpose, hash []byte) (string, error) {
+	c, ok := f.tokens[string(hash)]
+	if !ok || c.used || c.purpose != purpose || !c.expires.After(time.Now()) {
+		return "", store.ErrNoCredential
+	}
+	c.used = true
+	f.tokens[string(hash)] = c
+	return c.accountID, nil
+}
+
+func (f *fakeAccounts) SetPassword(_ context.Context, accountID string, hash []byte) (int64, error) {
+	for key, a := range f.byEmail {
+		if a.ID == accountID {
+			a.PasswordHash = hash
+			f.byEmail[key] = a
+		}
+	}
+	f.versions[accountID]++
+	for key, c := range f.tokens {
+		if c.accountID == accountID && c.purpose == auth.PasswordReset {
+			c.used = true
+			f.tokens[key] = c
+		}
+	}
+	return f.versions[accountID], nil
+}
+
+func (f *fakeAccounts) RevokeSessions(_ context.Context, accountID string) (int64, error) {
+	f.versions[accountID]++
+	return f.versions[accountID], nil
+}
+
+func (f *fakeAccounts) TokenVersion(_ context.Context, accountID string) (int64, error) {
+	if f.versionErr != nil {
+		return 0, f.versionErr
+	}
+	return f.versions[accountID], nil
+}
+
+func (f *fakeAccounts) MarkEmailVerified(_ context.Context, accountID string) error {
+	f.verified[accountID] = true
+	return nil
 }
 
 func (f *fakeAccounts) CreateEmailAccount(_ context.Context, email string, hash []byte, name string) (string, error) {
@@ -49,7 +118,8 @@ func (f *fakeAccounts) GetAccount(_ context.Context, id string) (AccountInfo, er
 	for _, a := range f.byEmail {
 		if a.ID == id {
 			return AccountInfo{ID: a.ID, Email: a.Email, DisplayName: a.DisplayName,
-				AuthProviders: []string{"password"}}, nil
+				AuthProviders: []string{"password"},
+				EmailVerified: f.verified[a.ID]}, nil
 		}
 	}
 	return AccountInfo{}, ErrNoAccount

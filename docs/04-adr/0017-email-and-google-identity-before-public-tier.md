@@ -58,6 +58,25 @@ verification remains the gate for the `public` tier, unchanged.**
   refuse otherwise. Phase 1 does not exit without it.
 - We now hold email addresses, which ADR 0011 was designed to avoid. They are personal data under
   DPDP: never logged, never rendered on a public surface, and deletable with the account.
+
+## What was built, 16 October 2026
+
+Everything above shipped on 25 September except the parts that needed a mailbox. Those are done now
+([D171](../00-overview/05-decision-log.md), migration 0044) and three details are worth recording
+here, because they are consequences of this ADR rather than of the feature.
+
+- **An address can now be *proved*, which this ADR assumed but did not provide.** `auth_providers`
+  said whether an account held a password or a Google subject; it could not say whether the address
+  on it reached anybody. `accounts.email_verified_at` does, and `AccountInfo.EmailVerified` carries
+  it. A Google-verified address is recorded as verified at sign-in rather than confirmed again,
+  because Google has already done it.
+- **"Phone verification remains the gate for the public tier" is now checkable in the same shape.**
+  The publication gate this ADR promised still has to be written; the pattern it should follow —
+  a column recording the proof, not an inference from a provider list — exists.
+- **Signing out is possible.** This ADR shipped 30-day sessions with no way to end one, so a token
+  that leaked stayed good for a month. A `token_version` on the account ends every session at once,
+  and a password reset bumps it, which is the behaviour a reset has to have: a reset exists because
+  a password may have been stolen.
 - Google sign-in adds a runtime dependency on Google's JWKS endpoint. The key set is cached, so a
   brief outage degrades new Google sign-ins only, not sessions or email sign-in.
 - A password reset flow does not exist yet. Until it does, a forgotten password means a new account.

@@ -68,7 +68,7 @@ func reviewServer(t *testing.T, reviews *fakeReviews) (*Server, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := issuer.Issue("reviewer-1", "r@example.org")
+	token, err := issuer.Issue("reviewer-1", "r@example.org", 0)
 	if err != nil {
 		t.Fatal(err)
 	}

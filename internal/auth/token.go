@@ -23,6 +23,18 @@ type Claims struct {
 	IssuedAt  int64  `json:"iat"`
 	ExpiresAt int64  `json:"exp"`
 	Issuer    string `json:"iss"`
+	// TokenVersion is the account's version at the moment this token was
+	// minted. A signed token cannot be withdrawn, which is the price of not
+	// reading the database on every request; this is how it is withdrawn
+	// anyway. The account holds a number, the token carries the number it was
+	// minted with, and bumping the account's number invalidates every token
+	// in existence at once — which is what signing out everywhere and
+	// changing a password both have to do.
+	//
+	// Verify does not check it: this package has no database. The comparison
+	// belongs to whoever holds the account, and is made on every
+	// authenticated request.
+	TokenVersion int64 `json:"tv"`
 }
 
 // Issuer mints and verifies session tokens. The format is a JWT with HMAC-SHA256,
@@ -45,15 +57,20 @@ func NewIssuer(secret string, ttl time.Duration) (*Issuer, error) {
 
 const tokenIssuer = "tracesarkar"
 
-// Issue returns a signed token for an account.
-func (i *Issuer) Issue(accountID, email string) (string, error) {
+// Issue returns a signed token for an account at a given token version.
+//
+// The version is a required argument rather than an option with a default,
+// because a token minted without one is a token that can never be revoked,
+// and that is not a mistake worth leaving available.
+func (i *Issuer) Issue(accountID, email string, version int64) (string, error) {
 	now := time.Now().UTC()
 	claims := Claims{
-		AccountID: accountID,
-		Email:     email,
-		IssuedAt:  now.Unix(),
-		ExpiresAt: now.Add(i.ttl).Unix(),
-		Issuer:    tokenIssuer,
+		AccountID:    accountID,
+		Email:        email,
+		IssuedAt:     now.Unix(),
+		ExpiresAt:    now.Add(i.ttl).Unix(),
+		Issuer:       tokenIssuer,
+		TokenVersion: version,
 	}
 
 	header := base64url([]byte(`{"alg":"HS256","typ":"JWT"}`))
