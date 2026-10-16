@@ -414,3 +414,26 @@ type GRHitRow struct {
 	IssuedOn  *time.Time
 	Keywords  []string
 }
+
+// RawDocumentKeyByHash returns the archive key already holding these bytes.
+//
+// The archive is content-addressed, so a document fetched twice must not be
+// written twice — and the caller needs the key that exists rather than the one
+// it would have computed, because the two differ in the date their path
+// carries.
+func (d *DB) RawDocumentKeyByHash(ctx context.Context, sha256hex string) (string, bool, error) {
+	sum, err := hex.DecodeString(sha256hex)
+	if err != nil {
+		return "", false, fmt.Errorf("decode sha256: %w", err)
+	}
+	var key string
+	err = d.pool.QueryRow(ctx,
+		`SELECT archive_key FROM raw_documents WHERE sha256 = $1`, sum).Scan(&key)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, nil
+		}
+		return "", false, fmt.Errorf("raw document by hash: %w", err)
+	}
+	return key, true, nil
+}

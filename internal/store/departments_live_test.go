@@ -294,3 +294,37 @@ func TestLiveTreeFellingRoutesAndTheRestOfEnvironmentDoesNot(t *testing.T) {
 		}
 	}
 }
+
+// The archive, not the parsed row, is the evidentiary record. A desk that
+// cites only a live URL cites a path on a portal that rewrites its own paths
+// and replaces documents in place — so in a year the row would say where it
+// came from and nobody could produce it. Every routing row must carry an
+// archive key as well as a source.
+func TestLiveEveryDeskCitesAnArchivedDocument(t *testing.T) {
+	ctx, pool, _ := liveDB(t)
+
+	rows, err := pool.Query(ctx, `
+		SELECT ward, category, COALESCE(subcategory, ''), department
+		  FROM authority_departments
+		 WHERE archive_key IS NULL OR archive_key = ''
+		 ORDER BY category, ward`)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	defer rows.Close()
+	var unarchived int
+	for rows.Next() {
+		var ward, category, sub, dept string
+		if err := rows.Scan(&ward, &category, &sub, &dept); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		unarchived++
+		if unarchived <= 5 {
+			t.Errorf("%s/%s%s: %q cites a live URL with nothing archived behind it",
+				ward, category, map[bool]string{true: " (" + sub + ")"}[sub != ""], dept)
+		}
+	}
+	if unarchived > 5 {
+		t.Errorf("and %d more rows with no archive key", unarchived-5)
+	}
+}

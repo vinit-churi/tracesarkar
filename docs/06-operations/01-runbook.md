@@ -160,6 +160,32 @@ to invite.
 **Migration rule:** every migration must be safe against the previous application version. If it is
 not, it is split into two deploys (expand, then contract).
 
+### Archiving a document that was read by hand
+
+Most of what the platform cites is fetched by a collector on a schedule. The Section 4 handbooks,
+citizen charters and departmental circulars behind the routing tables are not — they are found by
+reading, one at a time. Until a document is in the bucket, the row citing it points at a live URL
+on a portal that rewrites its own paths, so the evidence is only as durable as BMC's whims.
+
+```bash
+# One document, or a manifest of them. -dry-run fetches and hashes without writing.
+go run ./cmd/ingest archive-docs -source bmc_portal_rti_manuals \
+  -manifest docs/01-research/sources/bmc-portal-manifest.txt
+```
+
+It prints `stored|have <key> <url>` per line, and the key is what a migration should cite in
+`archive_key`. Three things it does that matter:
+
+- **Content-addressed.** The key is the SHA-256 of the bytes, so a re-run is a no-op and a
+  document BMC has since edited gets a new key while the old evidence survives.
+- **Sends a browser User-Agent.** The portal answers a request without one with HTTP 200 and the
+  body "Could not open iView" ([D148](../00-overview/05-decision-log.md)).
+- **Refuses to archive that error page.** A 200 carrying the iView error is reported as a failure
+  rather than stored as though it were the handbook.
+
+Two live tests guard the result: every routing row must carry an `archive_key`, and every cited
+key must actually be in the bucket.
+
 ### The sweep job
 
 `tracesarkar-sweep` runs `ingest sweep` every ten minutes: **enrich, redact, classify, issues**.

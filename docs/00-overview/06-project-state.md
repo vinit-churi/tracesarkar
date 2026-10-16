@@ -46,7 +46,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 |---|---|
 | Road works archived | 4,878 |
 | Observed changes | 12,062 |
-| Raw documents archived | 540 |
+| Raw documents archived | 590 · including the 36 handbooks, charters and circulars the routing tables rest on ([D162](05-decision-log.md)) |
 | Road segments in PostGIS | 2,404 · **778 km** of carriageway |
 | — of those, Borivali | 198 |
 | Ward boundaries | 24 · all of Greater Mumbai |
@@ -225,7 +225,7 @@ further update can be installed over an existing APK** — back it up somewhere 
 
 ```bash
 make test          # 24 Go packages, offline, no credentials needed
-make migrate       # applies anything newer than the deployed schema (0038 is current)
+make migrate       # applies anything newer than the deployed schema (0039 is current)
 make sweep         # enrich, redact, classify, issues — what the Cloud Run job runs
 make api           # serves the API, the field kit, and every public page on :8080
 make test-live     # the tests that touch the real bucket and database
@@ -360,10 +360,14 @@ The portal is **no longer blocked**; the obstacle was our own User-Agent, not BM
       Authority has 45 days by statute to decide — is the kind of join this platform exists to
       make, and it belongs beside a photograph of a tree coming down. It must never be rendered as
       a deadline for answering the report
-- [ ] **Archive what was read into R2.** CONNECT 2026, the English Diary 2026 and the handbooks
-      downloaded this session are on a laptop, not in the archive, and the archive — not the parsed
-      row — is the evidentiary record. `authority_departments` rows cite an `archive_key`; the new
-      `ward_escalation_contacts` and `bmc_departments` rows cite a live URL only, which is weaker
+- [x] **Archived what was read.** Done 16 October ([D162](05-decision-log.md), migration 0039).
+      Thirty-six documents — every ward and departmental handbook, charter, circular and Right to
+      Public Services board this week's work rests on — fetched, hashed and stored by a new
+      command, `ingest archive-docs`, with the manifest kept in
+      [`docs/01-research/sources/bmc-portal-manifest.txt`](../01-research/sources/bmc-portal-manifest.txt).
+      **169 of 169 routing rows now cite an archive key**, and a live test fails if one does not.
+      Another asserts every cited key is really in the bucket — which also confirmed the four keys
+      cited since September were there
 
 ### Next in the code
 

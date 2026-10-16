@@ -72,6 +72,8 @@ func main() {
 		err = runIssues(ctx, os.Args[min(2, len(os.Args)):])
 	case "eval":
 		err = runEval(ctx, os.Args[min(2, len(os.Args)):])
+	case "archive-docs":
+		err = runArchiveDocs(ctx, os.Args[min(2, len(os.Args)):])
 	case "wards":
 		err = runWards(ctx, os.Args[min(2, len(os.Args)):])
 	case "redact":
@@ -108,6 +110,8 @@ func usage() {
   ingest classify            classify captures that have not been classified
   ingest enrich              resolve ward and contract for captures
   ingest wards               fetch and load BMC ward boundaries
+  ingest archive-docs        archive documents read by hand
+                             -source <id> [-manifest f] [-dry-run] [url ...]
   ingest review [--count n]  queue attribution answers for a human verdict
   ingest redact [--out dir]  obscure faces and plates, and record what it did
   ingest redact-eval         score the detectors against photographs marked up by hand
