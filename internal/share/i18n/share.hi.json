@@ -19,7 +19,7 @@
     "not_told": "इसके बारे में प्राधिकरण को बताए जाने का कोई रिकॉर्ड नहीं है, इसलिए कोई समयसीमा शुरू नहीं हुई है.",
     "deadline_elapsed_short": "कार्रवाई के लिए {hours} घंटे ({short_ref}). यह समय बीत चुका है.",
     "deadline_running_short": "कार्रवाई के लिए {hours} घंटे ({short_ref}).",
-    "deadline_elapsed_long": "कार्रवाई के लिए {hours} घंटे — {citation} यह समय बीत चुका है.",
+    "deadline_elapsed_long": "कार्रवाई के लिए {hours} घंटे. यह समय बीत चुका है — {citation}",
     "deadline_running_long": "कार्रवाई के लिए {hours} घंटे — {citation}",
     "deadline_obligation_long": "प्राधिकरण को बताए जाने के बाद कार्रवाई के लिए {hours} घंटे — {citation}",
     "sources_note": "ऊपर का हर तथ्य, उस दस्तावेज़ के साथ जिससे वह आया है, इस पेज पर है:"

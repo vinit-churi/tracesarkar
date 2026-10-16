@@ -18,7 +18,7 @@
     "not_told": "Nobody has recorded telling the authority about this yet, so no deadline is running.",
     "deadline_elapsed_short": "{hours} hours to attend ({short_ref}). That time has passed.",
     "deadline_running_short": "{hours} hours to attend ({short_ref}).",
-    "deadline_elapsed_long": "{hours} hours to attend — {citation} That time has passed.",
+    "deadline_elapsed_long": "{hours} hours to attend. That time has passed — {citation}",
     "deadline_running_long": "{hours} hours to attend — {citation}",
     "deadline_obligation_long": "{hours} hours to attend once the authority is told — {citation}",
     "sources_note": "Every fact above is on this page, with the document it came from:"

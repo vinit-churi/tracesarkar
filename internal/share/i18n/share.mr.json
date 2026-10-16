@@ -19,7 +19,7 @@
     "not_told": "याबद्दल प्राधिकरणाला कळवल्याची नोंद अजून नाही, त्यामुळे कोणतीही मुदत सुरू झालेली नाही.",
     "deadline_elapsed_short": "कार्यवाहीसाठी {hours} तास ({short_ref}). ही मुदत संपली आहे.",
     "deadline_running_short": "कार्यवाहीसाठी {hours} तास ({short_ref}).",
-    "deadline_elapsed_long": "कार्यवाहीसाठी {hours} तास — {citation} ही मुदत संपली आहे.",
+    "deadline_elapsed_long": "कार्यवाहीसाठी {hours} तास. ही मुदत संपली आहे — {citation}",
     "deadline_running_long": "कार्यवाहीसाठी {hours} तास — {citation}",
     "deadline_obligation_long": "प्राधिकरणाला कळवल्यापासून कार्यवाहीसाठी {hours} तास — {citation}",
     "sources_note": "वरील प्रत्येक तपशील, तो ज्या कागदपत्रातून आला आहे त्यासह, या पानावर आहे:"
