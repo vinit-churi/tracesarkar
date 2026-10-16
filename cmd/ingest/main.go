@@ -70,6 +70,8 @@ func main() {
 		err = runSweep(ctx, os.Args[min(2, len(os.Args)):])
 	case "issues":
 		err = runIssues(ctx, os.Args[min(2, len(os.Args)):])
+	case "credentials":
+		err = runCredentials(ctx, os.Args[min(2, len(os.Args)):])
 	case "eval":
 		err = runEval(ctx, os.Args[min(2, len(os.Args)):])
 	case "archive-docs":
@@ -115,6 +117,8 @@ func usage() {
   ingest review [--count n]  queue attribution answers for a human verdict
   ingest redact [--out dir]  obscure faces and plates, and record what it did
   ingest redact-eval         score the detectors against photographs marked up by hand
+  ingest credentials         remove spent password-reset and verification links
+                             [-keep 168h]
   ingest all                 snapshot, then watch — one nightly invocation
 
 Configuration comes from .env or the environment:

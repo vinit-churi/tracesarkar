@@ -52,11 +52,22 @@ func runSweep(ctx context.Context, args []string) error {
 			},
 		},
 		{
-			// Last, because the category decides which issues a sighting
-			// could belong to.
+			// Last of the capture stages, because the category decides which
+			// issues a sighting could belong to.
 			Name: "issues",
 			Run: func(ctx context.Context) error {
 				return runIssues(ctx, []string{"-limit", strconv.Itoa(*enrichLimit)})
+			},
+		},
+		{
+			// Housekeeping, and it belongs here rather than on a timer of its
+			// own: a spent password-reset row has no reason to outlive the
+			// week in which somebody might ask about it, and a job that
+			// already runs is cheaper than a job that has to be scheduled,
+			// watched and alerted on. The query matches nothing most passes.
+			Name: "credentials",
+			Run: func(ctx context.Context) error {
+				return runCredentials(ctx, nil)
 			},
 		},
 	})

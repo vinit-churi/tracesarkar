@@ -294,7 +294,10 @@ Three Cloud Run resources in `asia-south1`, all from this repository:
   what the law requires for the thing photographed
   ([D156](05-decision-log.md), [D166](05-decision-log.md), [D168](05-decision-log.md))
 - `tracesarkar-collector` — twice daily, alerts on failure
-- `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image, rebuilt at
+- `tracesarkar-sweep` — every ten minutes, now with a fifth stage that removes spent
+  password-reset and verification links a week after they stop working ([D171](05-decision-log.md));
+  it belongs on a job that already runs rather than a timer of its own, and matches nothing most
+  passes. Both jobs share the collector image, rebuilt at
   `b1aa75e`: a newly captured photograph is scanned by `edge-density-2` rather than the localiser
   that was blind to large plates ([D134](05-decision-log.md)), and the next step it drafts quotes
   the court's forty-eight hours only where that order actually binds ([D138](05-decision-log.md))
