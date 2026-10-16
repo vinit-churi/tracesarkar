@@ -218,7 +218,17 @@ func serve(ctx context.Context, args []string) error {
 		return fmt.Errorf("MAIL_MODE is %q; use smtp, log, or leave it unset", mode)
 	}
 
+	// Where this service lives, as a fact rather than as whatever hostname
+	// answered a request. It is the base of every permalink burned into a
+	// shared card, so without it the platform generates links from the
+	// request's Host header — which a caller of a public endpoint chooses.
 	publicBaseURL := strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL"))
+	if publicBaseURL == "" {
+		slog.Warn("PUBLIC_BASE_URL is not set",
+			"effect", "permalinks follow the request's Host header",
+			"cost", "a caller can choose the link in a generated post, and a "+
+				"forwarded post dies if this service's hostname changes")
+	}
 	if sender != nil {
 		if publicBaseURL == "" {
 			return errors.New("MAIL_MODE is set but PUBLIC_BASE_URL is not; a reset " +

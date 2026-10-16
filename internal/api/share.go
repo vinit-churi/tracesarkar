@@ -181,7 +181,7 @@ func draftLanguages(k share.Kit) []string {
 // handle" and "we could not look" are different answers and only one of them
 // is safe to render silently.
 func (s *Server) factsFor(r *http.Request, v store.PublicIssueView) (share.Facts, bool) {
-	f, _ := factsOnly(r, v)
+	f, _ := s.factsOnly(r, v)
 
 	if s.handles == nil {
 		return f, false
@@ -200,7 +200,7 @@ func (s *Server) factsFor(r *http.Request, v store.PublicIssueView) (share.Facts
 // Separate from factsFor because the unfurl needs the same narrowing and no
 // handles: metadata tags nobody, and a page render should not wait on a
 // registry query it has no use for.
-func factsOnly(r *http.Request, v store.PublicIssueView) (share.Facts, publish.Derivative) {
+func (s *Server) factsOnly(r *http.Request, v store.PublicIssueView) (share.Facts, publish.Derivative) {
 	d := publish.Derive(publish.Capture{
 		ReportID: v.IssueID, Lat: v.Lat, Lon: v.Lon,
 		Category: v.Category, Subcategory: v.Subcategory,
@@ -211,7 +211,7 @@ func factsOnly(r *http.Request, v store.PublicIssueView) (share.Facts, publish.D
 		// A relative link, made absolute against the host serving this
 		// request: the permalink must be the page the reader can open, and
 		// hard-coding a domain here is how a staging link ends up forwarded.
-		Permalink:        permalink(r, v.IssueID),
+		Permalink:        s.permalink(r, v.IssueID),
 		Authority:        v.Authority,
 		Ward:             v.Ward,
 		Category:         d.Category,
@@ -310,7 +310,32 @@ func clockState(v store.PublicIssueView) issue.ClockState {
 	return issue.NewClock(v.NotifiedAt, v.DeadlineHours).At(time.Now().UTC()).State
 }
 
-func permalink(r *http.Request, issueID string) string {
+// permalink is the canonical address of an issue page.
+//
+// It prefers the configured base URL and falls back to the request's own host
+// only when none is configured. That order is the whole point, and it is a
+// correctness rule rather than a tidiness one.
+//
+// `Host` is a request header. The share kit is a public, unauthenticated GET,
+// so a caller chooses it: a request carrying `Host: evil.example` used to
+// make the platform generate a post reading "Every fact above is on this
+// page, with the document it came from:" above a link to a host the caller
+// controls — in all three languages, and burned into the card image as well —
+// ready to be forwarded past any page this platform can correct. Nothing
+// downstream can tell that post from a real one.
+//
+// The second reason is slower and just as permanent. A forwarded post is
+// uncorrectable, so a permalink that follows whatever hostname answered today
+// dies the day the service's hostname changes. A configured canonical base
+// survives that; a header does not.
+//
+// The fallback stays because a local run has no canonical URL and refusing
+// would break development. cmd/api logs what it costs when PUBLIC_BASE_URL is
+// unset.
+func (s *Server) permalink(r *http.Request, issueID string) string {
+	if s.publicBaseURL != "" {
+		return strings.TrimSuffix(s.publicBaseURL, "/") + "/issue/" + issueID
+	}
 	scheme := "https"
 	// Behind Cloud Run the TLS terminates upstream, so r.TLS is nil on a
 	// request that reached the user over HTTPS. The forwarded header is the

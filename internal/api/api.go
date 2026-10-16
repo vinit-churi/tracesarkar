@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -157,6 +158,24 @@ func New(opts Options) (*Server, error) {
 	if opts.Token == "" {
 		return nil, errors.New("api: a token is required; refusing to serve unauthenticated")
 	}
+	// Checked here rather than at the first use. A permalink is burned into a
+	// card image and forwarded past any page that could correct it, so a
+	// malformed base must stop the process starting rather than appear under
+	// every reader's photograph.
+	base := strings.TrimSpace(opts.PublicBaseURL)
+	if base != "" {
+		u, err := url.Parse(base)
+		if err != nil {
+			return nil, fmt.Errorf("api: PublicBaseURL %q is not a URL: %w", base, err)
+		}
+		if u.Scheme != "https" && u.Scheme != "http" {
+			return nil, fmt.Errorf("api: PublicBaseURL %q is not http or https", base)
+		}
+		if u.Host == "" {
+			return nil, fmt.Errorf("api: PublicBaseURL %q names no host", base)
+		}
+	}
+
 	size := opts.MaxUploadBytes
 	if size <= 0 {
 		size = DefaultMaxUploadBytes
@@ -179,7 +198,7 @@ func New(opts Options) (*Server, error) {
 		polish:        opts.Polish,
 		credentials:   opts.Credentials,
 		mail:          opts.Mail,
-		publicBaseURL: strings.TrimSpace(opts.PublicBaseURL),
+		publicBaseURL: base,
 		labels:        opts.Labels,
 		truth:         opts.Truth,
 		blobs:         opts.Blobs,

@@ -53,7 +53,7 @@ func (s *Server) issuePageHandler(shell []byte) http.Handler {
 			return
 		}
 
-		writePage(w, injectUnfurl(shell, unfurlFor(r, v)), http.StatusOK)
+		writePage(w, injectUnfurl(shell, s.unfurlFor(r, v)), http.StatusOK)
 	})
 }
 
@@ -78,15 +78,15 @@ type unfurl struct {
 	Image string
 }
 
-func unfurlFor(r *http.Request, v store.PublicIssueView) unfurl {
-	f, d := factsOnly(r, v)
+func (s *Server) unfurlFor(r *http.Request, v store.PublicIssueView) unfurl {
+	f, d := s.factsOnly(r, v)
 
 	u := unfurl{
 		Title: share.Title(f) + " · TraceSarkar",
-		URL:   permalink(r, v.IssueID),
+		URL:   s.permalink(r, v.IssueID),
 	}
 	if d.ImageKey != "" {
-		u.Image = origin(r) + "/v1/public/issue/" + v.IssueID + "/card"
+		u.Image = s.origin(r) + "/v1/public/issue/" + v.IssueID + "/card"
 	}
 	u.Description = unfurlDescription(v, f)
 	return u
@@ -185,6 +185,6 @@ func injectUnfurl(shell []byte, u unfurl) []byte {
 // origin is the scheme and host this request arrived on. An unfurl image has
 // to be an absolute URL: the crawler fetching it has no page to resolve a
 // relative path against.
-func origin(r *http.Request) string {
-	return strings.TrimSuffix(permalink(r, ""), "/issue/")
+func (s *Server) origin(r *http.Request) string {
+	return strings.TrimSuffix(s.permalink(r, ""), "/issue/")
 }
