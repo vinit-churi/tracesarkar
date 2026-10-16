@@ -26,7 +26,7 @@ Thirteen things are live and answering. Nothing below is aspirational.
 
 | | Where | State |
 |---|---|---|
-| **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy · revision `00034-6xx`, deployed 16 Oct |
+| **API** | `https://tracesarkar-api-mlkwom573a-el.a.run.app` | Cloud Run, `asia-south1`, healthy · revision `00035-66c`, deployed 16 Oct |
 | **App** | `https://tracesarkar-app.infoyantra.workers.dev` | Cloudflare Workers — sign in, capture, send |
 | **Android** | `…workers.dev/download/` | Signed APK, published from R2 on a version tag. v0.1.1 queues captures offline |
 | **Review** | `…run.app/review/` | Attribution verdicts, signed-in only |
@@ -262,11 +262,12 @@ POSTGRES_CA_PATH=$PWD/ca.pem TRACESARKAR_LIVE=1 go test ./internal/store/
 
 Three Cloud Run resources in `asia-south1`, all from this repository:
 
-- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00034-6xx`** (`43cd135`,
+- `tracesarkar-api` — the API and every page, `maxScale=3`. Revision **`00035-66c`** (`17c05f4`,
   16 October) carries `/truth/`, the share kit, the unfurling permalink, the evidence pack,
   obligations shown with the scope they bind, desks shown with the scope *they* bind, and a card
-  that says **"Not BMC"** when the office belongs to another body
-  ([D156](05-decision-log.md), [D166](05-decision-log.md))
+  that says **"Not BMC"** when the office belongs to another body, and an issue block stating
+  what the law requires for the thing photographed
+  ([D156](05-decision-log.md), [D166](05-decision-log.md), [D168](05-decision-log.md))
 - `tracesarkar-collector` — twice daily, alerts on failure
 - `tracesarkar-sweep` — every ten minutes. Both jobs share the collector image, rebuilt at
   `b1aa75e`: a newly captured photograph is scanned by `edge-density-2` rather than the localiser
